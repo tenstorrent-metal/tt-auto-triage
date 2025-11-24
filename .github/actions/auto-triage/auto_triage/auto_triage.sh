@@ -19,22 +19,31 @@ MODEL="$3"
 CI_MODE="${4:-}"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DATA_DIR="${ROOT}/data"
-SUMMARY_FILE="${ROOT}/data/boundaries_summary.json"
-SUBJOB_RUNS_FILE="${ROOT}/data/subjob_runs.json"
-LOGS_DIR="${ROOT}/logs"
+CANON_DATA_DIR="${ROOT}/auto_triage/data"
+CANON_LOGS_DIR="${ROOT}/auto_triage/logs"
+CANON_OUTPUT_DIR="${ROOT}/auto_triage/output"
+DATA_LINK="${ROOT}/data"
+LOGS_LINK="${ROOT}/logs"
+OUTPUT_LINK="${ROOT}/output"
+SUMMARY_FILE="${CANON_DATA_DIR}/boundaries_summary.json"
+SUBJOB_RUNS_FILE="${CANON_DATA_DIR}/subjob_runs.json"
 FIND_SCRIPT="${ROOT}/find_boundaries.sh"
 
 echo "=== Cleaning auto_triage/data and auto_triage/logs ==="
-if [ -d "$DATA_DIR" ]; then
-    find "$DATA_DIR" -mindepth 1 ! -name 'boundaries_summary.json' ! -name 'subjob_runs.json' -exec rm -rf {} +
+if [ -d "$CANON_DATA_DIR" ]; then
+    find "$CANON_DATA_DIR" -mindepth 1 ! -name 'boundaries_summary.json' ! -name 'subjob_runs.json' -exec rm -rf {} +
 else
-    mkdir -p "$DATA_DIR"
+    mkdir -p "$CANON_DATA_DIR"
 fi
-rm -rf "$LOGS_DIR"
-mkdir -p "$LOGS_DIR"
-rm -rf "$ROOT/output"
-mkdir -p "$ROOT/output"
+rm -rf "$CANON_LOGS_DIR"
+mkdir -p "$CANON_LOGS_DIR"
+rm -rf "$CANON_OUTPUT_DIR"
+mkdir -p "$CANON_OUTPUT_DIR"
+
+# Maintain convenient symlinks (./data, ./logs, ./output) pointing at canonical locations.
+ln -sfn auto_triage/data "$DATA_LINK"
+ln -sfn auto_triage/logs "$LOGS_LINK"
+ln -sfn auto_triage/output "$OUTPUT_LINK"
 
 # Remove find_boundaries.sh so the LLM cannot rerun it (already executed upstream).
 if [ "$CI_MODE" = "ci" ]; then
@@ -47,12 +56,12 @@ cd "$ROOT"
 echo "=== Verifying boundary artifacts ==="
 if [ ! -s "$SUMMARY_FILE" ]; then
     echo "Error: boundaries summary not found at $SUMMARY_FILE" >&2
-    ls -l "$DATA_DIR"
+    ls -l "$CANON_DATA_DIR"
     exit 1
 fi
 if [ ! -s "$SUBJOB_RUNS_FILE" ]; then
     echo "Error: subjob_runs.json not found at $SUBJOB_RUNS_FILE" >&2
-    ls -l "$DATA_DIR"
+    ls -l "$CANON_DATA_DIR"
     exit 1
 fi
 SUMMARY_COUNT=$(jq '.runs | length' "$SUMMARY_FILE")

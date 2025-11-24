@@ -10,9 +10,9 @@ Workspace Layout
 - You are running inside `.auto_triage/` and all helper scripts are already staged here.
 - The full `tt-metal` repository has been mirrored into `./workspace/`. Read any source files from there.
 - Stay in this directory. Run helper scripts as `./get_logs.sh`, `./download_data_between_commits.sh`, etc.
-- Data files live in `./data/`, logs in `./logs/`, and outputs must go into `./output/`.
+- Data files live in `./auto_triage/data/` (also available via the `./data/` symlink), logs in `./auto_triage/logs/` (also exposed via `./logs/`), and outputs must go into `./auto_triage/output/` (`./output/`).
 - Never reference parent directories (e.g., `../`). Doing so will trigger permission denials.
-- Always read `./data/subjob_runs.json` for the list of recent runs (success vs failure). `boundaries_summary.json` is metadata only; do not rely on it for determinism checks.
+- Always read `./data/subjob_runs.json` (symlinked to `./auto_triage/data/subjob_runs.json`) for the list of recent runs (success vs failure). `boundaries_summary.json` is metadata only; do not rely on it for determinism checks.
 
 -Case Matrix
 ------------
@@ -39,6 +39,7 @@ Shared Workflow (All Cases)
 3. Determine whether the failure is likely caused by tt-metal changes. Matching errors across runs help establish determinism, but a single run can still justify Case 1 if the commit evidence is strong. **Never** assume determinism just because a run is the latest; always explain your rationale.
 4. If you can map the failure to code changes (even from a single run), proceed toward Case 1. If you believe the failure is deterministic but cannot identify a culprit commit, you are heading toward Case 2. If tt-metal seems unrelated, that’s Case 3.
 5. Contact planning: while you work, note commit authors, file owners (`git log`, `git blame`, `.github/CODEOWNERS`), and capture GitHub profile URLs for everyone you may need to ping.
+6. In your final report, include links to the last successful job run, the first failing job run, and every commit between them (use the compare URL and `commit_info.json`).
 
 Failure Evidence Rules
 ----------------------
@@ -85,6 +86,7 @@ Actions:
      - The commit window, Copilot summaries referenced, and supporting diffs.
      - Detailed fix-forward suggestions (not just “revert”).
      - A “Who to contact” section listing names + GitHub handles + profile URLs, prioritizing the culprit commit author and relevant file owners (per `git log`, `git blame`, `.github/CODEOWNERS`).
+     - Direct links to the last successful job, the first failing job, each commit in the window, and the suspected culprit commit.
 
 Case 2 – Deterministic Failure But Commit Unknown
 -------------------------------------------------
