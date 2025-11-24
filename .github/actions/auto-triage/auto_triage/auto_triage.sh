@@ -87,4 +87,6 @@ $(cat "$INSTRUCTIONS_FILE")
 EOF
 
 echo "=== Launching OpenCode (model: ${MODEL}) ==="
+echo "Models Available are:"
+opencode models
 opencode run -m "$MODEL" "$PROMPT"
