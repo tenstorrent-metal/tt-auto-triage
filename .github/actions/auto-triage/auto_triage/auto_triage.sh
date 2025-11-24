@@ -20,6 +20,7 @@ CI_MODE="${4:-}"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DATA_DIR="${ROOT}/data"
+SUMMARY_FILE="${ROOT}/data/boundaries_summary.json"
 SUBJOB_RUNS_FILE="${ROOT}/data/subjob_runs.json"
 LOGS_DIR="${ROOT}/logs"
 FIND_SCRIPT="${ROOT}/find_boundaries.sh"
@@ -42,6 +43,22 @@ if [ "$CI_MODE" = "ci" ]; then
 fi
 
 cd "$ROOT"
+
+echo "=== Verifying boundary artifacts ==="
+if [ ! -s "$SUMMARY_FILE" ]; then
+    echo "Error: boundaries summary not found at $SUMMARY_FILE" >&2
+    ls -l "$DATA_DIR"
+    exit 1
+fi
+if [ ! -s "$SUBJOB_RUNS_FILE" ]; then
+    echo "Error: subjob_runs.json not found at $SUBJOB_RUNS_FILE" >&2
+    ls -l "$DATA_DIR"
+    exit 1
+fi
+SUMMARY_COUNT=$(jq '.runs | length' "$SUMMARY_FILE")
+FAIL_COUNT=$(jq '[.[] | select(.status != "success")] | length' "$SUBJOB_RUNS_FILE")
+echo "runs recorded: $SUMMARY_COUNT"
+echo "failures recorded: $FAIL_COUNT"
 
 if ! command -v opencode >/dev/null 2>&1; then
     echo "Error: opencode CLI is required but not found in PATH." >&2

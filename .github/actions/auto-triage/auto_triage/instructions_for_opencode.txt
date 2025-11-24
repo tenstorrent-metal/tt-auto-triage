@@ -12,7 +12,7 @@ Workspace Layout
 - Stay in this directory. Run helper scripts as `./get_logs.sh`, `./download_data_between_commits.sh`, etc.
 - Data files live in `./data/`, logs in `./logs/`, and outputs must go into `./output/`.
 - Never reference parent directories (e.g., `../`). Doing so will trigger permission denials.
-- Use the JSON outputs in `./data/` to look at job history
+- Always read `./data/subjob_runs.json` for the list of recent runs (success vs failure). `boundaries_summary.json` is metadata only; do not rely on it for determinism checks.
 
 -Case Matrix
 ------------
