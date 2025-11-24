@@ -22,8 +22,13 @@ DATA_DIR="${ROOT}/data"
 LOGS_DIR="${ROOT}/logs"
 
 echo "=== Cleaning auto_triage/data and auto_triage/logs ==="
-rm -rf "$DATA_DIR" "$LOGS_DIR"
-mkdir -p "$DATA_DIR" "$LOGS_DIR"
+if [ -d "$DATA_DIR" ]; then
+    find "$DATA_DIR" -mindepth 1 ! -name 'boundaries_summary.json' -exec rm -rf {} +
+else
+    mkdir -p "$DATA_DIR"
+fi
+rm -rf "$LOGS_DIR"
+mkdir -p "$LOGS_DIR"
 rm -rf "$ROOT/output"
 mkdir -p "$ROOT/output"
 
