@@ -14,14 +14,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Install opencode CLI
-      shell: bash
-      run: |
-        set -euo pipefail
-        curl -fsSL https://opencode.ai/install | bash
-        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-        export PATH="$HOME/.local/bin:$PATH"
-        opencode --version || (echo "opencode CLI installation failed" && exit 1)
     - name: Stage auto_triage scripts
       shell: bash
       run: |
@@ -30,6 +22,22 @@ runs:
         rm -rf "$TARGET"
         mkdir -p "$TARGET"
         cp -R "${{ github.action_path }}/auto_triage/." "$TARGET/"
+    - name: Find boundaries
+      shell: bash
+      run: |
+        set -euo pipefail
+        cd "${GITHUB_WORKSPACE}/.auto_triage"
+        ./find_boundaries.sh \
+          "${{ inputs.workflow-name }}" \
+          "${{ inputs.job-name }}"
+    - name: Install opencode CLI
+      shell: bash
+      run: |
+        set -euo pipefail
+        curl -fsSL https://opencode.ai/install | bash
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+        export PATH="$HOME/.local/bin:$PATH"
+        opencode --version || (echo "opencode CLI installation failed" && exit 1)
     - name: Execute auto_triage.sh
       shell: bash
       run: |
