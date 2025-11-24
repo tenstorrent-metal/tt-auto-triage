@@ -27,6 +27,7 @@ runs:
         rsync -a --delete \
           --exclude '.auto_triage/' \
           --exclude '.git/' \
+          --exclude 'auto_triage/' \
           "$GITHUB_WORKSPACE"/ "$TARGET/workspace/"
         echo "$TARGET" >> "$GITHUB_PATH"
     - name: Find boundaries
