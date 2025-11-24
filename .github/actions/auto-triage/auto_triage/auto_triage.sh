@@ -20,12 +20,13 @@ CI_MODE="${4:-}"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DATA_DIR="${ROOT}/data"
+SUBJOB_RUNS_FILE="${ROOT}/data/subjob_runs.json"
 LOGS_DIR="${ROOT}/logs"
 FIND_SCRIPT="${ROOT}/find_boundaries.sh"
 
 echo "=== Cleaning auto_triage/data and auto_triage/logs ==="
 if [ -d "$DATA_DIR" ]; then
-    find "$DATA_DIR" -mindepth 1 ! -name 'boundaries_summary.json' -exec rm -rf {} +
+    find "$DATA_DIR" -mindepth 1 ! -name 'boundaries_summary.json' ! -name 'subjob_runs.json' -exec rm -rf {} +
 else
     mkdir -p "$DATA_DIR"
 fi
