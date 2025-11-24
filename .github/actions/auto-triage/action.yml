@@ -22,6 +22,7 @@ runs:
         rm -rf "$TARGET"
         mkdir -p "$TARGET"
         cp -R "${{ github.action_path }}/auto_triage/." "$TARGET/"
+        echo "$TARGET" >> "$GITHUB_PATH"
     - name: Find boundaries
       shell: bash
       run: |
