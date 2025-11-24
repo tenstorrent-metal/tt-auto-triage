@@ -32,9 +32,6 @@ runs:
         cp -R "${{ github.action_path }}/auto_triage/." "$TARGET/"
     - name: Execute auto_triage.sh
       shell: bash
-      env:
-        OPENCODE_API_KEY: ${{ secrets.AUTO_TRIAGE_OPENAI_KEY }}
-        GH_TOKEN: ${{ github.token }}
       run: |
         set -euo pipefail
         cd "${GITHUB_WORKSPACE}/.auto_triage"
