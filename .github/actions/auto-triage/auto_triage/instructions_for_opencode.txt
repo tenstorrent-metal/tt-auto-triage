@@ -12,7 +12,7 @@ Workspace Layout
 - Stay in this directory. Run helper scripts as `./get_logs.sh`, `./download_data_between_commits.sh`, etc.
 - Data files live in `./data/`, logs in `./logs/`, and outputs must go into `./output/`.
 - Never reference parent directories (e.g., `../`). Doing so will trigger permission denials.
-- `find_boundaries.sh` has already been executed for you. Use the JSON outputs in `./data/` unless you have a strong reason to refresh them.
+- `find_boundaries.sh` has already been executed for you. Use the JSON outputs in `./data/`
 
 -Case Matrix
 ------------
