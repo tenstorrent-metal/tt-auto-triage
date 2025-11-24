@@ -9,17 +9,19 @@
 set -euo pipefail
 
 if [ $# -lt 3 ]; then
-    echo "Usage: $0 <workflow_name> <subjob_name> <model>" >&2
+    echo "Usage: $0 <workflow_name> <subjob_name> <model> [ci-mode]" >&2
     exit 1
 fi
 
 WORKFLOW="$1"
 SUBJOB="$2"
 MODEL="$3"
+CI_MODE="${4:-}"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DATA_DIR="${ROOT}/data"
 LOGS_DIR="${ROOT}/logs"
+FIND_SCRIPT="${ROOT}/find_boundaries.sh"
 
 echo "=== Cleaning auto_triage/data and auto_triage/logs ==="
 if [ -d "$DATA_DIR" ]; then
@@ -31,6 +33,12 @@ rm -rf "$LOGS_DIR"
 mkdir -p "$LOGS_DIR"
 rm -rf "$ROOT/output"
 mkdir -p "$ROOT/output"
+
+# Remove find_boundaries.sh so the LLM cannot rerun it (already executed upstream).
+if [ "$CI_MODE" = "ci" ]; then
+    echo "CI mode detected, removing find_boundaries.sh to prevent re-execution."
+    rm -f "$FIND_SCRIPT"
+fi
 
 cd "$ROOT"
 

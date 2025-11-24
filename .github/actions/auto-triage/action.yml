@@ -53,7 +53,8 @@ runs:
         ./auto_triage.sh \
           "${{ inputs.workflow-name }}" \
           "${{ inputs.job-name }}" \
-          "${{ inputs.model }}"
+          "${{ inputs.model }}" \
+          ci
     - name: Publish triage report to summary
       if: always()
       shell: bash
