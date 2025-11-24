@@ -17,32 +17,24 @@ WORKFLOW="$1"
 SUBJOB="$2"
 MODEL="$3"
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DATA_DIR="${ROOT}/auto_triage/data"
-LOGS_DIR="${ROOT}/auto_triage/logs"
-FIND_SCRIPT="${ROOT}/auto_triage/find_boundaries.sh"
-
-if [ ! -x "$FIND_SCRIPT" ]; then
-    echo "Error: $FIND_SCRIPT not found or not executable." >&2
-    exit 1
-fi
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DATA_DIR="${ROOT}/data"
+LOGS_DIR="${ROOT}/logs"
 
 echo "=== Cleaning auto_triage/data and auto_triage/logs ==="
 rm -rf "$DATA_DIR" "$LOGS_DIR"
 mkdir -p "$DATA_DIR" "$LOGS_DIR"
-rm -rf "$ROOT/auto_triage/output"
-mkdir -p "$ROOT/auto_triage/output"
+rm -rf "$ROOT/output"
+mkdir -p "$ROOT/output"
 
 cd "$ROOT"
-echo "=== Running find_boundaries.sh for workflow '${WORKFLOW}' / job '${SUBJOB}' ==="
-"$FIND_SCRIPT" "$WORKFLOW" "$SUBJOB"
 
 if ! command -v opencode >/dev/null 2>&1; then
     echo "Error: opencode CLI is required but not found in PATH." >&2
     exit 1
 fi
 
-INSTRUCTIONS_FILE="${ROOT}/auto_triage/instructions_for_opencode.txt"
+INSTRUCTIONS_FILE="${ROOT}/instructions_for_opencode.txt"
 if [ ! -f "$INSTRUCTIONS_FILE" ]; then
     echo "Error: ${INSTRUCTIONS_FILE} not found." >&2
     exit 1
