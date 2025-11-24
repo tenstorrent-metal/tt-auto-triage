@@ -36,7 +36,7 @@ runs:
         set -euo pipefail
         curl -fsSL https://opencode.ai/install | bash
         echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-        export PATH="$HOME/.local/bin:$PATH"
+        export PATH="$HOME/.opencode/bin:$PATH"
         opencode --version || (echo "opencode CLI installation failed" && exit 1)
     - name: Execute auto_triage.sh
       shell: bash
