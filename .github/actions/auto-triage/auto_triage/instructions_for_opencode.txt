@@ -8,6 +8,7 @@ Diagnose the current failing GitHub Actions subjob on `main`. Depending on the e
 Workspace Layout
 ----------------
 - You are running inside `.auto_triage/` and all helper scripts are already staged here.
+- The full `tt-metal` repository has been mirrored into `./workspace/`. Read any source files from there.
 - Stay in this directory. Run helper scripts as `./get_logs.sh`, `./download_data_between_commits.sh`, etc.
 - Data files live in `./data/`, logs in `./logs/`, and outputs must go into `./output/`.
 - Never reference parent directories (e.g., `../`). Doing so will trigger permission denials.

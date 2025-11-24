@@ -21,7 +21,13 @@ runs:
         TARGET="${GITHUB_WORKSPACE}/.auto_triage"
         rm -rf "$TARGET"
         mkdir -p "$TARGET"
+        # Copy triage tooling
         cp -R "${{ github.action_path }}/auto_triage/." "$TARGET/"
+        # Mirror the checked-out repo into the workspace for the LLM (excluding the workspace itself)
+        rsync -a --delete \
+          --exclude '.auto_triage/' \
+          --exclude '.git/' \
+          "$GITHUB_WORKSPACE"/ "$TARGET/workspace/"
         echo "$TARGET" >> "$GITHUB_PATH"
     - name: Find boundaries
       shell: bash
