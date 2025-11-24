@@ -1,0 +1,65 @@
+---
+name: auto-triage
+description: Run auto_triage automation with OpenCode and GitHub API access.
+inputs:
+  workflow-name:
+    description: Workflow file name to inspect.
+    required: true
+  job-name:
+    description: Job/subjob name within the workflow.
+    required: true
+  model:
+    description: OpenCode model identifier.
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Install opencode CLI
+      shell: bash
+      run: |
+        set -euo pipefail
+        curl -fsSL https://opencode.ai/install | bash
+        echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+        export PATH="$HOME/.local/bin:$PATH"
+        opencode --version || (echo "opencode CLI installation failed" && exit 1)
+    - name: Stage auto_triage scripts
+      shell: bash
+      run: |
+        set -euo pipefail
+        TARGET="${GITHUB_WORKSPACE}/.auto_triage"
+        rm -rf "$TARGET"
+        mkdir -p "$TARGET"
+        cp -R "${{ github.action_path }}/auto_triage/." "$TARGET/"
+    - name: Execute auto_triage.sh
+      shell: bash
+      env:
+        OPENCODE_API_KEY: ${{ secrets.AUTO_TRIAGE_OPENAI_KEY }}
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        set -euo pipefail
+        cd "${GITHUB_WORKSPACE}/.auto_triage"
+        ./auto_triage.sh \
+          "${{ inputs.workflow-name }}" \
+          "${{ inputs.job-name }}" \
+          "${{ inputs.model }}"
+    - name: Publish triage report to summary
+      if: always()
+      shell: bash
+      run: |
+        set -euo pipefail
+        REPORT="${GITHUB_WORKSPACE}/.auto_triage/output/explanation.md"
+        if [ -f "$REPORT" ]; then
+            {
+              echo "## Auto Triage Report"
+              cat "$REPORT"
+            } >> "$GITHUB_STEP_SUMMARY"
+        else
+            echo "No explanation produced." >> "$GITHUB_STEP_SUMMARY"
+        fi
+    - name: Upload auto-triage artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: auto-triage-output
+        path: .auto_triage/output
+        if-no-files-found: ignore
