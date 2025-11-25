@@ -72,12 +72,12 @@ Toolbox Reference
    ```
    ./download_data_between_commits.sh <good_commit> <bad_commit> [output_json]
    ```
-   Creates/updates `./data/commit_info.json`. If more than 30 commits are detected it will report `BATCH_COUNT` and expect the batch script below to be called.
+   Creates/updates `./data/commit_info.json`. If more than 5 commits are detected it will report `BATCH_COUNT` and expect the batch script below to be called.
 4. **Download commit metadata in batches (when requested)**
    ```
    ./download_data_between_commits_batch.sh <good_commit> <bad_commit> <batch_index> [output_json]
    ```
-   Processes up to 30 commits per batch and appends to the specified JSON (run for indices `0..BATCH_COUNT-1`).
+   Processes up to 5 commits per batch and appends to the specified JSON (run for indices `0..BATCH_COUNT-1`).
 5. **Changed files for a commit**
    ```
    ./get_changed_files.sh <commit> [output_json]
@@ -91,7 +91,7 @@ Case 1 – Deterministic Failure With Identified Commit
 -----------------------------------------------------
 Trigger this case when:
 - You have two matching test failures that prove determinism.
-- The commit window between last success and first deterministic failure has ≤200 commits (batches cover anything above 30).
+- The commit window between last success and first deterministic failure has ≤200 commits (batches cover anything above 5).
 - A specific commit (or very small set) clearly explains the failure via Copilot overview, file diffs, etc.
 
 Actions:
