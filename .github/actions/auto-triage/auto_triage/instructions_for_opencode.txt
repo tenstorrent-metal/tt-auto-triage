@@ -154,8 +154,8 @@ Actions:
 1. Run the same commit download workflow as Case 1 so you understand every suspect.
 2. Populate `./output/alternatives.json` with a ranked array. Each entry must include `commit`, `commit_url`, `authors`, `approvers`, `confidence` (e.g., high/medium/low), the concrete evidence tying that commit to the failure, and recommended contacts for that commit.
 3. You may omit `./output/chosen_commit.json` entirely (or leave it as an empty JSON object) when none of the candidates exceed your confidence threshold. If one candidate truly stands out, you may still provide `chosen_commit.json`, but you must also list the runners-up in `alternatives.json`.
-4. In `./output/explanation.md`, clearly state this is Case 4, summarize the shared failure signature, and explain why each candidate commit could be responsible (cite files and hunks for every entry, similar depth as Case 1). Include guidance on how to validate or bisect the suspects sequentially.
-5. Add the standard contact section, ensuring that each candidate’s author/approvers or CODEOWNERS are mentioned so humans know who to pull in.
+4. In `./output/explanation.md`, clearly state this is Case 4, summarize the shared failure signature, and explain why each candidate commit could be responsible (cite files + before/after hunks, link to the commit URL) exactly as you would for the Case 1 culprit. Include guidance on how to validate or bisect the suspects sequentially.
+5. Treat every candidate as if it were the Case 1 culprit: list clickable commit links, exact error tie-in, and the “who to contact” details (authors, approvers, CODEOWNERS, other file owners). After covering the per-commit info, add the overall contact section so humans know who to loop in.
 
 Contact Guidance (All Cases)
 ----------------------------
