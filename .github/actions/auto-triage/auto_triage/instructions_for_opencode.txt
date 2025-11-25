@@ -25,7 +25,7 @@ Workspace Layout
 - **Case 4 – Deterministic failure with multiple plausible commits**
   - The issue clearly comes from the commit window, but the evidence cannot single out one commit with high confidence. You have 2+ viable suspects and need to present a ranked list instead of a single culprit.
 
-You must justify the selected case explicitly in `./output/explanation.md`.
+You must justify the selected case explicitly in `./output/explanation.md`, and the report must include a subtitle like `## Case X – <case name>` so readers instantly know which scenario you chose.
 
 Shared Workflow (All Cases)
 ---------------------------
