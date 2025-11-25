@@ -90,3 +90,10 @@ echo "=== Launching OpenCode (model: ${MODEL}) ==="
 echo "Models Available are:"
 opencode models
 opencode run -m "$MODEL" "$PROMPT"
+
+VERIFY_SCRIPT="${ROOT}/verify_commit_metadata.sh"
+if [ -x "$VERIFY_SCRIPT" ]; then
+    if ! "$VERIFY_SCRIPT"; then
+        exit 1
+    fi
+fi
