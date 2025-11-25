@@ -102,7 +102,7 @@ Actions:
      - Exact code changes (file path + before/after hunk) from the suspected commit that plausibly trigger the observed error, with a clear explanation tying the change to the failure signature. At minimum: cite the old code (pre-commit), the new code (post-commit), and describe how the behavior change produces the observed test failure.
      - Detailed fix-forward suggestions (not just “revert”).
      - A “Who to contact” section listing names + GitHub handles + profile URLs, prioritizing the culprit commit author and relevant file owners (per `git log`, `git blame`, `.github/CODEOWNERS`).
-     - Direct links to the last successful job, the first failing job, each commit in the window, and the suspected culprit commit.
+     - Direct links to the last successful job, the first failing job, each commit in the window, and the suspected culprit commit (include the clickable commit URL in both `chosen_commit.json` and the report body).
 
 Case 2 – Deterministic Failure But Commit Unknown
 -------------------------------------------------
