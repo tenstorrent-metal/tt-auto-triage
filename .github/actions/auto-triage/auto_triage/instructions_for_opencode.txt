@@ -28,11 +28,12 @@ You must justify the selected case explicitly in `./output/explanation.md`.
 Shared Workflow (All Cases)
 ---------------------------
 1. Inspect `./data/boundaries_summary.json` (or `./data/subjob_runs.json`) to understand the ordered history and identify the last successful run and subsequent failures. The higher the run_number the newer the run.
-2. **Log downloads:**
+2. **Run-level evidence collection:**
    - Start by downloading:
      - The **oldest failing run** (first failure after the last success) and
      - The **two most recent failing runs**.
    - If there are fewer than three failures total, download all of them.
+   - Before pulling logs for any run, execute `./get_annotations.sh <job_url> [output_json]`. If the annotations contain meaningful test-level errors, rely on them and skip log downloads for that run. Only fall back to `./get_logs.sh` when annotations are missing or generic (e.g., “process exited with error code 1”, runner disconnects, etc.).
 - If the oldest failing run cannot be downloaded (logs expired or `get_logs.sh` errors), treat this as a strong signal toward Case 2. Continue the investigation using the most recent logs you can obtain, but remain open to switching to Case 3 if those logs indicate the job never ran the test or otherwise point to external causes.
    - If the downloaded errors match, rely on that signature. If they differ, continue with the most recent error unless you need an extra run to resolve ambiguity. Avoid additional downloads unless absolutely necessary (they are expensive).
 - If you truly need additional evidence, you may download more runs, but justify the cost and stop as soon as you have enough data.
@@ -54,25 +55,30 @@ Failure Evidence Rules
 
 Toolbox Reference
 -----------------
-1. **Download logs**
+1. **Fetch job annotations (preferred)**
+   ```
+   ./get_annotations.sh <job_url> [output_json]
+   ```
+   Saves the run’s annotations (if any) under `./logs/job_<id>/annotations.json`. Use this before touching logs.
+2. **Download logs (fallback when annotations have no signal)**
    ```
    ./get_logs.sh <job_url> [output_dir]
    ```
-2. **List commits between the last success and first deterministic failure**
+3. **List commits between the last success and first deterministic failure**
    ```
    ./download_data_between_commits.sh <good_commit> <bad_commit> [output_json]
    ```
    Creates/updates `./data/commit_info.json`. If more than 30 commits are detected it will report `BATCH_COUNT` and expect the batch script below to be called.
-3. **Download commit metadata in batches (when requested)**
+4. **Download commit metadata in batches (when requested)**
    ```
    ./download_data_between_commits_batch.sh <good_commit> <bad_commit> <batch_index> [output_json]
    ```
    Processes up to 30 commits per batch and appends to the specified JSON (run for indices `0..BATCH_COUNT-1`).
-4. **Changed files for a commit**
+5. **Changed files for a commit**
    ```
    ./get_changed_files.sh <commit> [output_json]
    ```
-5. **Full diff for a commit**
+6. **Full diff for a commit**
    ```
    ./get_commit_diff.sh <commit> [output_patch]
    ```
