@@ -81,30 +81,28 @@ build_person_json() {
 }
 
 append_unique_person() {
-    local var_name="$1"
+    local arr_json="$1"
     local person_json="$2"
-    local current="${!var_name}"
-
-    local updated
-    updated=$(jq -n \
-        --argjson arr "${current:-[]}" \
+    jq -n \
+        --argjson arr "${arr_json:-[]}" \
         --argjson person "$person_json" \
-        'if (person.login // "") != "" then
-            if any(arr[]?; .login == person.login) then arr else arr + [person] end
+        'if ($person.login // "") != "" then
+            if any($arr[]?; .login == $person.login) then $arr else $arr + [$person] end
          else
-            if any(arr[]?; (.login == "" and .name == person.name)) then arr else arr + [person] end
-         end')
-
-    printf -v "$var_name" '%s' "$updated"
+            if any($arr[]?; (.login == "" and .name == $person.name)) then $arr else $arr + [$person] end
+         end'
 }
 
 add_person_entry() {
-    local var_name="$1"
-    local login="$2"
-    local fallback_name="$3"
+    local login="$1"
+    local fallback_name="$2"
+    local current_json="$3"
     local person_json
     person_json=$(build_person_json "$login" "$fallback_name")
-    append_unique_person "$var_name" "$person_json"
+    if [ -z "$person_json" ]; then
+        person_json='{"login":"","name":"(unknown)","is_org_member":false}'
+    fi
+    append_unique_person "${current_json:-[]}" "$person_json"
 }
 
 if [ $# -lt 3 ]; then
@@ -256,12 +254,12 @@ if start_marker in content:
     fi
 
     authors_json='[]'
-    add_person_entry "authors_json" "$pr_author_login" ""
-    add_person_entry "authors_json" "$commit_author_login" "$commit_author_name"
+    authors_json=$(add_person_entry "$pr_author_login" "" "$authors_json")
+    authors_json=$(add_person_entry "$commit_author_login" "$commit_author_name" "$authors_json")
     if [ "$co_author_names" != "[]" ]; then
         while IFS= read -r co_name; do
             [ -n "$co_name" ] || continue
-            add_person_entry "authors_json" "" "$co_name"
+            authors_json=$(add_person_entry "" "$co_name" "$authors_json")
         done < <(echo "$co_author_names" | jq -r '.[]')
     fi
 
@@ -269,7 +267,7 @@ if start_marker in content:
     if [ "$reviews_json" != "[]" ] && [ -n "$reviews_json" ]; then
         while IFS= read -r approver_login; do
             [ -n "$approver_login" ] || continue
-            add_person_entry "approvers_json" "$approver_login" ""
+            approvers_json=$(add_person_entry "$approver_login" "" "$approvers_json")
         done < <(echo "$reviews_json" | jq -r '.[] | select(.state=="APPROVED") | .user.login | select(length > 0)' | sort -u)
     fi
 
