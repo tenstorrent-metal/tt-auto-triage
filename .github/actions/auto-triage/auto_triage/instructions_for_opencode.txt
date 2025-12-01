@@ -19,7 +19,7 @@ Workspace Layout
 - **Case 1 – Failure attributable to a specific commit**
   - Only use this when you can defend a single culprit commit beyond reasonable doubt. If you still have other viable suspects, you must not choose Case 1.
 - **Case 2 – Deterministic failure, culprit commit unknown**
-  - The failure is deterministic but you cannot identify the exact commit (expired logs, >200 commits so the download script aborts, or other data gaps). Focus on root-cause instructions rather than naming a commit.
+  - The failure is deterministic but you cannot identify the exact commit (expired logs, >100 commits so the download script aborts, or other data gaps). Focus on root-cause instructions rather than naming a commit.
 - **Case 3 – Failure unrelated to tt-metal changes**
   - Evidence shows the issue is probably external (infrastructure, flaky machines, mismatched dependencies, or commits that clearly cannot affect the failing test). Use this only when you have exhausted reasonable tt-metal hypotheses.
 - **Case 4 – Deterministic failure with multiple plausible commits**
@@ -91,7 +91,7 @@ Case 1 – Deterministic Failure With Identified Commit
 -----------------------------------------------------
 Trigger this case when:
 - You have two matching test failures that prove determinism.
-- The commit window between last success and first deterministic failure has ≤200 commits (batches cover anything above 5).
+- The commit window between last success and first deterministic failure has ≤100 commits (batches cover anything above 5).
 - A specific commit (or very small set) clearly explains the failure via Copilot overview, file diffs, etc.
 
 Actions:
@@ -112,7 +112,7 @@ Case 2 – Deterministic Failure But Commit Unknown
 -------------------------------------------------
 Use this case when a deterministic failure exists but you cannot determine the commit because:
 - The oldest failing run’s logs cannot be retrieved (expired or `get_logs.sh` error) and the remaining evidence still points to a tt-metal regression rather than an external issue.
-- The commit window exceeds 200 commits (script exits with “too many commits. cannot download”).
+- The commit window exceeds 100 commits (script exits with “too many commits. cannot download”).
 - Metadata is insufficient to map the failure to a specific change.
 
 Actions:
