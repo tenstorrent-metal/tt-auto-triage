@@ -28,9 +28,11 @@ runs:
           exit 0
         fi
 
-        HEADER="Auto triage run: <https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|open>"
+        RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+        RUN_LABEL="run #${GITHUB_RUN_NUMBER:-$GITHUB_RUN_ID}"
+        HEADER="Auto triage run: <${RUN_URL}|open>"
 
-        TEXT=$(jq -r --arg header "$HEADER" '
+        TEXT=$(jq -r --arg header "$HEADER" --arg run_url "$RUN_URL" --arg run_label "$RUN_LABEL" '
           def short_hash(h):
             if (h // "") == "" then "unknown" else (h[0:8]) end;
 
@@ -86,6 +88,7 @@ runs:
 
           (
             $header + "\n"
+            + section_line("RUN", "<\($run_url)|\($run_label)>")
             + section_line("CASE"; .case // "?")
             + section_line("SCENARIO"; .scenario)
             + section_code("FAILURE MESSAGE"; .failure_message)
