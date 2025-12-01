@@ -64,7 +64,7 @@ runs:
           ci
     - name: Send Slack notification
       if: always()
-      uses: ./.github/actions/slack-report-auto-triage
+      uses: tenstorrent-metal/tt-auto-triage/.github/actions/slack-report-auto-triage@main
       with:
         slack_webhook_url: ${{ env.SLACK_WEBHOOK_URL }}
         slack_message_path: .auto_triage/output/slack_message.json

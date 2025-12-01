@@ -42,16 +42,27 @@ echo -e "${BLUE}Searching for workflow: ${GREEN}${WORKFLOW_NAME}${NC}"
 echo -e "${BLUE}Looking for subjob: ${GREEN}${SUBJOB_NAME}${NC}"
 echo ""
 
-# First, find the workflow ID
+# First, find the workflow ID (support both .yaml and .yml)
 echo "Finding workflow ID..."
-WORKFLOW_FILE="${WORKFLOW_NAME}.yaml"
-WORKFLOW_ID=$(gh api "repos/${REPO}/actions/workflows/${WORKFLOW_FILE}" --jq '.id' 2>/dev/null || echo "")
+WORKFLOW_ID=""
+for EXT in yaml yml YAML YML; do
+    WORKFLOW_FILE="${WORKFLOW_NAME}.${EXT}"
+    WORKFLOW_ID=$(gh api "repos/${REPO}/actions/workflows/${WORKFLOW_FILE}" --jq '.id' 2>/dev/null || echo "")
+    if [ -n "$WORKFLOW_ID" ]; then
+        WORKFLOW_NAME="${WORKFLOW_NAME}"
+        WORKFLOW_FILENAME="$WORKFLOW_FILE"
+        break
+    fi
+done
 
 if [ -z "$WORKFLOW_ID" ]; then
-    echo -e "${RED}Error: Could not find workflow '${WORKFLOW_NAME}'${NC}"
-    echo "Make sure the workflow file exists at: .github/workflows/${WORKFLOW_FILE}"
+    echo -e "${RED}Error: Could not find workflow '${WORKFLOW_NAME}' with .yaml or .yml extension${NC}"
+    echo "Make sure the workflow file exists at: .github/workflows/${WORKFLOW_NAME}.yaml (or .yml)"
     exit 1
 fi
+
+echo -e "${GREEN}Found workflow ID: ${WORKFLOW_ID}${NC}"
+echo ""
 
 echo -e "${GREEN}Found workflow ID: ${WORKFLOW_ID}${NC}"
 echo ""
