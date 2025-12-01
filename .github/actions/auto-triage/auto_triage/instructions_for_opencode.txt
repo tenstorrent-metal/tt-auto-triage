@@ -30,7 +30,7 @@ You must justify the selected case explicitly in `./output/explanation.md`, and 
 Slack Message Output
 --------------------
 - In addition to `explanation.md`, produce exactly one `./output/slack_message.json` per run.
-- The JSON **must** match the schema for the active case in `./auto_triage/slack_message_template.json`. Treat that file as the canonical contract for required top-level keys (`case`, `scenario`, `failure_message`, `commits`, `relevant_developers`, `notes`, `slack_message`, etc.).
+- The JSON **must** match the schema for the active case in `./auto_triage/slack_message_template.json`. Treat that file as the canonical contract for required top-level keys (`case`, `scenario`, `failure_message`, `commits`, `relevant_developers`, `notes`, `slack_message`, etc.). After writing `./output/slack_message.json`, run `./sanitize_slack_message.py ./output/slack_message.json` to strip any wrapper text and guarantee valid JSON before handing it off.
 - Populate commit objects with `hash`, `url`, `author`, `approvers`, `relevant_developers`, and `relevant_files`. When a field from the template does not apply to the chosen case (e.g., `commits` for Case 2), leave it as an empty array or omit it exactly as the template shows.
 - Resolve Slack IDs via `./get_slack_ids.py` (see Toolbox). If the lookup script errors, times out, or the person cannot be found, leave that `slack_id` as an empty string `""` and document the attempt in your reasoning rather than fabricating data.
 - Case hints:
@@ -122,6 +122,11 @@ Toolbox Reference
    ./download_slack_directory.py [--output auto_triage/data/slack_directory.json] [--pretty]
    ```
    Downloads all Slack users/groups your token can access and updates the directory consumed by `get_slack_ids.py`. The GitHub Action runs this automatically before the LLM step, but you can re-run it when debugging locally.
+9. **Sanitize Slack payload JSON**
+   ```
+   ./sanitize_slack_message.py ./output/slack_message.json
+   ```
+   Parses the Slack payload, removes any `<content>` wrappers or other artifacts, and rewrites a clean JSON file. Always run this after generating `slack_message.json`.
 
 Case 1 – Deterministic Failure With Identified Commit
 -----------------------------------------------------
