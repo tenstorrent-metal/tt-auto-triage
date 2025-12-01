@@ -44,8 +44,7 @@ runs:
             if p == null then
               "Unknown"
             else
-              (p.name // p.login // "Unknown")
-              + (if (p.slack_id // "") != "" then " (<@" + p.slack_id + ">)" else "" end)
+              (if (p.slack_id // "") != "" then "<@" + p.slack_id + ">" else (p.name // p.login // "Unknown") end)
             end;
 
           def join_people(arr):
