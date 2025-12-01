@@ -11,10 +11,15 @@ inputs:
   model:
     description: OpenCode model identifier.
     required: true
+  slack-test-only:
+    description: Skip analysis steps and only send a canned Slack message.
+    required: false
+    default: "false"
 runs:
   using: composite
   steps:
     - name: Stage auto_triage scripts
+      if: inputs.slack-test-only != 'true'
       shell: bash
       run: |
         set -euo pipefail
@@ -31,6 +36,7 @@ runs:
           "$GITHUB_WORKSPACE"/ "$TARGET/workspace/"
         echo "$TARGET" >> "$GITHUB_PATH"
     - name: Find boundaries
+      if: inputs.slack-test-only != 'true'
       shell: bash
       run: |
         set -euo pipefail
@@ -39,12 +45,14 @@ runs:
           "${{ inputs.workflow-name }}" \
           "${{ inputs.job-name }}"
     - name: Download Slack directory
+      if: inputs.slack-test-only != 'true'
       shell: bash
       run: |
         set -euo pipefail
         cd "${GITHUB_WORKSPACE}/.auto_triage"
         ./download_slack_directory.py
     - name: Install opencode CLI
+      if: inputs.slack-test-only != 'true'
       shell: bash
       run: |
         set -euo pipefail
@@ -53,6 +61,7 @@ runs:
         export PATH="$HOME/.opencode/bin:$PATH"
         opencode --version || (echo "opencode CLI installation failed" && exit 1)
     - name: Execute auto_triage.sh
+      if: inputs.slack-test-only != 'true'
       shell: bash
       run: |
         set -euo pipefail
@@ -62,6 +71,15 @@ runs:
           "${{ inputs.job-name }}" \
           "${{ inputs.model }}" \
           ci
+    - name: Seed Slack test payload
+      if: inputs.slack-test-only == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        TARGET="${GITHUB_WORKSPACE}/.auto_triage/output"
+        mkdir -p "$TARGET"
+        cp "${{ github.action_path }}/auto_triage/sample_slack_message.json" "$TARGET/slack_message.json"
+
     - name: Send Slack notification
       if: always()
       uses: tenstorrent-metal/tt-auto-triage/.github/actions/slack-report-auto-triage@main
@@ -69,7 +87,7 @@ runs:
         slack_webhook_url: ${{ env.SLACK_WEBHOOK_URL }}
         slack_message_path: .auto_triage/output/slack_message.json
     - name: Publish triage report to summary
-      if: always()
+      if: always() && inputs.slack-test-only != 'true'
       shell: bash
       run: |
         set -euo pipefail
@@ -83,7 +101,7 @@ runs:
             echo "No explanation produced." >> "$GITHUB_STEP_SUMMARY"
         fi
     - name: Upload auto-triage artifacts
-      if: always()
+      if: always() && inputs.slack-test-only != 'true'
       uses: actions/upload-artifact@v4
       with:
         name: auto-triage-output
