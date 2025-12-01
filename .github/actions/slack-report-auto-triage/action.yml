@@ -88,7 +88,7 @@ runs:
 
           (
             $header + "\n"
-            + section_line("RUN", "<\($run_url)|\($run_label)>")
+            + section_line("RUN"; "<\($run_url)|\($run_label)>")
             + section_line("CASE"; .case // "?")
             + section_line("SCENARIO"; .scenario)
             + section_code("FAILURE MESSAGE"; .failure_message)
