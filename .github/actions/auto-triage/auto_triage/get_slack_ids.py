@@ -3,7 +3,7 @@
 Resolve Slack IDs by searching a pre-downloaded directory JSON.
 
 Usage:
-  ./auto_triage/get_slack_ids.py "Alice Smith" --directory auto_triage/slack_directory.json
+  ./auto_triage/get_slack_ids.py "Alice Smith" --directory auto_triage/data/slack_directory.json
 
 Generate the directory with download_slack_directory.py.
 
@@ -11,7 +11,7 @@ Optional flags:
   --limit N        Return up to N matches per query (default: 1; 0 = all).
   --include-bots   Include bot/service accounts in results.
   --json           Emit machine-readable JSON instead of a table.
-  --directory PATH Path to the JSON directory (default: auto_triage/slack_directory.json).
+  --directory PATH Path to the JSON directory (default: auto_triage/data/slack_directory.json).
 """
 
 import argparse
@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Tuple
 
 
-DEFAULT_DIRECTORY = "auto_triage/slack_directory.json"
+DEFAULT_DIRECTORY = "auto_triage/data/slack_directory.json"
 
 
 def normalize(value: str) -> str:

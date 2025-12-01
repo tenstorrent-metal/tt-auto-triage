@@ -22,7 +22,7 @@ import requests
 
 
 SLACK_API_BASE = "https://slack.com/api"
-DEFAULT_OUTPUT = ".github/actions/auto-triage/auto_triage/slack_directory.json"
+DEFAULT_OUTPUT = "auto_triage/data/slack_directory.json"
 
 
 def build_parser() -> argparse.ArgumentParser:

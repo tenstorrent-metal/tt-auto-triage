@@ -103,7 +103,7 @@ Toolbox Reference
    ```
    ./auto_triage/get_slack_ids.py "Alice Smith" "bob.jones" [--limit N] [--include-bots] [--json]
    ```
-   Use this to retrieve Slack IDs for commit authors, approvers, or CODEOWNERS referenced in the Slack payload. If the script fails (missing permissions, network issues, or unmatched names), proceed with an empty `slack_id` and document the attempt.
+   Use this to retrieve Slack IDs for commit authors, approvers, or CODEOWNERS referenced in the Slack payload. The script searches the locally cached directory at `./auto_triage/data/slack_directory.json` (generated earlier via `./auto_triage/download_slack_directory.py`). If the directory file is missing or stale, rerun the downloader to refresh it. If the lookup still fails (missing entry, network issues during the refresh, or unmatched names), proceed with an empty `slack_id` and document the attempt.
    Quick reference (same as the command help):
    ```
    """
@@ -117,6 +117,11 @@ Toolbox Reference
      --json           Emit machine-readable JSON instead of a table.
    """
    ```
+8. **Refresh Slack directory cache (only if needed)**
+   ```
+   ./auto_triage/download_slack_directory.py [--output auto_triage/data/slack_directory.json] [--pretty]
+   ```
+   Downloads all Slack users/groups your token can access and updates the directory consumed by `get_slack_ids.py`. The GitHub Action runs this automatically before the LLM step, but you can re-run it when debugging locally.
 
 Case 1 – Deterministic Failure With Identified Commit
 -----------------------------------------------------
