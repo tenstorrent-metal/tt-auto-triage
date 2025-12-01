@@ -1,19 +1,88 @@
-{
-    "case": "1/2/3/4",
-    "failure_message": "example failure message",
-    "commit_hash": "123abc",
-    "commit_url": "https://github.com/tenstorrent/tt-metal/commit/123abc",
-    "commit_author": {"name": "John Doe", "slack_id": "U0123456789"},
-    "commit_approvers": [
-        {"name": "Jane Doe", "slack_id": "U0123456789"},
-        {"name": "some_group_of_developers", "slack_id": "S0123456789"},
-        {"name": "Jill Doe", "slack_id": "U0143456789"}
-    ],
-    "relevant_developers": [
-        {"name": "Janet Doe", "slack_id": "U0129456789"},
-        {"name": "some_other_group_of_developers", "slack_id": "S0123451789"},
-        {"name": "Jessica Doe", "slack_id": "U0123452389"}
-    ],
-    "relevant_files": ["ttnn/datamovement/src/datamovement.cpp", "tt_metal/src/datamovement.cpp"],
-    "slack_message": "example slack message"
-}
+[
+    {
+        "case": "1",
+        "scenario": "Deterministic failure with identified commit",
+        "failure_message": "[2025-11-29T02:11:44Z] ERROR ttnn/test_tensor_ops.py::test_batched_reduce_max AssertionError: max mismatch (expected=0.000000, actual=0.125000) seed=42",
+        "commits": [
+            {
+                "hash": "af12b3c4d5e67890fedcba0987654321abcdef12",
+                "url": "https://github.com/tenstorrent/tt-metal/commit/af12b3c4d5e67890fedcba0987654321abcdef12",
+                "author": {"name": "Maya Patel", "slack_id": "U01A1EXAMPLE"},
+                "approvers": [
+                    {"name": "Jon Park", "slack_id": "U02B2EXAMPLE"}
+                ],
+                "relevant_developers": [
+                    {"name": "Lena Ortiz", "slack_id": "U03C3EXAMPLE"}
+                ],
+                "relevant_files": [
+                    "ttnn/tensor_ops/src/reduce_max.cpp",
+                    "ttnn/tensor_ops/include/reduce_kernels.hpp"
+                ]
+            }
+        ],
+        "slack_message": "Case 1: Deterministic failure traced to commit af12b3c4. Reduce-max kernel now reuses dirty buffers; reverting or zeroing buffers fixes the nightly."
+    },
+    {
+        "case": "2",
+        "scenario": "Deterministic failure but culprit commit unknown",
+        "failure_message": "[2025-11-30T09:07:18Z] tensorcore-smoke: FAIL step=train_setup Reason: FileNotFoundError: /mnt/logs/tt-metal/latest_success.marker (from pipeline stdout)",
+        "commits": [],
+        "relevant_developers": [
+            {"name": "Priya Malhotra", "slack_id": "U11L1EXAMPLE"},
+            {"name": "tensorcore-runtime-owners", "slack_id": "S12M2EXAMPLE"}
+        ],
+        "relevant_files": [
+            "ttnn/tensorcore/tests/test_tensorcore_smoke.py",
+            "ttnn/tensorcore/scripts/train_setup.py"
+        ],
+        "slack_message": "Case 2: tensorcore-smoke deterministically fails because train_setup cannot read latest_success.marker, but logs for the first bad job expired and the 143-commit span is too large to pin a culprit. Need developers to look into the issue."
+    },
+    {
+        "case": "3",
+        "scenario": "Failure likely outside tt-metal",
+        "failure_message": "[2025-11-28T22:55:01Z] ERROR runner: ssh: connect to host 10.1.5.23 port 22: Connection timed out (ttnn/test_memory_pool never starts)",
+        "commits": [],
+        "notes": "No tt-metal commits touch memory pool code in window; logs show runners lose SSH connectivity mid-setup, pointing to infra.",
+        "slack_message": "Case 3: Hanging jobs traced to runner connectivity loss (timeout before tests start). Evidence suggests infra instability rather than tt-metal changes. Please loop in infra-oncall."
+    },
+    {
+        "case": "4",
+        "scenario": "Deterministic failure with multiple plausible commits",
+        "failure_message": "[2025-11-27T18:44:03Z] ttnn/graph/test_partitioning::test_multi_chip_plan FAILED: RuntimeError: partition plan emitted empty subgraph (graph_compiler.cc:412)",
+        "commits": [
+            {
+                "hash": "c3d9c9fe12ab4567de89f0123456abcd7890efab",
+                "url": "https://github.com/tenstorrent/tt-metal/commit/c3d9c9fe12ab4567de89f0123456abcd7890efab",
+                "author": {"name": "Ethan Zhao", "slack_id": "U04D4EXAMPLE"},
+                "approvers": [
+                    {"name": "Carmen Li", "slack_id": "U05E5EXAMPLE"},
+                    {"name": "graph-runtime-owners", "slack_id": "S06F6EXAMPLE"}
+                ],
+                "relevant_developers": [
+                    {"name": "Harper Singh", "slack_id": "U07G7EXAMPLE"}
+                ],
+                "relevant_files": [
+                    "ttnn/graph/src/partitioner.cpp",
+                    "ttnn/graph/include/partition_plan.hpp"
+                ]
+            },
+            {
+                "hash": "db45e6f7a8b9c0d1e2f3a456b789c012def34567",
+                "url": "https://github.com/tenstorrent/tt-metal/commit/db45e6f7a8b9c0d1e2f3a456b789c012def34567",
+                "author": {"name": "Rosa Nguyen", "slack_id": "U08H8EXAMPLE"},
+                "approvers": [
+                    {"name": "graph-runtime-owners", "slack_id": "S06F6EXAMPLE"}
+                ],
+                "relevant_developers": [
+                    {"name": "Mateo Allen", "slack_id": "U09J9EXAMPLE"},
+                    {"name": "graph-analysis-sig", "slack_id": "S10K0EXAMPLE"}
+                ],
+                "relevant_files": [
+                    "ttnn/graph/src/placement_validator.cpp",
+                    "ttnn/runtime/include/runtime_checks.hpp"
+                ]
+            }
+        ],
+        "slack_message": "Case 4: Graph partitioning crash could stem from either c3d9c9f (empty subgraphs) or db45e6f (validator rejects duplicates). Need graph-runtime owners to inspect both diffs."
+    }
+]
