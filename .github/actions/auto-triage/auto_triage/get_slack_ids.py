@@ -1,31 +1,28 @@
 #!/usr/bin/env python3
 """
-Lookup Slack member IDs for one or more developers by name.
-
-Requirements:
-  * A Slack bot token with the `users:read` scope.
-  * The token must be provided via the SLACK_BOT_TOKEN environment variable.
+Resolve Slack IDs by searching a pre-downloaded directory JSON.
 
 Usage:
-  ./auto_triage/get_slack_ids.py "Alice Smith" "bob.jones"
+  ./auto_triage/get_slack_ids.py "Alice Smith" --directory auto_triage/slack_directory.json
+
+Generate the directory with download_slack_directory.py.
 
 Optional flags:
-  --limit N        Return up to N matches per query (default: 1).
+  --limit N        Return up to N matches per query (default: 1; 0 = all).
   --include-bots   Include bot/service accounts in results.
   --json           Emit machine-readable JSON instead of a table.
+  --directory PATH Path to the JSON directory (default: auto_triage/slack_directory.json).
 """
 
 import argparse
 import json
-import os
 import re
 import sys
-from typing import Dict, List, Tuple
+from pathlib import Path
+from typing import Dict, Iterable, List, Tuple
 
-import requests
 
-
-SLACK_API_BASE = "https://slack.com/api"
+DEFAULT_DIRECTORY = "auto_triage/slack_directory.json"
 
 
 def normalize(value: str) -> str:
@@ -34,7 +31,9 @@ def normalize(value: str) -> str:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Resolve Slack user IDs by name.")
+    parser = argparse.ArgumentParser(
+        description="Resolve Slack user or user-group IDs from a local directory."
+    )
     parser.add_argument(
         "query",
         nargs="+",
@@ -56,46 +55,17 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Emit JSON output (one array entry per query).",
     )
+    parser.add_argument(
+        "--directory",
+        default=DEFAULT_DIRECTORY,
+        help=f"Path to Slack directory JSON (default: {DEFAULT_DIRECTORY}).",
+    )
     return parser
 
 
-def fetch_all_users(token: str) -> List[Dict]:
-    """Fetch all Slack users (auto-pagination)."""
-    users = []
-    cursor = None
-    params = {"limit": 200}
-
-    while True:
-        if cursor:
-            params["cursor"] = cursor
-        response = requests.get(
-            f"{SLACK_API_BASE}/users.list",
-            headers={"Authorization": f"Bearer {token}"},
-            params=params,
-            timeout=30,
-        )
-        data = response.json()
-        if not data.get("ok"):
-            raise RuntimeError(
-                f"Slack API error: {data.get('error', 'unknown_error')}"
-            )
-        users.extend(data.get("members", []))
-        cursor = data.get("response_metadata", {}).get("next_cursor")
-        if not cursor:
-            break
-    return users
-
-
-def score_user(query_norm: str, user: Dict) -> Tuple[int, str]:
-    """Return a (score, reason) tuple for how well a user matches the query."""
-    profile = user.get("profile", {})
-    candidates = [
-        ("display name", profile.get("display_name")),
-        ("real name", user.get("real_name")),
-        ("username", user.get("name")),
-        ("email", profile.get("email")),
-    ]
-
+def score_candidates(
+    query_norm: str, candidates: Iterable[Tuple[str, str]]
+) -> Tuple[int, str]:
     best_score = 0
     best_reason = ""
 
@@ -121,12 +91,30 @@ def score_user(query_norm: str, user: Dict) -> Tuple[int, str]:
     return best_score, best_reason
 
 
-def search_users(
-    query: str, users: List[Dict], include_bots: bool, limit: int
-) -> List[Dict]:
-    """Return the top matches for query."""
+def score_user(query_norm: str, user: Dict) -> Tuple[int, str]:
+    """Return a (score, reason) tuple for how well a user matches the query."""
+    candidates = [
+        ("display name", user.get("display_name")),
+        ("real name", user.get("real_name")),
+        ("username", user.get("username")),
+        ("email", user.get("email")),
+    ]
+    return score_candidates(query_norm, candidates)
+
+
+def score_usergroup(query_norm: str, group: Dict) -> Tuple[int, str]:
+    candidates = [
+        ("name", group.get("name")),
+        ("handle", group.get("handle")),
+        ("description", group.get("description")),
+    ]
+    return score_candidates(query_norm, candidates)
+
+
+def search_users(query: str, users: List[Dict], include_bots: bool) -> List[Dict]:
+    """Return matching users for query."""
     query_norm = normalize(query)
-    matches: List[Tuple[int, Dict, str]] = []
+    results = []
 
     for user in users:
         if user.get("deleted"):
@@ -134,26 +122,62 @@ def search_users(
         if (user.get("is_bot") or user.get("id") == "USLACKBOT") and not include_bots:
             continue
         score, reason = score_user(query_norm, user)
-        if score > 0:
-            matches.append((score, user, reason))
-
-    matches.sort(key=lambda item: item[0], reverse=True)
-    results = []
-    for score, user, reason in matches[:limit]:
-        profile = user.get("profile", {})
+        if score <= 0:
+            continue
         results.append(
             {
+                "entity_type": "user",
                 "query": query,
                 "id": user.get("id"),
-                "display_name": profile.get("display_name"),
+                "display_name": user.get("display_name"),
                 "real_name": user.get("real_name"),
-                "email": profile.get("email"),
+                "email": user.get("email"),
                 "reason": reason,
                 "score": score,
             }
         )
 
     return results
+
+
+def search_usergroups(query: str, usergroups: List[Dict]) -> List[Dict]:
+    """Return matching user groups for query."""
+    query_norm = normalize(query)
+    results = []
+
+    for group in usergroups:
+        score, reason = score_usergroup(query_norm, group)
+        if score <= 0:
+            continue
+        results.append(
+            {
+                "entity_type": "usergroup",
+                "query": query,
+                "id": group.get("id"),
+                "handle": group.get("handle"),
+                "name": group.get("name"),
+                "description": group.get("description"),
+                "reason": reason,
+                "score": score,
+            }
+        )
+
+    return results
+
+
+def gather_matches(
+    query: str,
+    users: List[Dict],
+    usergroups: List[Dict],
+    include_bots: bool,
+    limit: int,
+) -> List[Dict]:
+    matches = search_users(query, users, include_bots)
+    matches.extend(search_usergroups(query, usergroups))
+    matches.sort(key=lambda item: item["score"], reverse=True)
+    if limit > 0:
+        return matches[:limit]
+    return matches
 
 
 def emit_table(rows: List[List[Dict]]):
@@ -166,36 +190,55 @@ def emit_table(rows: List[List[Dict]]):
         print(f"Query: {query}")
         print("-" * 60)
         for match in group:
-            print(
-                f"{match['id']:<12}  {match.get('real_name') or match.get('display_name') or '(unknown)'}"
-            )
-            if match.get("display_name"):
-                print(f"  Display: {match['display_name']}")
-            if match.get("email"):
-                print(f"  Email:   {match['email']}")
+            entity_type = match.get("entity_type", "user")
+            if entity_type == "user":
+                print(
+                    f"{match['id']:<12}  {match.get('real_name') or match.get('display_name') or '(unknown)'}"
+                )
+                if match.get("display_name"):
+                    print(f"  Display: {match['display_name']}")
+                if match.get("email"):
+                    print(f"  Email:   {match['email']}")
+            else:
+                print(f"{match['id']:<12}  {match.get('name') or match.get('handle') or '(unknown)'} [usergroup]")
+                if match.get("handle"):
+                    print(f"  Handle:  @{match['handle']}")
+                if match.get("description"):
+                    print(f"  Desc:    {match['description']}")
             print(f"  Reason:  {match['reason']} (score {match['score']})")
             print("")
         print("-" * 60)
+
+
+def load_directory(path: str) -> Dict:
+    directory_path = Path(path)
+    if not directory_path.exists():
+        raise FileNotFoundError(f"Directory file '{path}' does not exist.")
+    with directory_path.open("r", encoding="utf-8") as fh:
+        data = json.load(fh)
+    data.setdefault("users", [])
+    data.setdefault("usergroups", [])
+    return data
 
 
 def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
 
-    token = os.getenv("SLACK_BOT_TOKEN")
-    if not token:
-        print("Error: SLACK_BOT_TOKEN is not set.", file=sys.stderr)
+    try:
+        directory = load_directory(args.directory)
+    except Exception as exc:  # pragma: no cover - CLI utility
+        print(f"Failed to read Slack directory: {exc}", file=sys.stderr)
         return 1
 
-    try:
-        users = fetch_all_users(token)
-    except Exception as exc:  # pragma: no cover - CLI utility
-        print(f"Failed to fetch users: {exc}", file=sys.stderr)
-        return 2
+    users = directory.get("users", [])
+    usergroups = directory.get("usergroups", [])
 
     all_results = []
     for query in args.query:
-        matches = search_users(query, users, args.include_bots, args.limit)
+        matches = gather_matches(
+            query, users, usergroups, args.include_bots, args.limit
+        )
         all_results.append(matches)
 
     if args.json:
