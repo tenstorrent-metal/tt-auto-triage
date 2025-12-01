@@ -34,6 +34,12 @@ runs:
           def short_hash(h):
             if (h // "") == "" then "unknown" else (h[0:8]) end;
 
+          def commit_link(c):
+            if (c.url // c.commit_url // "") != "" then
+              "<" + (c.url // c.commit_url) + "|" + short_hash(c.hash // c.commit) + ">"
+            else short_hash(c.hash // c.commit)
+            end;
+
           def person(p):
             if p == null then
               "Unknown"
@@ -42,49 +48,50 @@ runs:
               + (if (p.slack_id // "") != "" then " (<@" + p.slack_id + ">)" else "" end)
             end;
 
-          def list_people(label; arr):
+          def join_people(arr):
+            arr | map(person(.)) | join(", ");
+
+          def section_line(lbl; txt):
+            if (txt // "") != "" then "*\(lbl):* " + txt + "\n" else "" end;
+
+          def section_people(lbl; arr):
             if (arr | type) == "array" and (arr | length) > 0 then
-              "*\(label):*\n" + (arr | map("• " + person(.)) | join("\n")) + "\n"
+              "*\(lbl):* " + join_people(arr) + "\n"
             else "" end;
 
-          def list_files(label; arr):
+          def section_files(lbl; arr):
             if (arr | type) == "array" and (arr | length) > 0 then
-              "*\(label):* " + (arr | join(", ")) + "\n"
+              "*\(lbl):* " + (arr | join(", ")) + "\n"
             else "" end;
 
           def commit_entry(c):
-            (
-              "• "
-              + (if (c.url // c.commit_url // "") != "" then
-                  "<" + (c.url // c.commit_url) + "|" + short_hash(c.hash // c.commit) + ">"
-                else short_hash(c.hash // c.commit) end)
-              + " — " + person(c.author)
-            )
+            "- HASH: " + commit_link(c) + "\n"
+            + "  AUTHOR: " + person(c.author) + "\n"
             + (if (c.approvers | type) == "array" and (c.approvers | length) > 0 then
-                "\n   " + list_people("Approvers"; c.approvers)
+                "  APPROVERS: " + join_people(c.approvers) + "\n"
               else "" end)
             + (if (c.relevant_developers | type) == "array" and (c.relevant_developers | length) > 0 then
-                "\n   " + list_people("Relevant developers"; c.relevant_developers)
+                "  RELEVANT DEVELOPERS: " + join_people(c.relevant_developers) + "\n"
               else "" end)
             + (if (c.relevant_files | type) == "array" and (c.relevant_files | length) > 0 then
-                "\n   " + list_files("Files"; c.relevant_files)
-              else "" end)
-          ;
+                "  RELEVANT FILES: " + (c.relevant_files | join(", ")) + "\n"
+              else "" end);
 
           def commits_section(arr):
             if (arr | type) == "array" and (arr | length) > 0 then
-              "*Commits:*\n" + (arr | map(commit_entry(.)) | join("\n")) + "\n"
+              "*COMMITS:*\n" + (arr | map(commit_entry(.)) | join("\n")) + "\n"
             else "" end;
 
           (
             $header + "\n"
-            + ("*Case " + (.case // "?") + (if (.scenario // "") != "" then " – " + .scenario else "" end) + "*\n")
-            + (if (.failure_message // "") != "" then "*Failure:* " + .failure_message + "\n" else "" end)
+            + section_line("CASE"; .case // "?")
+            + section_line("SCENARIO"; .scenario)
+            + section_line("FAILURE MESSAGE"; .failure_message)
+            + (if (.slack_message // "") != "" then (.slack_message + "\n") else "" end)
             + commits_section(.commits)
-            + list_people("Relevant developers"; .relevant_developers)
-            + list_files("Files"; .relevant_files)
-            + (if (.notes // "") != "" then "*Notes:* " + .notes + "\n" else "" end)
-            + (if (.slack_message // "") != "" then "\n" + .slack_message else "" end)
+            + section_people("RELEVANT DEVELOPERS"; .relevant_developers)
+            + section_files("RELEVANT FILES"; .relevant_files)
+            + section_line("NOTES"; .notes)
           ) | gsub("\n{3,}"; "\n\n")
         ' "$MESSAGE_PATH")
 

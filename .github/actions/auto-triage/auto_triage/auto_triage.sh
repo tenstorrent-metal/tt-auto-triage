@@ -31,7 +31,11 @@ FIND_SCRIPT="${ROOT}/find_boundaries.sh"
 
 echo "=== Cleaning auto_triage/data and auto_triage/logs ==="
 if [ -d "$CANON_DATA_DIR" ]; then
-    find "$CANON_DATA_DIR" -mindepth 1 ! -name 'boundaries_summary.json' ! -name 'subjob_runs.json' -exec rm -rf {} +
+    find "$CANON_DATA_DIR" -mindepth 1 \
+        ! -name 'boundaries_summary.json' \
+        ! -name 'subjob_runs.json' \
+        ! -name 'slack_directory.json' \
+        -exec rm -rf {} +
 else
     mkdir -p "$CANON_DATA_DIR"
 fi

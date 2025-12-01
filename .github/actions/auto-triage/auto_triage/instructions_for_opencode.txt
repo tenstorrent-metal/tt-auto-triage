@@ -32,7 +32,7 @@ Slack Message Output
 - In addition to `explanation.md`, produce exactly one `./output/slack_message.json` per run.
 - The JSON **must** match the schema for the active case in `./auto_triage/slack_message_template.json`. Treat that file as the canonical contract for required top-level keys (`case`, `scenario`, `failure_message`, `commits`, `relevant_developers`, `notes`, `slack_message`, etc.).
 - Populate commit objects with `hash`, `url`, `author`, `approvers`, `relevant_developers`, and `relevant_files`. When a field from the template does not apply to the chosen case (e.g., `commits` for Case 2), leave it as an empty array or omit it exactly as the template shows.
-- Resolve Slack IDs via `./auto_triage/get_slack_ids.py` (see Toolbox). If the lookup script errors, times out, or the person cannot be found, leave that `slack_id` as an empty string `""` and document the attempt in your reasoning rather than fabricating data.
+- Resolve Slack IDs via `./get_slack_ids.py` (see Toolbox). If the lookup script errors, times out, or the person cannot be found, leave that `slack_id` as an empty string `""` and document the attempt in your reasoning rather than fabricating data.
 - Case hints:
   - Case 1: `commits` must contain exactly one entry for the culprit commit plus any extra `relevant_developers`.
   - Case 2: `commits` stays empty, but fill the `relevant_developers`/`relevant_files` arrays with the best owners to engage.
@@ -101,16 +101,16 @@ Toolbox Reference
    ```
 7. **Lookup Slack member IDs (optional)**
    ```
-   ./auto_triage/get_slack_ids.py "Alice Smith" "bob.jones" [--limit N] [--include-bots] [--json]
+   ./get_slack_ids.py "Alice Smith" "bob.jones" [--limit N] [--include-bots] [--json]
    ```
-   Use this to retrieve Slack IDs for commit authors, approvers, or CODEOWNERS referenced in the Slack payload. The script searches the locally cached directory at `./auto_triage/data/slack_directory.json` (generated earlier via `./auto_triage/download_slack_directory.py`). If the directory file is missing or stale, rerun the downloader to refresh it. If the lookup still fails (missing entry, network issues during the refresh, or unmatched names), proceed with an empty `slack_id` and document the attempt.
+   Use this to retrieve Slack IDs for commit authors, approvers, or CODEOWNERS referenced in the Slack payload. The script searches the locally cached directory at `./auto_triage/data/slack_directory.json` (generated earlier via `./download_slack_directory.py`). If the directory file is missing or stale, rerun the downloader to refresh it. If the lookup still fails (missing entry, network issues during the refresh, or unmatched names), proceed with an empty `slack_id` and document the attempt.
    Quick reference (same as the command help):
    ```
    """
    Lookup Slack member IDs for one or more developers by name.
 
    Usage:
-     ./auto_triage/get_slack_ids.py "Alice Smith" "bob.jones"
+     ./get_slack_ids.py "Alice Smith" "bob.jones"
    Optional flags:
      --limit N        Return up to N matches per query (default: 1).
      --include-bots   Include bot/service accounts in results.
@@ -119,7 +119,7 @@ Toolbox Reference
    ```
 8. **Refresh Slack directory cache (only if needed)**
    ```
-   ./auto_triage/download_slack_directory.py [--output auto_triage/data/slack_directory.json] [--pretty]
+   ./download_slack_directory.py [--output auto_triage/data/slack_directory.json] [--pretty]
    ```
    Downloads all Slack users/groups your token can access and updates the directory consumed by `get_slack_ids.py`. The GitHub Action runs this automatically before the LLM step, but you can re-run it when debugging locally.
 
