@@ -62,6 +62,12 @@ runs:
           "${{ inputs.job-name }}" \
           "${{ inputs.model }}" \
           ci
+    - name: Send Slack notification
+      if: always()
+      uses: ./.github/actions/slack-report-auto-triage
+      with:
+        slack_webhook_url: ${{ env.SLACK_WEBHOOK_URL }}
+        slack_message_path: .auto_triage/output/slack_message.json
     - name: Publish triage report to summary
       if: always()
       shell: bash

@@ -1,0 +1,113 @@
+name: "Auto Triage Slack Reporter"
+description: "Format slack_message.json and send it to Slack."
+inputs:
+  slack_webhook_url:
+    description: "Webhook URL for the Slack channel to be posted to."
+    required: true
+  slack_message_path:
+    description: "Path to slack_message.json."
+    required: false
+    default: .auto_triage/output/slack_message.json
+runs:
+  using: "composite"
+  steps:
+    - name: Build Slack payload
+      id: build
+      shell: bash
+      env:
+        MESSAGE_PATH: ${{ inputs.slack_message_path }}
+      run: |
+        set -euo pipefail
+        if [ -z "${MESSAGE_PATH:-}" ]; then
+          echo "has_payload=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+        if [ ! -f "$MESSAGE_PATH" ]; then
+          echo "Slack message file '$MESSAGE_PATH' not found; skipping notification."
+          echo "has_payload=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        HEADER="Auto triage run: <https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}|open>"
+
+        TEXT=$(jq -r --arg header "$HEADER" '
+          def short_hash(h):
+            if (h // "") == "" then "unknown" else (h[0:8]) end;
+
+          def person(p):
+            if p == null then
+              "Unknown"
+            else
+              (p.name // p.login // "Unknown")
+              + (if (p.slack_id // "") != "" then " (<@" + p.slack_id + ">)" else "" end)
+            end;
+
+          def list_people(label; arr):
+            if (arr | type) == "array" and (arr | length) > 0 then
+              "*\(label):*\n" + (arr | map("• " + person(.)) | join("\n")) + "\n"
+            else "" end;
+
+          def list_files(label; arr):
+            if (arr | type) == "array" and (arr | length) > 0 then
+              "*\(label):* " + (arr | join(", ")) + "\n"
+            else "" end;
+
+          def commit_entry(c):
+            (
+              "• "
+              + (if (c.url // c.commit_url // "") != "" then
+                  "<" + (c.url // c.commit_url) + "|" + short_hash(c.hash // c.commit) + ">"
+                else short_hash(c.hash // c.commit) end)
+              + " — " + person(c.author)
+            )
+            + (if (c.approvers | type) == "array" and (c.approvers | length) > 0 then
+                "\n   " + list_people("Approvers"; c.approvers)
+              else "" end)
+            + (if (c.relevant_developers | type) == "array" and (c.relevant_developers | length) > 0 then
+                "\n   " + list_people("Relevant developers"; c.relevant_developers)
+              else "" end)
+            + (if (c.relevant_files | type) == "array" and (c.relevant_files | length) > 0 then
+                "\n   " + list_files("Files"; c.relevant_files)
+              else "" end)
+          ;
+
+          def commits_section(arr):
+            if (arr | type) == "array" and (arr | length) > 0 then
+              "*Commits:*\n" + (arr | map(commit_entry(.)) | join("\n")) + "\n"
+            else "" end;
+
+          (
+            $header + "\n"
+            + ("*Case " + (.case // "?") + (if (.scenario // "") != "" then " – " + .scenario else "" end) + "*\n")
+            + (if (.failure_message // "") != "" then "*Failure:* " + .failure_message + "\n" else "" end)
+            + commits_section(.commits)
+            + list_people("Relevant developers"; .relevant_developers)
+            + list_files("Files"; .relevant_files)
+            + (if (.notes // "") != "" then "*Notes:* " + .notes + "\n" else "" end)
+            + (if (.slack_message // "") != "" then "\n" + .slack_message else "" end)
+          ) | gsub("\n{3,}"; "\n\n")
+        ' "$MESSAGE_PATH")
+
+        if [ -z "$TEXT" ]; then
+          echo "Parsed Slack message is empty; skipping notification."
+          echo "has_payload=false" >> "$GITHUB_OUTPUT"
+          exit 0
+        fi
+
+        PAYLOAD=$(jq -cn --arg text "$TEXT" '{text: $text}')
+        echo "payload=$PAYLOAD" >> "$GITHUB_OUTPUT"
+        echo "has_payload=true" >> "$GITHUB_OUTPUT"
+
+    - name: Report via Slack webhook
+      if: steps.build.outputs.has_payload == 'true'
+      uses: slackapi/slack-github-action@v1.26.0
+      with:
+        payload: ${{ steps.build.outputs.payload }}
+      env:
+        SLACK_WEBHOOK_URL: ${{ inputs.slack_webhook_url }}
+
+    - name: Skip Slack notification
+      if: steps.build.outputs.has_payload != 'true'
+      shell: bash
+      run: echo "ℹ️ No Slack payload produced; notification skipped."
+
