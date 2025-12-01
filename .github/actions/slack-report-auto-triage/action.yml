@@ -106,11 +106,17 @@ runs:
 
     - name: Report via Slack webhook
       if: steps.build.outputs.has_payload == 'true'
-      uses: slackapi/slack-github-action@v1.26.0
-      with:
-        payload: ${{ steps.build.outputs.payload }}
+      shell: bash
       env:
         SLACK_WEBHOOK_URL: ${{ inputs.slack_webhook_url }}
+        PAYLOAD: ${{ steps.build.outputs.payload }}
+      run: |
+        set -euo pipefail
+        if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+          echo "Slack webhook URL is not set."
+          exit 1
+        fi
+        curl -s -X POST -H 'Content-type: application/json' --data "$PAYLOAD" "$SLACK_WEBHOOK_URL"
 
     - name: Skip Slack notification
       if: steps.build.outputs.has_payload != 'true'
