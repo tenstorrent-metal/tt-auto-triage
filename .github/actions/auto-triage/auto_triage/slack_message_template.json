@@ -1,0 +1,19 @@
+{
+    "case": "1/2/3/4",
+    "failure_message": "example failure message",
+    "commit_hash": "123abc",
+    "commit_url": "https://github.com/tenstorrent/tt-metal/commit/123abc",
+    "commit_author": {"name": "John Doe", "slack_id": "U0123456789"},
+    "commit_approvers": [
+        {"name": "Jane Doe", "slack_id": "U0123456789"},
+        {"name": "some_group_of_developers", "slack_id": "S0123456789"},
+        {"name": "Jill Doe", "slack_id": "U0143456789"}
+    ],
+    "relevant_developers": [
+        {"name": "Janet Doe", "slack_id": "U0129456789"},
+        {"name": "some_other_group_of_developers", "slack_id": "S0123451789"},
+        {"name": "Jessica Doe", "slack_id": "U0123452389"}
+    ],
+    "relevant_files": ["ttnn/datamovement/src/datamovement.cpp", "tt_metal/src/datamovement.cpp"],
+    "slack_message": "example slack message"
+}
