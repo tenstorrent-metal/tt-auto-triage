@@ -206,25 +206,29 @@ for commit_sha in "${SELECTED_COMMITS[@]}"; do
     if [ "$reviews_json" != "[]" ] && [ -n "$reviews_json" ]; then
         copilot_review=$(echo "$reviews_json" | jq -r ".[] | select(.user.login == \"copilot-pull-request-reviewer\" or .user.login == \"copilot-pull-request-reviewer[bot]\") | .body" 2>/dev/null || echo "")
         if [ -n "$copilot_review" ]; then
-            overview=$(echo "$copilot_review" | python3 -c "import sys
+            overview=$(echo "$copilot_review" | python3 - <<'PY'
+import re
+import sys
+
 content = sys.stdin.read()
-start_marker = '## Pull Request Overview'
-end_markers = ['### Reviewed Changes', '## ', '---']
-if start_marker in content:
-    start_idx = content.find(start_marker)
-    end_idx = len(content)
-    for marker in end_markers:
-        marker_idx = content.find(marker, start_idx + len(start_marker))
-        if marker_idx != -1 and marker_idx < end_idx:
-            end_idx = marker_idx
-    overview = content[start_idx:end_idx].strip()
-    overview = overview.replace(start_marker, '', 1).strip()
-    print(overview)")
+start = re.search(r'##\s+pull\s+request\s+overview', content, flags=re.IGNORECASE)
+if start:
+    section = content[start.end():]
+    end = len(section)
+    for pattern in (r'###\s+reviewed\s+changes', r'\n##\s+', r'\n---'):
+        match = re.search(pattern, section, flags=re.IGNORECASE)
+        if match:
+            end = match.start()
+            break
+    snippet = section[:end].strip()
+    print(snippet)
+PY
+)
             if [ -z "$overview" ]; then
-                overview=$(echo "$copilot_review" | sed -n '/## Pull Request Overview/,/### Reviewed Changes/p' | sed '$d' | sed '1s/## Pull Request Overview//' | sed 's/^[[:space:]]*//' | head -c 5000 || echo "")
+                overview=$(echo "$copilot_review" | sed -n '/## [Pp]ull [Rr]equest [Oo]verview/,/### [Rr]eviewed [Cc]hanges/p' | sed '$d' | sed '1s/## [Pp]ull [Rr]equest [Oo]verview//' | sed 's/^[[:space:]]*//' | head -c 5000 || echo "")
             fi
             if [ -z "$overview" ]; then
-                overview=$(echo "$copilot_review" | grep -A 50 "## Pull Request Overview" | tail -n +2 | head -n 30 | head -c 2000 || echo "")
+                overview=$(echo "$copilot_review" | grep -i -A 50 "## Pull Request Overview" | tail -n +2 | head -n 30 | head -c 2000 || echo "")
             fi
             if [ -z "$overview" ]; then
                 overview="wasn't found"
