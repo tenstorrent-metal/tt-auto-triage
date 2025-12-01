@@ -60,8 +60,11 @@ runs:
 
           def section_files(lbl; arr):
             if (arr | type) == "array" and (arr | length) > 0 then
-              "*\(lbl):* " + (arr | join(", ")) + "\n"
+              "*\(lbl):*\n```\n" + (arr | join("\n")) + "\n```\n"
             else "" end;
+
+          def section_code(lbl; txt):
+            if (txt // "") != "" then "*\(lbl):*\n```" + txt + "```\n" else "" end;
 
           def commit_entry(c):
             "- HASH: " + commit_link(c) + "\n"
@@ -73,7 +76,7 @@ runs:
                 "  RELEVANT DEVELOPERS: " + join_people(c.relevant_developers) + "\n"
               else "" end)
             + (if (c.relevant_files | type) == "array" and (c.relevant_files | length) > 0 then
-                "  RELEVANT FILES: " + (c.relevant_files | join(", ")) + "\n"
+                "  RELEVANT FILES:\n```\n" + (c.relevant_files | join("\n")) + "\n```\n"
               else "" end);
 
           def commits_section(arr):
@@ -85,7 +88,7 @@ runs:
             $header + "\n"
             + section_line("CASE"; .case // "?")
             + section_line("SCENARIO"; .scenario)
-            + section_line("FAILURE MESSAGE"; .failure_message)
+            + section_code("FAILURE MESSAGE"; .failure_message)
             + (if (.slack_message // "") != "" then (.slack_message + "\n") else "" end)
             + commits_section(.commits)
             + section_people("RELEVANT DEVELOPERS"; .relevant_developers)
