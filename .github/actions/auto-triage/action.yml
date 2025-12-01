@@ -38,6 +38,12 @@ runs:
         ./find_boundaries.sh \
           "${{ inputs.workflow-name }}" \
           "${{ inputs.job-name }}"
+    - name: Download Slack directory
+      shell: bash
+      run: |
+        set -euo pipefail
+        cd "${GITHUB_WORKSPACE}/.auto_triage"
+        ./download_slack_directory.py
     - name: Install opencode CLI
       shell: bash
       run: |
