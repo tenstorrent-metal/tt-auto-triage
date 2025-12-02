@@ -50,8 +50,8 @@ Shared Workflow (Main Analysis)
 2. Start by reading `filtered_commit_info.json` and `error_message.txt`. Treat that deterministic error as the anchor; do **not** re-download runs unless the existing evidence is insufficient to choose a case.
 3. If you absolutely need additional logs or metadata, justify the cost clearly in `explanation.md` and stop as soon as you have enough data. Infra/setup failures identified by the filter stage must remain excluded from your determinism logic.
 4. Determine whether tt-metal commits plausibly explain the failure:
-   - If one commit survives the filter with strong evidence, you are trending toward Case 1.
-   - If multiple commits remain plausible, consider Case 4.
+   - Treat every commit in `filtered_commit_info.json` as a plausible candidate. The filter only removes clearly irrelevant entries; it does **not** imply that multiple surviving commits mean Case 4. You must still evaluate each remaining commit on its own merits and pick Case 1 whenever a single culprit can be defended.
+   - Choose Case 4 only when, after reviewing the filtered commits, you still have ≥2 genuinely plausible suspects that cannot be disambiguated.
    - If `filtered_commit_info.json` is empty (or every commit was marked irrelevant) yet the failure is deterministic, lean toward Case 3.
    - If `commit_info.json` contains a JSON string instructing you to default to Case 2, follow that guidance unless other evidence clearly indicates Case 3.
 5. Keep a ranked shortlist of plausible commits (including those the filter stage left as relevant). Case 1 requires exactly one remaining candidate; Case 4 requires ≥2.
