@@ -139,10 +139,19 @@ runs:
         else
             echo "No explanation produced." >> "$GITHUB_STEP_SUMMARY"
         fi
-    - name: Upload auto-triage artifacts
+    - name: Upload auto-triage data
       if: always() && inputs.slack-test-only != 'true'
       uses: actions/upload-artifact@v4
       with:
-        name: auto-triage-artifacts
-        path: ${{ github.workspace }}/.auto_triage
+        name: auto-triage-data
+        path: ${{ github.workspace }}/.auto_triage/data
         if-no-files-found: ignore
+        include-hidden-files: true
+    - name: Upload auto-triage output
+      if: always() && inputs.slack-test-only != 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: auto-triage-output
+        path: ${{ github.workspace }}/.auto_triage/output
+        if-no-files-found: ignore
+        include-hidden-files: true
