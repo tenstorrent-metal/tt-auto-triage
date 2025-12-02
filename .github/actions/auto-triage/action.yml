@@ -67,13 +67,6 @@ runs:
       uses: actions/setup-node@v4
       with:
         node-version: '22'
-    - name: Authenticate GitHub CLI
-      if: inputs.slack-test-only != 'true'
-      shell: bash
-      run: |
-        set -euo pipefail
-        echo "${{ github.token }}" | gh auth login --with-token
-        gh auth status || (echo "GitHub CLI authentication failed" && exit 1)
     - name: Install GitHub Copilot CLI
       if: inputs.slack-test-only != 'true'
       shell: bash
