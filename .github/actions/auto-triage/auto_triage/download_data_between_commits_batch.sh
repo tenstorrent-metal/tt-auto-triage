@@ -287,7 +287,7 @@ PY
         --argjson authors "$authors_json" \
         --argjson approvers "${approvers_json:-[]}" \
         --arg overview "$overview" \
-        '{commit: $commit, commit_short: $commit_short, commit_date: $commit_date, commit_subject: $commit_subject, pr_number: $pr_number, pr_title: $pr_title, pr_url: $pr_url, pr_description: $pr_description, authors: $authors, approvers: $approvers, copilot_overview: $overview}' 2>/dev/null || echo "{}")
+        '{commit: $commit, commit_short: $commit_short, commit_date: $commit_date, commit_subject: $commit_subject, pr_number: $pr_number, pr_title: $pr_title, pr_url: $pr_url, pr_description: $pr_description, authors: $authors, approvers: $approvers, copilot_overview: $overview, is_irrelevant: false}' 2>/dev/null || echo "{}")
 
     if [ "$entry" != "{}" ]; then
         jq ". += [$entry]" "$OUTPUT_FILE" > "${OUTPUT_FILE}.tmp" && mv "${OUTPUT_FILE}.tmp" "$OUTPUT_FILE" 2>/dev/null || {
