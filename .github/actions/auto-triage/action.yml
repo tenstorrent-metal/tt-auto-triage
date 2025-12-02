@@ -28,6 +28,8 @@ runs:
         mkdir -p "$TARGET"
         # Copy triage tooling
         cp -R "${{ github.action_path }}/auto_triage/." "$TARGET/"
+        chmod +x "$TARGET/"*.sh || true
+        chmod +x "$TARGET/sanitize_slack_message.py" || true
         # Mirror the checked-out repo into the workspace for the LLM (excluding the workspace itself)
         rsync -a --delete \
           --exclude '.auto_triage/' \
