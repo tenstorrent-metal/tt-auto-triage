@@ -14,7 +14,7 @@ inputs:
   filter-model:
     description: Model identifier for the filter stage (kept for compatibility, currently unused).
     required: true
-  wilder-pat:
+  copilot-pat:
     description: Personal Access Token for GitHub/Copilot authentication.
     required: true
   slack-test-only:
@@ -96,8 +96,8 @@ runs:
           "${{ inputs.filter-model }}" \
           ci
       env:
-        # Use WILDER_PAT for Copilot CLI authentication
-        COPILOT_GITHUB_TOKEN: ${{ inputs.wilder-pat }}
+        # Use TESTING_COPILOT_PAT for Copilot CLI authentication
+        COPILOT_GITHUB_TOKEN: ${{ inputs.copilot-pat }}
         # Use github.token for gh CLI (used by bash scripts for GitHub API calls)
         GH_TOKEN: ${{ github.token }}
         GITHUB_TOKEN: ${{ github.token }}
@@ -136,8 +136,8 @@ runs:
           ci
       env:
         REUSE_DATA: "true"
-        # Use WILDER_PAT for Copilot CLI authentication
-        COPILOT_GITHUB_TOKEN: ${{ inputs.wilder-pat }}
+        # Use TESTING_COPILOT_PAT for Copilot CLI authentication
+        COPILOT_GITHUB_TOKEN: ${{ inputs.copilot-pat }}
         # Use github.token for gh CLI (used by bash scripts for GitHub API calls)
         GH_TOKEN: ${{ github.token }}
         GITHUB_TOKEN: ${{ github.token }}
