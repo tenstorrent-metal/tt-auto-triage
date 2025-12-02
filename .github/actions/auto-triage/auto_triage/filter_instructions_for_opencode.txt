@@ -60,7 +60,7 @@ What **Not** to Do
 - Do **not** produce `explanation.md`, `slack_message.json`, or any Case outputs.
 - Do **not** spend tokens summarizing commits; simply gather metadata and set `is_irrelevant`.
 - Do **not** delete or rename any existing automation scripts.
-- Avoid running OpenCode twice; this filter stage is the only LLM invocation before the main analysis.
+- Avoid running the LLM twice; this filter stage is the only LLM invocation before the main analysis.
 
 When unsure, err on the side of leaving a commit marked as relevant (i.e., keep `is_irrelevant: false`). The main model will perform the final reasoning using the filtered list and the captured error message.
 

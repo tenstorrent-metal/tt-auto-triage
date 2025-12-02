@@ -3,6 +3,7 @@
 # Filter stage driver: determines deterministic failures, gathers commits, and flags irrelevant ones.
 # Usage:
 #   ./filter_triage.sh <workflow_name> <subjob_name> <model> [ci-mode]
+# Note: model parameter is kept for compatibility but currently unused
 #
 
 set -euo pipefail
@@ -48,8 +49,8 @@ if [ ! -s "$SUMMARY_FILE" ] || [ ! -s "$SUBJOB_RUNS_FILE" ]; then
     exit 1
 fi
 
-if ! command -v opencode >/dev/null 2>&1; then
-    echo "Error: opencode CLI is required but not found in PATH." >&2
+if ! command -v copilot >/dev/null 2>&1; then
+    echo "Error: GitHub Copilot CLI is required but not found in PATH." >&2
     exit 1
 fi
 
@@ -65,6 +66,7 @@ You are operating in a CI environment with no interactive approval. Complete the
 $(cat "$INSTRUCTIONS_FILE")
 EOF
 
-echo "=== Launching OpenCode filter stage (model: ${MODEL}) ==="
-opencode run -m "$MODEL" "$PROMPT"
+echo "=== Launching GitHub Copilot CLI filter stage (model parameter: ${MODEL}, using default model) ==="
+# Use programmatic mode with --allow-all-tools for CI environment
+copilot -p "$PROMPT" --allow-all-tools
 

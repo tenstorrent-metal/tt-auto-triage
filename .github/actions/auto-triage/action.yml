@@ -1,6 +1,6 @@
 ---
 name: auto-triage
-description: Run auto_triage automation with OpenCode and GitHub API access.
+description: Run auto_triage automation with GitHub Copilot CLI and GitHub API access.
 inputs:
   workflow-name:
     description: Workflow file name to inspect.
@@ -9,10 +9,10 @@ inputs:
     description: Job/subjob name within the workflow.
     required: true
   model:
-    description: OpenCode model identifier.
+    description: Model identifier (kept for compatibility, currently unused).
     required: true
   filter-model:
-    description: OpenCode model identifier for the filter stage.
+    description: Model identifier for the filter stage (kept for compatibility, currently unused).
     required: true
   slack-test-only:
     description: Skip analysis steps and only send a canned Slack message.
@@ -55,15 +55,26 @@ runs:
         set -euo pipefail
         cd "${GITHUB_WORKSPACE}/.auto_triage"
         ./download_slack_directory.py
-    - name: Install opencode CLI
+    - name: Install ripgrep
       if: inputs.slack-test-only != 'true'
       shell: bash
       run: |
         set -euo pipefail
-        curl -fsSL https://opencode.ai/install | bash
-        echo "$HOME/.opencode/bin" >> "$GITHUB_PATH"
-        export PATH="$HOME/.opencode/bin:$PATH"
-        opencode --version || (echo "opencode CLI installation failed" && exit 1)
+        sudo apt-get update && sudo apt-get install -y ripgrep
+        rg --version || (echo "ripgrep installation failed" && exit 1)
+    - name: Install GitHub Copilot CLI
+      if: inputs.slack-test-only != 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        # Install Node.js if not already available
+        if ! command -v node >/dev/null 2>&1; then
+          curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+          sudo apt-get install -y nodejs
+        fi
+        # Install GitHub Copilot CLI
+        npm install -g @githubnext/github-copilot-cli
+        copilot --version || (echo "Copilot CLI installation failed" && exit 1)
     - name: Execute filter_triage.sh
       if: inputs.slack-test-only != 'true'
       shell: bash
@@ -75,6 +86,8 @@ runs:
           "${{ inputs.job-name }}" \
           "${{ inputs.filter-model }}" \
           ci
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
 
     - name: Produce filtered commit list
       if: inputs.slack-test-only != 'true'
@@ -110,6 +123,7 @@ runs:
           ci
       env:
         REUSE_DATA: "true"
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - name: Seed Slack test payload
       if: inputs.slack-test-only == 'true'
       shell: bash

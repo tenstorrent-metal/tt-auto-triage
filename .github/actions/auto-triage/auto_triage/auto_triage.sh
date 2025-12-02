@@ -1,10 +1,11 @@
 #!/bin/bash
 #
-# Full triage driver: wipes old data/logs, finds boundaries, then invokes OpenCode.
+# Full triage driver: wipes old data/logs, finds boundaries, then invokes GitHub Copilot CLI.
 # Usage:
 #   ./auto_triage.sh <workflow_name> <subjob_name> <model>
 # Example:
 #   ./auto_triage.sh galaxy-quick quick-wh-glx-quick openai/gpt-5.1-codex-mini
+# Note: model parameter is kept for compatibility but currently unused
 
 set -euo pipefail
 
@@ -63,8 +64,8 @@ FAIL_COUNT=$(jq '[.[] | select(.status != "success")] | length' "$SUBJOB_RUNS_FI
 echo "runs recorded: $SUMMARY_COUNT"
 echo "failures recorded: $FAIL_COUNT"
 
-if ! command -v opencode >/dev/null 2>&1; then
-    echo "Error: opencode CLI is required but not found in PATH." >&2
+if ! command -v copilot >/dev/null 2>&1; then
+    echo "Error: GitHub Copilot CLI is required but not found in PATH." >&2
     exit 1
 fi
 
@@ -80,10 +81,9 @@ You are operating in a CI environment with no interactive approval. Complete the
 $(cat "$INSTRUCTIONS_FILE")
 EOF
 
-echo "=== Launching OpenCode (model: ${MODEL}) ==="
-echo "Models Available are:"
-opencode models
-opencode run -m "$MODEL" "$PROMPT"
+echo "=== Launching GitHub Copilot CLI (model parameter: ${MODEL}, using default model) ==="
+# Use programmatic mode with --allow-all-tools for CI environment
+copilot -p "$PROMPT" --allow-all-tools
 
 VERIFY_SCRIPT="${ROOT}/verify_commit_metadata.sh"
 if [ -x "$VERIFY_SCRIPT" ]; then
