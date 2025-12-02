@@ -31,7 +31,20 @@ Commit Metadata Collection
    ```
    ./download_data_between_commits.sh <good_commit> <bad_commit> ./auto_triage/data/commit_info.json
    ```
-   - If the script reports `BATCH_COUNT`, run the batch helper with indices `0..BATCH_COUNT-1`.
+   - If the commit window has ≤10 commits, the script will download them directly and write to `commit_info.json`.
+   - If the commit window has >10 commits, the script will output `BATCH_COUNT=<number>` (e.g., `BATCH_COUNT=5` for 50 commits).
+   - When `BATCH_COUNT` is reported, you must run the batch script for each batch index from `0` to `BATCH_COUNT-1`:
+     ```
+     ./download_data_between_commits_batch.sh <good_commit> <bad_commit> <batch_index> ./auto_triage/data/commit_info.json
+     ```
+     - Example: If `BATCH_COUNT=5`, run:
+       - `./download_data_between_commits_batch.sh <good_commit> <bad_commit> 0 ./auto_triage/data/commit_info.json`
+       - `./download_data_between_commits_batch.sh <good_commit> <bad_commit> 1 ./auto_triage/data/commit_info.json`
+       - `./download_data_between_commits_batch.sh <good_commit> <bad_commit> 2 ./auto_triage/data/commit_info.json`
+       - `./download_data_between_commits_batch.sh <good_commit> <bad_commit> 3 ./auto_triage/data/commit_info.json`
+       - `./download_data_between_commits_batch.sh <good_commit> <bad_commit> 4 ./auto_triage/data/commit_info.json`
+     - **Important:** Use the same output file (`./auto_triage/data/commit_info.json`) for all batch calls; results will be appended.
+     - Each batch processes up to 10 commits (batches are zero-indexed).
 7. For each commit entry, set the `is_irrelevant` flag based on your best judgment:
    - **Leave `is_irrelevant: false`** when the commit plausibly touches the failing subsystem or files mentioned in the deterministic error. When in doubt, prefer keeping the commit relevant so the main model can evaluate it later.
    - **Set `is_irrelevant: true`** only for commits that clearly cannot affect the failure (pure documentation, unrelated tooling, mismatched programming language, etc.).
