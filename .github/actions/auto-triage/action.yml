@@ -123,7 +123,7 @@ runs:
           ci
       env:
         REUSE_DATA: "true"
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ github.token }}
     - name: Seed Slack test payload
       if: inputs.slack-test-only == 'true'
       shell: bash
