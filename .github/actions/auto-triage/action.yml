@@ -62,18 +62,17 @@ runs:
         set -euo pipefail
         sudo apt-get update && sudo apt-get install -y ripgrep
         rg --version || (echo "ripgrep installation failed" && exit 1)
+    - name: Setup Node.js v22+
+      if: inputs.slack-test-only != 'true'
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
     - name: Install GitHub Copilot CLI
       if: inputs.slack-test-only != 'true'
       shell: bash
       run: |
         set -euo pipefail
-        # Install Node.js if not already available
-        if ! command -v node >/dev/null 2>&1; then
-          curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-          sudo apt-get install -y nodejs
-        fi
-        # Install GitHub Copilot CLI
-        npm install -g @githubnext/github-copilot-cli
+        npm install -g @github/copilot
         copilot --version || (echo "Copilot CLI installation failed" && exit 1)
     - name: Execute filter_triage.sh
       if: inputs.slack-test-only != 'true'
