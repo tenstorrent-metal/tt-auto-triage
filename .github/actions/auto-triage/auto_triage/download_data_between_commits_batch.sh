@@ -2,11 +2,11 @@
 
 # Download Copilot PR overview data for a specific batch of commits.
 # Usage: ./download_data_between_commits_batch.sh <start_commit> <end_commit> <batch_index> [output_file]
-# Each batch processes up to 30 commits. Batches are zero-indexed.
+# Each batch processes up to 10 commits. Batches are zero-indexed.
 
 set -euo pipefail
 
-BATCH_SIZE=5
+BATCH_SIZE=10
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'

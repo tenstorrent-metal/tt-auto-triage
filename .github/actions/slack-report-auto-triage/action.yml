@@ -87,6 +87,7 @@ runs:
 
           (
             section_line("RUN"; "<\($run_url)|\($run_label)>")
+            + section_line("FAILING RUN"; (if (.failing_run_url // "") != "" then "<\(.failing_run_url)|\(.failing_run_label // "latest failing run")>" else "" end))
             + section_line("CASE"; .case // "?")
             + section_line("SCENARIO"; .scenario)
             + section_code("FAILURE MESSAGE"; .failure_message)

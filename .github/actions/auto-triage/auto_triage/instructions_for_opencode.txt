@@ -30,7 +30,7 @@ You must justify the selected case explicitly in `./output/explanation.md`, and 
 Slack Message Output
 --------------------
 - In addition to `explanation.md`, produce exactly one `./output/slack_message.json` per run.
-- The JSON **must** match the schema for the active case in `./auto_triage/slack_message_template.json`. Treat that file as the canonical contract for required top-level keys (`case`, `scenario`, `failure_message`, `commits`, `relevant_developers`, `notes`, `slack_message`, etc.). After writing `./output/slack_message.json`, run `./sanitize_slack_message.py ./output/slack_message.json` to strip any wrapper text and guarantee valid JSON before handing it off.
+- The JSON **must** match the schema for the active case in `./auto_triage/slack_message_template.json`. Treat that file as the canonical contract for required top-level keys (`case`, `scenario`, `failure_message`, `failing_run_url`, `failing_run_label`, `commits`, `relevant_developers`, `notes`, `slack_message`, etc.). After writing `./output/slack_message.json`, run `./sanitize_slack_message.py ./output/slack_message.json` to strip any wrapper text and guarantee valid JSON before handing it off.
 - Populate commit objects with `hash`, `url`, `author`, `approvers`, `relevant_developers`, and `relevant_files`. When a field from the template does not apply to the chosen case (e.g., `commits` for Case 2), leave it as an empty array or omit it exactly as the template shows.
 - Resolve Slack IDs via `./get_slack_ids.py` (see Toolbox). If the lookup script errors, times out, or the person cannot be found, leave that `slack_id` as an empty string `""` and document the attempt in your reasoning rather than fabricating data.
 - Case hints:
@@ -38,6 +38,7 @@ Slack Message Output
   - Case 2: `commits` stays empty, but fill the `relevant_developers`/`relevant_files` arrays with the best owners to engage.
   - Case 3: keep `commits` empty and populate `notes` to summarize why this is external.
   - Case 4: include every plausible commit (≥2) with per-commit people lists; mention confidence in the Slack summary.
+- `failing_run_url` / `failing_run_label` must describe the newest run that actually exhibits the deterministic failure signature (ignore newer runs that only fail due to infra/setup issues such as runner disconnects). Use the exact job URL from `./data/subjob_runs.json` and provide a short label such as `Run #123456789 (latest reproducible failure)`.
 - `slack_message` should be a concise, plain-text summary (one or two sentences) that references the case number and tells humans what to do next.
 
 Shared Workflow (All Cases)
@@ -85,12 +86,12 @@ Toolbox Reference
    ```
    ./download_data_between_commits.sh <good_commit> <bad_commit> [output_json]
    ```
-   Creates/updates `./data/commit_info.json`. If more than 5 commits are detected it will report `BATCH_COUNT` and expect the batch script below to be called.
+   Creates/updates `./data/commit_info.json`. If more than 10 commits are detected it will report `BATCH_COUNT` and expect the batch script below to be called.
 4. **Download commit metadata in batches (when requested)**
    ```
    ./download_data_between_commits_batch.sh <good_commit> <bad_commit> <batch_index> [output_json]
    ```
-   Processes up to 5 commits per batch and appends to the specified JSON (run for indices `0..BATCH_COUNT-1`).
+   Processes up to 10 commits per batch and appends to the specified JSON (run for indices `0..BATCH_COUNT-1`).
 5. **Changed files for a commit**
    ```
    ./get_changed_files.sh <commit> [output_json]

@@ -3,6 +3,8 @@
         "case": "1",
         "scenario": "Deterministic failure with identified commit",
         "failure_message": "[2025-11-29T02:11:44Z] ERROR ttnn/test_tensor_ops.py::test_batched_reduce_max AssertionError: max mismatch (expected=0.000000, actual=0.125000) seed=42",
+        "failing_run_url": "https://github.com/tenstorrent/tt-metal/actions/runs/1234567890/job/1111111111",
+        "failing_run_label": "Run #1234567890 (latest failure)",
         "commits": [
             {
                 "hash": "af12b3c4d5e67890fedcba0987654321abcdef12",
@@ -26,6 +28,8 @@
         "case": "2",
         "scenario": "Deterministic failure but culprit commit unknown",
         "failure_message": "[2025-11-30T09:07:18Z] tensorcore-smoke: FAIL step=train_setup Reason: FileNotFoundError: /mnt/logs/tt-metal/latest_success.marker (from pipeline stdout)",
+        "failing_run_url": "https://github.com/tenstorrent/tt-metal/actions/runs/1234567891/job/2222222222",
+        "failing_run_label": "Run #1234567891 (newest failure)",
         "commits": [],
         "relevant_developers": [
             {"name": "Priya Malhotra", "slack_id": "U11L1EXAMPLE"},
@@ -41,6 +45,8 @@
         "case": "3",
         "scenario": "Failure likely outside tt-metal",
         "failure_message": "[2025-11-28T22:55:01Z] ERROR runner: ssh: connect to host 10.1.5.23 port 22: Connection timed out (ttnn/test_memory_pool never starts)",
+        "failing_run_url": "https://github.com/tenstorrent/tt-metal/actions/runs/1234567892/job/3333333333",
+        "failing_run_label": "Run #1234567892 (latest job)",
         "commits": [],
         "notes": "No tt-metal commits touch memory pool code in window; logs show runners lose SSH connectivity mid-setup, pointing to infra.",
         "slack_message": "Case 3: Hanging jobs traced to runner connectivity loss (timeout before tests start). Evidence suggests infra instability rather than tt-metal changes. Please loop in infra-oncall."
@@ -49,6 +55,8 @@
         "case": "4",
         "scenario": "Deterministic failure with multiple plausible commits",
         "failure_message": "[2025-11-27T18:44:03Z] ttnn/graph/test_partitioning::test_multi_chip_plan FAILED: RuntimeError: partition plan emitted empty subgraph (graph_compiler.cc:412)",
+        "failing_run_url": "https://github.com/tenstorrent/tt-metal/actions/runs/1234567893/job/4444444444",
+        "failing_run_label": "Run #1234567893 (most recent failure)",
         "commits": [
             {
                 "hash": "c3d9c9fe12ab4567de89f0123456abcd7890efab",
