@@ -14,6 +14,9 @@ inputs:
   filter-model:
     description: Model identifier for the filter stage (kept for compatibility, currently unused).
     required: true
+  wilder-pat:
+    description: Personal Access Token for GitHub/Copilot authentication.
+    required: true
   slack-test-only:
     description: Skip analysis steps and only send a canned Slack message.
     required: false
@@ -90,9 +93,9 @@ runs:
           "${{ inputs.filter-model }}" \
           ci
       env:
-        GITHUB_TOKEN: ${{ github.token }}
-        COPILOT_GITHUB_TOKEN: ${{ github.token }}
-        GH_TOKEN: ${{ github.token }}
+        GITHUB_TOKEN: ${{ inputs.wilder-pat }}
+        COPILOT_GITHUB_TOKEN: ${{ inputs.wilder-pat }}
+        GH_TOKEN: ${{ inputs.wilder-pat }}
 
     - name: Produce filtered commit list
       if: inputs.slack-test-only != 'true'
@@ -128,9 +131,9 @@ runs:
           ci
       env:
         REUSE_DATA: "true"
-        GITHUB_TOKEN: ${{ github.token }}
-        COPILOT_GITHUB_TOKEN: ${{ github.token }}
-        GH_TOKEN: ${{ github.token }}
+        GITHUB_TOKEN: ${{ inputs.wilder-pat }}
+        COPILOT_GITHUB_TOKEN: ${{ inputs.wilder-pat }}
+        GH_TOKEN: ${{ inputs.wilder-pat }}
     - name: Seed Slack test payload
       if: inputs.slack-test-only == 'true'
       shell: bash

@@ -67,10 +67,17 @@ $(cat "$INSTRUCTIONS_FILE")
 EOF
 
 echo "=== Launching GitHub Copilot CLI filter stage (model parameter: ${MODEL}, using default model) ==="
-# Ensure authentication tokens are available
-export COPILOT_GITHUB_TOKEN="${COPILOT_GITHUB_TOKEN:-${GH_TOKEN:-${GITHUB_TOKEN:-}}}"
-export GH_TOKEN="${GH_TOKEN:-${GITHUB_TOKEN:-}}"
-export GITHUB_TOKEN="${GITHUB_TOKEN:-}"
+# Ensure authentication tokens are available (only set if not already set)
+# These should be set by the action.yml env section, so this is just a fallback
+if [ -z "${COPILOT_GITHUB_TOKEN:-}" ] && [ -n "${GH_TOKEN:-}" ]; then
+    export COPILOT_GITHUB_TOKEN="$GH_TOKEN"
+fi
+if [ -z "${COPILOT_GITHUB_TOKEN:-}" ] && [ -n "${GITHUB_TOKEN:-}" ]; then
+    export COPILOT_GITHUB_TOKEN="$GITHUB_TOKEN"
+fi
+if [ -z "${GH_TOKEN:-}" ] && [ -n "${GITHUB_TOKEN:-}" ]; then
+    export GH_TOKEN="$GITHUB_TOKEN"
+fi
 # Use programmatic mode with --allow-all-tools for CI environment
 copilot -p "$PROMPT" --allow-all-tools
 
