@@ -33,8 +33,8 @@ Commit Metadata Collection
    ```
    - If the script reports `BATCH_COUNT`, run the batch helper with indices `0..BATCH_COUNT-1`.
 7. For each commit entry, set the `is_irrelevant` flag based on your best judgment:
-   - **Leave `is_irrelevant: false`** when the commit plausibly touches the failing subsystem or files mentioned in the deterministic error.
-   - **Set `is_irrelevant: true`** for commits that cannot affect the failure (pure documentation, unrelated tooling, mismatched programming language, etc.).
+   - **Leave `is_irrelevant: false`** when the commit plausibly touches the failing subsystem or files mentioned in the deterministic error. When in doubt, prefer keeping the commit relevant so the main model can evaluate it later.
+   - **Set `is_irrelevant: true`** only for commits that clearly cannot affect the failure (pure documentation, unrelated tooling, mismatched programming language, etc.).
    - Always preserve the full entry even when marking it irrelevant.
 
 Special Cases
