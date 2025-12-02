@@ -51,6 +51,9 @@ runs:
         ./find_boundaries.sh \
           "${{ inputs.workflow-name }}" \
           "${{ inputs.job-name }}"
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GITHUB_TOKEN: ${{ github.token }}
     - name: Download Slack directory
       if: inputs.slack-test-only != 'true'
       shell: bash
