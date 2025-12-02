@@ -22,7 +22,6 @@ runs:
   using: composite
   steps:
     - name: Stage auto_triage scripts
-      if: inputs.slack-test-only != 'true'
       shell: bash
       run: |
         set -euo pipefail
