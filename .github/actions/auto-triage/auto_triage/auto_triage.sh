@@ -29,18 +29,8 @@ SUMMARY_FILE="${CANON_DATA_DIR}/boundaries_summary.json"
 SUBJOB_RUNS_FILE="${CANON_DATA_DIR}/subjob_runs.json"
 FIND_SCRIPT="${ROOT}/find_boundaries.sh"
 
-echo "=== Cleaning auto_triage/data and auto_triage/logs ==="
-if [ -d "$CANON_DATA_DIR" ]; then
-    find "$CANON_DATA_DIR" -mindepth 1 \
-        ! -name 'boundaries_summary.json' \
-        ! -name 'subjob_runs.json' \
-        ! -name 'slack_directory.json' \
-        -exec rm -rf {} +
-else
-    mkdir -p "$CANON_DATA_DIR"
-fi
-rm -rf "$CANON_LOGS_DIR"
-mkdir -p "$CANON_LOGS_DIR"
+echo "=== Preparing auto_triage/data and auto_triage/logs ==="
+mkdir -p "$CANON_DATA_DIR" "$CANON_LOGS_DIR"
 rm -rf "$CANON_OUTPUT_DIR"
 mkdir -p "$CANON_OUTPUT_DIR"
 

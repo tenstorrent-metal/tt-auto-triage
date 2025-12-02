@@ -1,0 +1,62 @@
+Filter Stage Playbook
+=====================
+
+Purpose
+-------
+Identify the newest deterministic failure signature, gather the associated commit window, and pre-filter obviously irrelevant commits before the main analysis model runs. This stage must be exhaustive when collecting evidence, but its outputs are limited to the source metadata the next model will consume.
+
+Available Workspace
+-------------------
+- You are operating inside `.auto_triage/`.
+- Run helper scripts from this directory (e.g., `./get_logs.sh`, `./download_data_between_commits.sh`).
+- Source files live under `./workspace/`.
+- Data artifacts should be written to `./auto_triage/data/` (also symlinked at `./data/`).
+
+Workflow Overview
+-----------------
+1. Inspect `./data/subjob_runs.json` (ordered newest → oldest). Identify the last successful run and the subsequent failures.
+2. Download evidence exactly as follows:
+   - **Oldest failing run** (first failure after the last success).
+   - **Two most recent failing runs** (if fewer than three failures exist, download every failing run).
+   - For each run, call `./get_annotations.sh <job_url>` first. If annotations lack actionable detail (common), immediately fall back to `./get_logs.sh <job_url>`.
+3. Ignore infrastructure/setup failures (e.g., runner disconnects, missing dependencies, GitHub outages). Such runs must not influence determinism decisions.
+4. Determine whether there is a repeatable deterministic failure signature:
+   - Prefer an error that appears in multiple runs with the same stack trace or message.
+   - If only one test-executing run exists, treat that signature as deterministic if it clearly points to tt-metal code.
+5. Save the deterministic error snippet (2–6 lines) into `./auto_triage/data/error_message.txt`. If no deterministic failure can be found, write an empty file.
+
+Commit Metadata Collection
+--------------------------
+6. Locate the last successful run and the first deterministic failing run identified above. Invoke:
+   ```
+   ./download_data_between_commits.sh <good_commit> <bad_commit> ./auto_triage/data/commit_info.json
+   ```
+   - If the script reports `BATCH_COUNT`, run the batch helper with indices `0..BATCH_COUNT-1`.
+7. For each commit entry, set the `is_irrelevant` flag based on your best judgment:
+   - **Leave `is_irrelevant: false`** when the commit plausibly touches the failing subsystem or files mentioned in the deterministic error.
+   - **Set `is_irrelevant: true`** for commits that cannot affect the failure (pure documentation, unrelated tooling, mismatched programming language, etc.).
+   - Always preserve the full entry even when marking it irrelevant.
+
+Special Cases
+-------------
+- **Purely non-deterministic / infra failures:** If every failing run is due to setup/infrastructure noise, you may skip downloading commits. Instead, write an empty JSON array (`[]`) to `./auto_triage/data/commit_info.json` and leave `error_message.txt` blank. This signals Case 3 to the main model.
+- **Deterministic failure but no plausible commits:** After populating commit metadata, you may mark every commit with `is_irrelevant: true`. The main model will interpret this as Case 3 territory.
+- **Commit span too large (>100) or metadata unavailable:** If the helper scripts refuse to download (or logs for the oldest failing run are missing), write a JSON string into `commit_info.json`, e.g. `"too many commits to analyze; default to Case 2 unless other evidence suggests Case 3"`. Still populate `error_message.txt` with the clearest deterministic message you found (or leave it empty if none were available).
+
+Outputs
+-------
+- `./auto_triage/data/commit_info.json`
+  - Preferred format is a JSON array of commit objects (each with `is_irrelevant` set).
+  - The file may also be a JSON string for the “too many commits” scenario described above.
+- `./auto_triage/data/error_message.txt`
+  - Contains the deterministic failure excerpt (or is empty if determinism could not be established).
+
+What **Not** to Do
+------------------
+- Do **not** produce `explanation.md`, `slack_message.json`, or any Case outputs.
+- Do **not** spend tokens summarizing commits; simply gather metadata and set `is_irrelevant`.
+- Do **not** delete or rename any existing automation scripts.
+- Avoid running OpenCode twice; this filter stage is the only LLM invocation before the main analysis.
+
+When unsure, err on the side of leaving a commit marked as relevant (i.e., keep `is_irrelevant: false`). The main model will perform the final reasoning using the filtered list and the captured error message.
+

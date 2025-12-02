@@ -11,6 +11,9 @@ inputs:
   model:
     description: OpenCode model identifier.
     required: true
+  filter-model:
+    description: OpenCode model identifier for the filter stage.
+    required: true
   slack-test-only:
     description: Skip analysis steps and only send a canned Slack message.
     required: false
@@ -28,8 +31,8 @@ runs:
         mkdir -p "$TARGET"
         # Copy triage tooling
         cp -R "${{ github.action_path }}/auto_triage/." "$TARGET/"
-        chmod +x "$TARGET/"*.sh || true
-        chmod +x "$TARGET/sanitize_slack_message.py" || true
+        chmod +x "$TARGET/"*.sh 2>/dev/null || true
+        chmod +x "$TARGET/"*.py 2>/dev/null || true
         # Mirror the checked-out repo into the workspace for the LLM (excluding the workspace itself)
         rsync -a --delete \
           --exclude '.auto_triage/' \
@@ -62,6 +65,39 @@ runs:
         echo "$HOME/.opencode/bin" >> "$GITHUB_PATH"
         export PATH="$HOME/.opencode/bin:$PATH"
         opencode --version || (echo "opencode CLI installation failed" && exit 1)
+    - name: Execute filter_triage.sh
+      if: inputs.slack-test-only != 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        cd "${GITHUB_WORKSPACE}/.auto_triage"
+        ./filter_triage.sh \
+          "${{ inputs.workflow-name }}" \
+          "${{ inputs.job-name }}" \
+          "${{ inputs.filter-model }}" \
+          ci
+
+    - name: Produce filtered commit list
+      if: inputs.slack-test-only != 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        cd "${GITHUB_WORKSPACE}/.auto_triage"
+        COMMIT_FILE="auto_triage/data/commit_info.json"
+        FILTERED_FILE="auto_triage/data/filtered_commit_info.json"
+        if [ ! -f "$COMMIT_FILE" ]; then
+            echo "Filter stage did not produce $COMMIT_FILE" >&2
+            exit 1
+        fi
+        if jq -e 'type=="array"' "$COMMIT_FILE" >/dev/null 2>&1; then
+            jq '[.[] | select((.is_irrelevant // false) == false)]' "$COMMIT_FILE" > "$FILTERED_FILE"
+        else
+            cp "$COMMIT_FILE" "$FILTERED_FILE"
+        fi
+        if [ ! -f "auto_triage/data/error_message.txt" ]; then
+            touch "auto_triage/data/error_message.txt"
+        fi
+
     - name: Execute auto_triage.sh
       if: inputs.slack-test-only != 'true'
       shell: bash
@@ -73,6 +109,8 @@ runs:
           "${{ inputs.job-name }}" \
           "${{ inputs.model }}" \
           ci
+      env:
+        REUSE_DATA: "true"
     - name: Seed Slack test payload
       if: inputs.slack-test-only == 'true'
       shell: bash
@@ -106,6 +144,6 @@ runs:
       if: always() && inputs.slack-test-only != 'true'
       uses: actions/upload-artifact@v4
       with:
-        name: auto-triage-output
-        path: .auto_triage/output
+        name: auto-triage-artifacts
+        path: .auto_triage
         if-no-files-found: ignore
