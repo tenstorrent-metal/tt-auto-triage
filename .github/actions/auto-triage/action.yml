@@ -87,6 +87,8 @@ runs:
           ci
       env:
         GITHUB_TOKEN: ${{ github.token }}
+        COPILOT_GITHUB_TOKEN: ${{ github.token }}
+        GH_TOKEN: ${{ github.token }}
 
     - name: Produce filtered commit list
       if: inputs.slack-test-only != 'true'
@@ -123,6 +125,8 @@ runs:
       env:
         REUSE_DATA: "true"
         GITHUB_TOKEN: ${{ github.token }}
+        COPILOT_GITHUB_TOKEN: ${{ github.token }}
+        GH_TOKEN: ${{ github.token }}
     - name: Seed Slack test payload
       if: inputs.slack-test-only == 'true'
       shell: bash
