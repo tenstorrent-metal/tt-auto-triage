@@ -93,9 +93,11 @@ runs:
           "${{ inputs.filter-model }}" \
           ci
       env:
-        GITHUB_TOKEN: ${{ inputs.wilder-pat }}
+        # Use WILDER_PAT for Copilot CLI authentication
         COPILOT_GITHUB_TOKEN: ${{ inputs.wilder-pat }}
-        GH_TOKEN: ${{ inputs.wilder-pat }}
+        # Use github.token for gh CLI (used by bash scripts for GitHub API calls)
+        GH_TOKEN: ${{ github.token }}
+        GITHUB_TOKEN: ${{ github.token }}
 
     - name: Produce filtered commit list
       if: inputs.slack-test-only != 'true'
@@ -131,9 +133,11 @@ runs:
           ci
       env:
         REUSE_DATA: "true"
-        GITHUB_TOKEN: ${{ inputs.wilder-pat }}
+        # Use WILDER_PAT for Copilot CLI authentication
         COPILOT_GITHUB_TOKEN: ${{ inputs.wilder-pat }}
-        GH_TOKEN: ${{ inputs.wilder-pat }}
+        # Use github.token for gh CLI (used by bash scripts for GitHub API calls)
+        GH_TOKEN: ${{ github.token }}
+        GITHUB_TOKEN: ${{ github.token }}
     - name: Seed Slack test payload
       if: inputs.slack-test-only == 'true'
       shell: bash
