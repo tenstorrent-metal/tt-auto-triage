@@ -41,6 +41,7 @@ Slack Message Output
   - Case 4: include every plausible commit (≥2) with per-commit people lists; mention confidence in the Slack summary.
 - `failing_run_url` / `failing_run_label` must describe the newest run that actually exhibits the deterministic failure signature (ignore newer runs that only fail due to infra/setup issues such as runner disconnects). Use the exact job URL from `./data/subjob_runs.json` and provide a short label such as `Run #123456789 (latest reproducible failure)`.
 - `slack_message` should be a concise, plain-text summary (one or two sentences) that references the case number and tells humans what to do next.
+- Regardless of which case you choose (including Case 2 or Case 3), you **must** produce both `./output/explanation.md` and `./output/slack_message.json`. Do not skip these files even when the diagnosis is “insufficient data” or “external/infra issue”.
 
 Shared Workflow (Main Analysis)
 -------------------------------

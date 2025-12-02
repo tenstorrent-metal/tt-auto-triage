@@ -43,6 +43,10 @@ Special Cases
 - **Deterministic failure but no plausible commits:** After populating commit metadata, you may mark every commit with `is_irrelevant: true`. The main model will interpret this as Case 3 territory.
 - **Commit span too large (>100) or metadata unavailable:** If the helper scripts refuse to download (or logs for the oldest failing run are missing), write a JSON string into `commit_info.json`, e.g. `"too many commits to analyze; default to Case 2 unless other evidence suggests Case 3"`. Still populate `error_message.txt` with the clearest deterministic message you found (or leave it empty if none were available).
 
+Optional Tools
+--------------
+- You may call helper scripts like `./get_changed_files.sh <commit>` or `./get_commit_diff.sh <commit>` when you need extra signal to decide whether a commit is relevant, but use them sparingly. The main analysis stage will perform the deep dive; this filter phase should only gather just enough context to tag obviously irrelevant commits.
+
 Outputs
 -------
 - `./auto_triage/data/commit_info.json`
