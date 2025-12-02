@@ -67,6 +67,24 @@ runs:
       uses: actions/setup-node@v4
       with:
         node-version: '22'
+    - name: Install GitHub CLI
+      if: inputs.slack-test-only != 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        type -p curl >/dev/null || (apt-get update && apt-get install curl -y)
+        curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+        chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+        apt-get update && apt-get install gh -y
+        gh --version || (echo "GitHub CLI installation failed" && exit 1)
+    - name: Authenticate GitHub CLI
+      if: inputs.slack-test-only != 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        echo "${{ github.token }}" | gh auth login --with-token
+        gh auth status || (echo "GitHub CLI authentication failed" && exit 1)
     - name: Install GitHub Copilot CLI
       if: inputs.slack-test-only != 'true'
       shell: bash
@@ -79,6 +97,10 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
+        # Verify authentication tokens are set
+        if [ -z "${COPILOT_GITHUB_TOKEN:-}" ] && [ -z "${GH_TOKEN:-}" ] && [ -z "${GITHUB_TOKEN:-}" ]; then
+          echo "Warning: No authentication tokens found in environment"
+        fi
         cd "${GITHUB_WORKSPACE}/.auto_triage"
         ./filter_triage.sh \
           "${{ inputs.workflow-name }}" \

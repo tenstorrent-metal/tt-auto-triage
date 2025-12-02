@@ -67,6 +67,10 @@ $(cat "$INSTRUCTIONS_FILE")
 EOF
 
 echo "=== Launching GitHub Copilot CLI filter stage (model parameter: ${MODEL}, using default model) ==="
+# Ensure authentication tokens are available
+export COPILOT_GITHUB_TOKEN="${COPILOT_GITHUB_TOKEN:-${GH_TOKEN:-${GITHUB_TOKEN:-}}}"
+export GH_TOKEN="${GH_TOKEN:-${GITHUB_TOKEN:-}}"
+export GITHUB_TOKEN="${GITHUB_TOKEN:-}"
 # Use programmatic mode with --allow-all-tools for CI environment
 copilot -p "$PROMPT" --allow-all-tools
 
