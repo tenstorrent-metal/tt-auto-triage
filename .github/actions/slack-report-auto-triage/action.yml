@@ -87,6 +87,8 @@ runs:
 
           (
             section_line("RUN"; "<\($run_url)|\($run_label)>")
+            + section_line("FAILING WORKFLOW"; (.workflow_name // "unknown workflow"))
+            + section_line("FAILING TEST"; (.failing_test_name // "unknown test"))
             + section_line("FAILING RUN"; (if (.failing_run_url // "") != "" then "<\(.failing_run_url)|\(.failing_run_label // "latest failing run")>" else "" end))
             + section_line("CASE"; .case // "?")
             + section_line("SCENARIO"; .scenario)
