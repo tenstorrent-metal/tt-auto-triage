@@ -1,34 +1,24 @@
 {
-    "case": "1",
-    "scenario": "Deterministic failure with identified commit",
-    "failure_message": "RuntimeError: TT_FATAL @ /project/ttnn/cpp/ttnn/operations/data_movement/concat/device/concat_device_operation.cpp:42: in_ref.layout() == first_input.layout() info: All Tensors should have same layouts.",
-    "commits": [
-        {
-            "hash": "70f6c3d815763fe8ad3cf55e139e8ec19a9d731e",
-            "url": "https://github.com/tenstorrent/tt-metal/commit/70f6c3d815763fe8ad3cf55e139e8ec19a9d731e",
-            "author": {"name": "Pavlo Hilei", "slack_id": "U08C3TY65FC"},
-            "approvers": [
-                {"name": "Adam Czajkowski", "slack_id": "U08N9CZCV60"},
-                {"name": "Artem Yerofieiev", "slack_id": "U076Z1JJUQZ"},
-                {"name": "Borys Bradel", "slack_id": "U084B1CES7M"},
-                {"name": "Colman Glagovich", "slack_id": "U06UEFWB4P9"},
-                {"name": "Debin Chen", "slack_id": "U083HQSQLEB"},
-                {"name": "Dragica Stoiljkovic", "slack_id": "U0837SF0B2N"},
-                {"name": "Saad Jameel", "slack_id": "U06LRK6JDGB"}
-            ],
-            "relevant_developers": [
-                {"name": "Colman Glagovich", "slack_id": "U06UEFWB4P9"},
-                {"name": "Miguel Tairum", "slack_id": "U03PUAKE719"},
-                {"name": "Utku Aydonat", "slack_id": "U080FKG7KEU"},
-                {"name": "Gongyu Wang", "slack_id": "U08JFM3CFA4"},
-                {"name": "Saad Jameel", "slack_id": "U06LRK6JDGB"}
-            ],
-            "relevant_files": [
-                "ttnn/cpp/ttnn/operations/data_movement/concat/device/concat_device_operation.cpp",
-                "models/tt_transformers/tests/multimodal/test_llama_class_embedding.py"
-            ]
-        }
+    "case": "2",
+    "scenario": "Deterministic failure but culprit commit unknown",
+    "workflow_name": "t3000-unit-tests",
+    "failing_job_name": "t3k llama3.2-11b-vision tests",
+    "failing_test_name": "models/tt_transformers/tests/multimodal/test_llama_class_embedding.py",
+    "failure_message": "[2025-11-30T09:07:18Z] RuntimeError: TT_FATAL @ /project/ttnn/cpp/ttnn/operations/data_movement/concat/device/concat_device_operation.cpp:42: in_ref.layout() == first_input.layout() info: All Tensors should have same layouts.",
+    "failing_run_url": "https://github.com/tenstorrent/tt-metal/actions/runs/1234567891/job/2222222222",
+    "failing_run_label": "Run #1234567891 (newest failure)",
+    "commits": [],
+    "relevant_developers": [
+        {"name": "Colman Glagovich", "slack_id": "U06UEFWB4P9"},
+        {"name": "Miguel Tairum", "slack_id": "U03PUAKE719"},
+        {"name": "Utku Aydonat", "slack_id": "U080FKG7KEU"},
+        {"name": "Gongyu Wang", "slack_id": "U08JFM3CFA4"},
+        {"name": "Saad Jameel", "slack_id": "U06LRK6JDGB"}
     ],
-    "slack_message": "Case 1: t3k llama3.2-11b-vision tests fail deterministically due to layout mismatch in concat after AutoFormat removal. Commit 70f6c3d8 removed automatic layout conversion; need to ensure tensors have same layout before concat."
+    "relevant_files": [
+        "ttnn/cpp/ttnn/operations/data_movement/concat/device/concat_device_operation.cpp",
+        "models/tt_transformers/tests/multimodal/test_llama_class_embedding.py"
+    ],
+    "slack_message": "Case 2: t3k llama3.2-11b-vision tests deterministically fail due to layout mismatch in concat operation, but logs for the first bad job expired and the commit span is too large to pin a culprit. Need developers to look into the issue."
 }
 
