@@ -5,6 +5,12 @@ Mission
 -------
 Diagnose the current failing GitHub Actions subjob on `main`. Depending on the evidence, you must choose **exactly one** of the four cases below and produce the required outputs.
 
+**IMPORTANT: Job Name Reference**
+- The prompt above says "for workflow 'X' and job 'Y'" - use these exact values:
+  - **Job name for title:** Use 'Y' (the job name from the prompt) exactly as provided. This is what goes in `explanation.md` title.
+  - **Workflow name:** Use 'X' (the workflow name from the prompt) for the `workflow_name` field in `slack_message.json`.
+  - **DO NOT populate `failing_job_name`** in `slack_message.json` - it is automatically set from the user input.
+
 Workspace Layout
 ----------------
 - You are running inside `.auto_triage/` and all helper scripts are already staged here.
@@ -26,7 +32,7 @@ Workspace Layout
   - The issue clearly comes from the commit window, but the evidence cannot single out one commit with high confidence. Use this whenever you have ≥2 plausible suspects (even if one is slightly more likely).
 
 You must justify the selected case explicitly in `./output/explanation.md`. The document structure must be:
-- **Title:** `# Auto Triage Explanation: <job_name>` (use the job/subjob name, not the test name)
+- **Title:** `# Auto Triage Explanation: <job_name>` where `<job_name>` is **the exact job name provided in the prompt above** (e.g., if the prompt says "for workflow 'X' and job 'Y'", use 'Y' exactly as provided). **DO NOT use the test name or workflow name in the title - use the job name from the prompt.**
 - **Subtitle:** `## Failing Test: <test_name>` (extract the test name from the deterministic error message)
 - **Case section:** `## Case X – <case name>` (so readers instantly know which scenario you chose)
 
@@ -64,7 +70,7 @@ Slack Message Output
 - `failing_run_url` / `failing_run_label` must describe the newest run that actually exhibits the deterministic failure signature (ignore newer runs that only fail due to infra/setup issues such as runner disconnects). Use the exact job URL from `./data/subjob_runs.json` and provide a short label such as `Run #123456789 (latest reproducible failure)`.
 - `slack_message` should be a concise, plain-text summary (one or two sentences) that references the case number and tells humans what to do next.
 - Regardless of which case you choose (including Case 2 or Case 3), you **must** produce both `./output/explanation.md` and `./output/slack_message.json`. Do not skip these files even when the diagnosis is “insufficient data” or “external/infra issue”.
-- The `explanation.md` title must use the **job/subjob name** (e.g., `Auto Triage Explanation: t3k llama3.2-11b-vision tests`), not the test name. The **failing test name** (extracted from the deterministic error) should appear as a subtitle (`## Failing Test: <test_name>`) before the case section. This structure makes it clear what type of job is failing while still showing the specific test. Also populate the `workflow_name` and `failing_test_name` fields in `slack_message.json` so the Slack reporter can surface them. **Note:** The `failing_job_name` field will be automatically set from the user input, so you don't need to populate it.
+- The `explanation.md` title must use **the exact job name provided in the prompt** (the prompt says "for workflow 'X' and job 'Y'" - use 'Y' exactly as shown). **DO NOT use the test name, workflow name, or try to infer the job name from other sources.** The **failing test name** (extracted from the deterministic error) should appear as a subtitle (`## Failing Test: <test_name>`) before the case section. Example: If the prompt says "job 't3k llama3.2-11b-vision tests'", the title should be `# Auto Triage Explanation: t3k llama3.2-11b-vision tests`. Also populate the `workflow_name` (from the prompt) and `failing_test_name` fields in `slack_message.json` so the Slack reporter can surface them. **CRITICAL:** Do **NOT** populate `failing_job_name` in `slack_message.json` - it is automatically set from the user input and will be wrong if you try to set it yourself.
 
 Shared Workflow (Main Analysis)
 -------------------------------
@@ -176,7 +182,7 @@ Actions:
 2. Use Copilot summaries, changed files, and diffs to confirm that exactly one commit remains plausible. If any other commit still looks viable, stop and treat the whole analysis as Case 4 instead.
 3. Prepare outputs under `./output/`:
    - `slack_message.json` using the Case 1 template (exactly one `commits` entry with `hash`, `url`, `author`, `approvers`, `relevant_developers`, `relevant_files`, populated Slack IDs when obtainable, and a concise `slack_message`). **CRITICAL:** The `relevant_developers` field in the commit object **MUST NOT** include the commit author or any approvers. Only include codeowners who need to review the fix. If you cannot find appropriate codeowners, use an empty array `[]`.
-   - `explanation.md` (title: `# Auto Triage Explanation: <job_name>`, subtitle: `## Failing Test: <test_name>`, then `## Case 1 – <case name>`). Cover:
+   - `explanation.md` (title: `# Auto Triage Explanation: <job_name>` where `<job_name>` is **the exact job name from the prompt** - do NOT use test name or workflow name, subtitle: `## Failing Test: <test_name>`, then `## Case 1 – <case name>`). Cover:
      - Why the failure is deterministic.
      - The commit window, Copilot summaries referenced, and supporting diffs.
      - Exact code changes (file path + before/after hunk) from the suspected commit that plausibly trigger the observed error, with a clear explanation tying the change to the failure signature. At minimum: cite the old code (pre-commit), the new code (post-commit), and describe how the behavior change produces the observed test failure.
