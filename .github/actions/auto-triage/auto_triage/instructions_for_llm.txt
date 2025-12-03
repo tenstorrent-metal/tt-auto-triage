@@ -35,9 +35,16 @@ Slack Message Output
 - In addition to `explanation.md`, produce exactly one `./output/slack_message.json` per run.
 - The JSON **must** match the schema for the active case in `./auto_triage/slack_message_template.json`. Treat that file as the canonical contract for required top-level keys (`case`, `scenario`, `failure_message`, `failing_run_url`, `failing_run_label`, `commits`, `relevant_developers`, `notes`, `slack_message`, etc.). After writing `./output/slack_message.json`, run `./sanitize_slack_message.py ./output/slack_message.json`. The sanitizer now validates the schema and will fail if any field has the wrong type (e.g., strings instead of `{ "name": "...", "slack_id": "" }` objects). When it reports an error, fix the JSON immediately and rerun the sanitizer before proceeding.
 - Populate commit objects with `hash`, `url`, `author`, `approvers`, `relevant_developers`, and `relevant_files`. When a field from the template does not apply to the chosen case (e.g., `commits` for Case 2), leave it as an empty array or omit it exactly as the template shows.
-- **Important distinction for `relevant_developers`:**
+- **CRITICAL: `relevant_developers` rules - READ CAREFULLY:**
   - **`author` and `approvers`** (within commit objects): These are people who were directly involved in making the commit (the commit author and those who approved the PR).
-  - **`relevant_developers`** (within commit objects or at top level): These should be **codeowners** of files that need to be changed to fix the issue, NOT the commit author or approvers. Use `git log`, `git blame`, or `.github/CODEOWNERS` to identify who owns the files that need modification. Only include people who would need to review/approve the fix, not those who already reviewed the problematic commit.
+  - **`relevant_developers`** (within commit objects or at top level): 
+    - **MUST be codeowners** of files that need to be changed to fix the issue.
+    - **MUST NOT include** the commit author or any approvers from the same commit.
+    - **MUST NOT include** any person who is already listed as `author` or `approvers` in any commit in the same `slack_message.json`.
+    - **CAN be empty** if you cannot find appropriate codeowners or recent file modifiers. It's better to leave it empty than to incorrectly list authors/approvers.
+    - Use `git log`, `git blame`, or `.github/CODEOWNERS` to identify who owns the files that need modification.
+    - Only include people who would need to review/approve the fix, not those who already reviewed the problematic commit.
+    - **No duplicates:** Each person should appear at most once across all `relevant_developers` lists in the entire JSON.
 - **Ping behavior in Slack messages:**
   - **If commits exist (Case 1 or Case 4):** Only commit authors will be pinged (using Slack IDs). `relevant_developers` will be shown as names only (no pings).
   - **If no commits (Case 2 or Case 3):** Only top-level `relevant_developers` will be pinged (using Slack IDs).
@@ -50,8 +57,8 @@ Slack Message Output
   - Always represent people/groups as objects: `{"name":"Full Name or group-handle","slack_id":""}`. Never paste raw CLI output (like `[[],[]]`) or bare strings into `relevant_developers`, commit `author`, or `approvers`.
 - Limit `relevant_files` to the most critical paths (at most five per commit or case). Prioritize files that directly illustrate the suspected failure mechanism; do not copy the entire diff file list.
 - Case hints:
-  - Case 1: `commits` must contain exactly one entry for the culprit commit. The `relevant_developers` field should list codeowners of files that need changes to fix the issue, not the commit author/approvers.
-  - Case 2: `commits` stays empty, but fill the top-level `relevant_developers`/`relevant_files` arrays with the best codeowners to engage (people who own the files that need to be fixed).
+  - Case 1: `commits` must contain exactly one entry for the culprit commit. The `relevant_developers` field **MUST NOT** include the commit author or any approvers. It should only list codeowners of files that need changes to fix the issue. If you cannot find appropriate codeowners, leave `relevant_developers` as an empty array `[]`.
+  - Case 2: `commits` stays empty, but fill the top-level `relevant_developers`/`relevant_files` arrays with the best codeowners to engage (people who own the files that need to be fixed). If you cannot find appropriate codeowners, leave `relevant_developers` as an empty array `[]`.
   - Case 3: keep `commits` empty and populate `notes` to summarize why this is external.
   - Case 4: include every plausible commit (≥2) with per-commit people lists; mention confidence in the Slack summary.
 - `failing_run_url` / `failing_run_label` must describe the newest run that actually exhibits the deterministic failure signature (ignore newer runs that only fail due to infra/setup issues such as runner disconnects). Use the exact job URL from `./data/subjob_runs.json` and provide a short label such as `Run #123456789 (latest reproducible failure)`.
@@ -168,7 +175,7 @@ Actions:
 1. Run `./download_data_between_commits.sh <good> <bad>` to gather metadata.
 2. Use Copilot summaries, changed files, and diffs to confirm that exactly one commit remains plausible. If any other commit still looks viable, stop and treat the whole analysis as Case 4 instead.
 3. Prepare outputs under `./output/`:
-   - `slack_message.json` using the Case 1 template (exactly one `commits` entry with `hash`, `url`, `author`, `approvers`, `relevant_developers`, `relevant_files`, populated Slack IDs when obtainable, and a concise `slack_message`).
+   - `slack_message.json` using the Case 1 template (exactly one `commits` entry with `hash`, `url`, `author`, `approvers`, `relevant_developers`, `relevant_files`, populated Slack IDs when obtainable, and a concise `slack_message`). **CRITICAL:** The `relevant_developers` field in the commit object **MUST NOT** include the commit author or any approvers. Only include codeowners who need to review the fix. If you cannot find appropriate codeowners, use an empty array `[]`.
    - `explanation.md` (title: `# Auto Triage Explanation: <job_name>`, subtitle: `## Failing Test: <test_name>`, then `## Case 1 – <case name>`). Cover:
      - Why the failure is deterministic.
      - The commit window, Copilot summaries referenced, and supporting diffs.
@@ -225,7 +232,7 @@ Use this case when the failure is clearly caused by code in the commit window bu
 
 Actions:
 1. Run the same commit download workflow as Case 1 so you understand every suspect.
-2. Populate `./output/slack_message.json` using the Case 4 template: `commits` must contain every plausible commit (≥2), each with `hash`, `url`, `author`, `approvers`, `relevant_developers`, `relevant_files`, and Slack IDs when available. For each commit, `relevant_developers` should list codeowners of files that need changes to fix the issue, NOT the commit author/approvers. Mention the relative confidence (high/medium/low) in both the JSON narrative and the summary sentence.
+2. Populate `./output/slack_message.json` using the Case 4 template: `commits` must contain every plausible commit (≥2), each with `hash`, `url`, `author`, `approvers`, `relevant_developers`, `relevant_files`, and Slack IDs when available. **CRITICAL:** For each commit, `relevant_developers` **MUST NOT** include that commit's author or any of its approvers. Only include codeowners of files that need changes to fix the issue. If you cannot find appropriate codeowners for a commit, use an empty array `[]` for that commit's `relevant_developers`. Mention the relative confidence (high/medium/low) in both the JSON narrative and the summary sentence.
 3. In `./output/explanation.md`, clearly state this is Case 4, summarize the shared failure signature, and explain why each candidate commit could be responsible. Cite files + before/after hunks, link to each commit URL, and note the confidence bucket for every entry. Include guidance on how to validate or bisect the suspects sequentially.
 4. Treat every candidate as if it were the Case 1 culprit: list clickable commit links, exact error tie-in, and the "who to contact" details. Include commit authors/approvers for attribution, but prioritize codeowners of files that need to be changed (from `git log`, `git blame`, `.github/CODEOWNERS`). **Never include Slack IDs in explanation.md** - only names and GitHub information. After covering the per-commit info, add the overall contact section so humans know who to loop in.
 

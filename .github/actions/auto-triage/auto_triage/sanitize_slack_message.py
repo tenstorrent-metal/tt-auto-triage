@@ -63,6 +63,35 @@ def validate_person_list(entries, path):
         validate_person(entry, f"{path}[{idx}]")
 
 
+def check_no_overlap(relevant_devs, author, approvers, path):
+    """Ensure relevant_developers doesn't include author or approvers."""
+    author_id = author.get("slack_id") or author.get("name") or author.get("login") or ""
+    author_name = author.get("name") or author.get("login") or ""
+    
+    approver_ids = set()
+    approver_names = set()
+    if approvers:
+        for approver in approvers:
+            aid = approver.get("slack_id") or approver.get("name") or approver.get("login") or ""
+            aname = approver.get("name") or approver.get("login") or ""
+            if aid:
+                approver_ids.add(aid)
+            if aname:
+                approver_names.add(aname)
+    
+    for dev in relevant_devs:
+        dev_id = dev.get("slack_id") or dev.get("name") or dev.get("login") or ""
+        dev_name = dev.get("name") or dev.get("login") or ""
+        
+        # Check if this developer matches the author
+        if (author_id and dev_id and author_id == dev_id) or (author_name and dev_name and author_name.lower() == dev_name.lower()):
+            raise ValueError(f"{path}.relevant_developers contains the commit author ({author_name or author_id}), which is not allowed")
+        
+        # Check if this developer matches any approver
+        if (dev_id and dev_id in approver_ids) or (dev_name and dev_name.lower() in {n.lower() for n in approver_names}):
+            raise ValueError(f"{path}.relevant_developers contains an approver ({dev_name or dev_id}), which is not allowed")
+
+
 def validate_commit(commit, index):
     path = f"commits[{index}]"
     require_type(commit, dict, path)
@@ -79,6 +108,27 @@ def validate_commit(commit, index):
         validate_person_list(commit["approvers"], f"{path}.approvers")
     if "relevant_developers" in commit:
         validate_person_list(commit["relevant_developers"], f"{path}.relevant_developers")
+        # Check for duplicates within relevant_developers
+        seen_ids = set()
+        seen_names = set()
+        for dev in commit["relevant_developers"]:
+            dev_id = dev.get("slack_id") or ""
+            dev_name = (dev.get("name") or dev.get("login") or "").lower()
+            if dev_id and dev_id in seen_ids:
+                raise ValueError(f"{path}.relevant_developers contains duplicate entry (slack_id: {dev_id})")
+            if dev_name and dev_name in seen_names:
+                raise ValueError(f"{path}.relevant_developers contains duplicate entry (name: {dev_name})")
+            if dev_id:
+                seen_ids.add(dev_id)
+            if dev_name:
+                seen_names.add(dev_name)
+        # Ensure relevant_developers doesn't include author or approvers
+        check_no_overlap(
+            commit["relevant_developers"],
+            commit["author"],
+            commit.get("approvers", []),
+            path
+        )
     if "relevant_files" in commit:
         require_type(commit["relevant_files"], list, f"{path}.relevant_files")
         for file_idx, file_entry in enumerate(commit["relevant_files"]):
@@ -97,10 +147,55 @@ def validate_payload(payload):
     if "commits" not in payload:
         raise ValueError("Field 'commits' is required at the top level (can be an empty array)")
     require_type(payload["commits"], list, "commits")
+    
+    # Collect all authors and approvers across all commits to check for duplicates in relevant_developers
+    all_authors_approvers = set()
+    for commit in payload["commits"]:
+        author = commit.get("author", {})
+        author_id = author.get("slack_id") or author.get("name") or author.get("login") or ""
+        author_name = author.get("name") or author.get("login") or ""
+        if author_id:
+            all_authors_approvers.add(("id", author_id))
+        if author_name:
+            all_authors_approvers.add(("name", author_name.lower()))
+        
+        approvers = commit.get("approvers", [])
+        for approver in approvers:
+            aid = approver.get("slack_id") or approver.get("name") or approver.get("login") or ""
+            aname = approver.get("name") or approver.get("login") or ""
+            if aid:
+                all_authors_approvers.add(("id", aid))
+            if aname:
+                all_authors_approvers.add(("name", aname.lower()))
+    
     for idx, commit in enumerate(payload["commits"]):
         validate_commit(commit, idx)
+    
+    # Validate top-level relevant_developers don't overlap with any commit authors/approvers
     if "relevant_developers" in payload:
         validate_person_list(payload["relevant_developers"], "relevant_developers")
+        # Check for duplicates within top-level relevant_developers
+        seen_ids = set()
+        seen_names = set()
+        for dev in payload["relevant_developers"]:
+            dev_id = dev.get("slack_id") or ""
+            dev_name = (dev.get("name") or dev.get("login") or "").lower()
+            if dev_id and dev_id in seen_ids:
+                raise ValueError(f"Top-level relevant_developers contains duplicate entry (slack_id: {dev_id})")
+            if dev_name and dev_name in seen_names:
+                raise ValueError(f"Top-level relevant_developers contains duplicate entry (name: {dev_name})")
+            if dev_id:
+                seen_ids.add(dev_id)
+            if dev_name:
+                seen_names.add(dev_name)
+        if payload["commits"]:
+            # Check top-level relevant_developers against all commit authors/approvers
+            for dev in payload["relevant_developers"]:
+                dev_id = dev.get("slack_id") or dev.get("name") or dev.get("login") or ""
+                dev_name = dev.get("name") or dev.get("login") or ""
+                if (dev_id and ("id", dev_id) in all_authors_approvers) or (dev_name and ("name", dev_name.lower()) in all_authors_approvers):
+                    raise ValueError(f"Top-level relevant_developers contains a commit author or approver ({dev_name or dev_id}), which is not allowed")
+    
     if "relevant_files" in payload:
         require_type(payload["relevant_files"], list, "relevant_files")
         for idx, entry in enumerate(payload["relevant_files"]):
