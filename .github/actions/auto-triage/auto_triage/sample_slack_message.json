@@ -1,14 +1,48 @@
 {
-    "case": "3",
-    "scenario": "Failure likely outside tt-metal",
+    "case": "4",
+    "scenario": "Deterministic failure with multiple plausible commits",
     "workflow_name": "t3000-unit-tests",
     "failing_job_name": "t3k llama3.2-11b-vision tests",
     "failing_test_name": "models/tt_transformers/tests/multimodal/test_llama_class_embedding.py",
-    "failure_message": "[2025-11-30T10:15:32Z] ERROR runner: ssh: connect to host 10.2.8.45 port 22: Connection timed out (t3k llama3.2-11b-vision tests never starts)",
-    "failing_run_url": "https://github.com/tenstorrent/tt-metal/actions/runs/1234567892/job/3333333333",
-    "failing_run_label": "Run #1234567892 (latest job)",
-    "commits": [],
-    "notes": "No tt-metal commits touch llama3.2-11b-vision test code in window; logs show runners lose SSH connectivity mid-setup before tests execute, pointing to infrastructure instability rather than code changes.",
-    "slack_message": "Case 3: Hanging jobs traced to runner connectivity loss (timeout before tests start). Evidence suggests infra instability rather than tt-metal changes. Please loop in infra-oncall."
+    "failure_message": "[2025-11-30T11:22:45Z] RuntimeError: TT_FATAL @ /project/ttnn/cpp/ttnn/operations/data_movement/concat/device/concat_device_operation.cpp:42: in_ref.layout() == first_input.layout() info: All Tensors should have same layouts.",
+    "failing_run_url": "https://github.com/tenstorrent/tt-metal/actions/runs/1234567893/job/4444444444",
+    "failing_run_label": "Run #1234567893 (most recent failure)",
+    "commits": [
+        {
+            "hash": "70f6c3d815763fe8ad3cf55e139e8ec19a9d731e",
+            "url": "https://github.com/tenstorrent/tt-metal/commit/70f6c3d815763fe8ad3cf55e139e8ec19a9d731e",
+            "author": {"name": "Pavlo Hilei", "slack_id": "U08C3TY65FC"},
+            "approvers": [
+                {"name": "Colman Glagovich", "slack_id": "U06UEFWB4P9"},
+                {"name": "Saad Jameel", "slack_id": "U06LRK6JDGB"}
+            ],
+            "relevant_developers": [
+                {"name": "Colman Glagovich", "slack_id": "U06UEFWB4P9"},
+                {"name": "Miguel Tairum", "slack_id": "U03PUAKE719"}
+            ],
+            "relevant_files": [
+                "ttnn/cpp/ttnn/operations/data_movement/concat/device/concat_device_operation.cpp",
+                "ttnn/cpp/ttnn/operations/data_movement/concat/include/concat.hpp"
+            ]
+        },
+        {
+            "hash": "a8b9c0d1e2f3a456b789c012def34567890abcd",
+            "url": "https://github.com/tenstorrent/tt-metal/commit/a8b9c0d1e2f3a456b789c012def34567890abcd",
+            "author": {"name": "Utku Aydonat", "slack_id": "U080FKG7KEU"},
+            "approvers": [
+                {"name": "Gongyu Wang", "slack_id": "U08JFM3CFA4"},
+                {"name": "data-movement-owners", "slack_id": "S11M3EXAMPLE"}
+            ],
+            "relevant_developers": [
+                {"name": "Utku Aydonat", "slack_id": "U080FKG7KEU"},
+                {"name": "Gongyu Wang", "slack_id": "U08JFM3CFA4"}
+            ],
+            "relevant_files": [
+                "models/tt_transformers/tests/multimodal/test_llama_class_embedding.py",
+                "ttnn/cpp/ttnn/operations/data_movement/concat/device/concat_device_operation.cpp"
+            ]
+        }
+    ],
+    "slack_message": "Case 4: Layout mismatch in concat could stem from either 70f6c3d8 (removed AutoFormat layout conversion) or a8b9c0d1 (changed test tensor layout initialization). Need data-movement owners to inspect both diffs."
 }
 
