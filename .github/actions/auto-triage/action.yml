@@ -142,6 +142,7 @@ runs:
       with:
         slack_webhook_url: ${{ env.SLACK_WEBHOOK_URL }}
         slack_message_path: .auto_triage/output/slack_message.json
+        job_name: ${{ inputs.job-name }}
     - name: Publish triage report to summary
       if: always() && inputs.slack-test-only != 'true'
       shell: bash

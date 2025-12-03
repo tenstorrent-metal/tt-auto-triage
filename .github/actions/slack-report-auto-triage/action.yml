@@ -8,6 +8,9 @@ inputs:
     description: "Path to slack_message.json."
     required: false
     default: .auto_triage/output/slack_message.json
+  job_name:
+    description: "The job/subjob name (from user input)."
+    required: true
 runs:
   using: "composite"
   steps:
@@ -31,7 +34,7 @@ runs:
         RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
         RUN_LABEL="run #${GITHUB_RUN_NUMBER:-$GITHUB_RUN_ID}"
 
-        TEXT=$(jq -r --arg run_url "$RUN_URL" --arg run_label "$RUN_LABEL" '
+        TEXT=$(jq -r --arg run_url "$RUN_URL" --arg run_label "$RUN_LABEL" --arg job_name "${{ inputs.job_name }}" '
           def short_hash(h):
             if (h // "") == "" then "unknown" else (h[0:8]) end;
 
@@ -100,7 +103,7 @@ runs:
           (
             section_line("RUN"; "<\($run_url)|\($run_label)>")
             + section_line("FAILING WORKFLOW"; (.workflow_name // "unknown workflow"))
-            + section_line("FAILING JOB"; (.failing_job_name // .workflow_name // "unknown job"))
+            + section_line("FAILING JOB"; (if ($job_name // "") != "" then $job_name else (.failing_job_name // .workflow_name // "unknown job") end))
             + section_line("FAILING TEST"; (.failing_test_name // "unknown test"))
             + section_line("FAILING RUN"; (if (.failing_run_url // "") != "" then "<\(.failing_run_url)|\(.failing_run_label // "latest failing run")>" else "" end))
             + section_line("CASE"; .case // "?")
