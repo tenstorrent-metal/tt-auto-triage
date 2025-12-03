@@ -14,6 +14,10 @@ inputs:
   workflow_name:
     description: "The workflow name (from user input)."
     required: true
+  auto_fix_meta_path:
+    description: "Optional metadata JSON containing auto-fix PR info."
+    required: false
+    default: ""
 runs:
   using: "composite"
   steps:
@@ -22,6 +26,7 @@ runs:
       shell: bash
       env:
         MESSAGE_PATH: ${{ inputs.slack_message_path }}
+        AUTO_FIX_META: ${{ inputs.auto_fix_meta_path }}
       run: |
         set -euo pipefail
         if [ -z "${MESSAGE_PATH:-}" ]; then
@@ -63,7 +68,17 @@ runs:
           mv "$TMP_JSON" "$MESSAGE_PATH"
         fi
 
-        TEXT=$(jq -r --arg run_url "$RUN_URL" --arg run_label "$RUN_LABEL" --arg job_name "$JOB_NAME_VALUE" --arg workflow_name "$WORKFLOW_NAME_VALUE" '
+        AUTO_FIX_NOTE=""
+        if [ -n "${AUTO_FIX_META:-}" ] && [ -f "$AUTO_FIX_META" ]; then
+          AUTO_FIX_NOTE=$(jq -r '.auto_fix_pr_url // ""' "$AUTO_FIX_META" 2>/dev/null || echo "")
+        fi
+
+        TEXT=$(jq -r \
+          --arg run_url "$RUN_URL" \
+          --arg run_label "$RUN_LABEL" \
+          --arg job_name "$JOB_NAME_VALUE" \
+          --arg workflow_name "$WORKFLOW_NAME_VALUE" \
+          --arg auto_fix "$AUTO_FIX_NOTE" '
           def short_hash(h):
             if (h // "") == "" then "unknown" else (h[0:8]) end;
 
@@ -155,6 +170,7 @@ runs:
               end)
             + section_files("RELEVANT FILES"; .relevant_files)
             + section_line("NOTES"; .notes)
+            + (if ($auto_fix // "") != "" then "\n*AUTO-FIX:* Draft PR created -> <\($auto_fix)|link>\n" else "" end)
           ) | gsub("\n{3,}"; "\n\n")
         ' "$MESSAGE_PATH")
 

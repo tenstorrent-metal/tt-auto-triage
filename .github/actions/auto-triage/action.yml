@@ -127,6 +127,19 @@ runs:
         # Use github.token for gh CLI (used by bash scripts for GitHub API calls)
         GH_TOKEN: ${{ github.token }}
         GITHUB_TOKEN: ${{ github.token }}
+    - name: Attempt auto fix PR (optional)
+      if: inputs.slack-test-only != 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        cd "${GITHUB_WORKSPACE}/.auto_triage"
+        ./run_auto_fix.sh \
+          "${{ inputs.workflow-name }}" \
+          "${{ inputs.job-name }}"
+      env:
+        COPILOT_GITHUB_TOKEN: ${{ inputs.copilot-pat }}
+        GH_TOKEN: ${{ github.token }}
+        GITHUB_TOKEN: ${{ github.token }}
     - name: Seed Slack test payload
       if: inputs.slack-test-only == 'true'
       shell: bash
@@ -144,6 +157,7 @@ runs:
         slack_message_path: .auto_triage/output/slack_message.json
         job_name: ${{ inputs.job-name }}
         workflow_name: ${{ inputs.workflow-name }}
+        auto_fix_meta_path: .auto_triage/data/auto_fix_metadata.json
     - name: Publish triage report to summary
       if: always() && inputs.slack-test-only != 'true'
       shell: bash

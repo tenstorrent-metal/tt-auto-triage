@@ -253,6 +253,23 @@ Contact Guidance (All Cases)
 - **Never include Slack IDs in explanation.md** - this is a security concern. Slack IDs should only exist in `slack_message.json`.
 - Include this section in `explanation.md` for every case.
 
+Auto Fix Framework
+------------------
+There is an optional follow-up stage that can ask Copilot to draft a PR automatically. Use it **only when you are absolutely certain it will succeed.**
+
+1. File location: `./auto_triage/create_PR_boolean.json` (inside your workspace). The file contains a single key `create_PR` and defaults to `false`. If the file is missing, create it with `{ "create_PR": false }`.
+2. Eligibility:
+   - Applies **only** to **Case 1** or **Case 2** determinations.
+   - You must be **extremely confident** that the fix is understood, can be implemented in **under 100 lines of code**, and touches **no more than 3 files**.
+   - Assume the downstream Copilot instance will only have access to your `explanation.md`. If that document does not clearly define actionable steps, do **not** enable auto fix.
+3. How to opt in:
+   - When (and only when) all eligibility criteria are satisfied, set `create_PR` to `true` in `create_PR_boolean.json`.
+   - Otherwise, leave it as `false`. When in doubt, choose `false`.
+4. Justification:
+   - Regardless of the value you choose, include a short note in `explanation.md` explaining **why** you enabled or disabled auto-fix for this run (e.g., “Auto-fix enabled: single-line guard missing in `foo.cpp`” or “Auto-fix disabled: requires multi-file refactor”).
+5. Consequences:
+   - When `create_PR` is `true`, the action will trigger a follow-up Copilot delegate run that attempts to create a **draft PR** in `tenstorrent/tt-metal`. Incorrectly enabling this wastes money and time, so err on the side of leaving it `false`.
+
 Final Reminders
 ---------------
 - Do not assume a failure is deterministic without evidence.
