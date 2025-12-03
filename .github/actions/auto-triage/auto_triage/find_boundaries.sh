@@ -149,7 +149,8 @@ while true; do
     VALID_RUNS_FETCHED=$((VALID_RUNS_FETCHED + VALID_COUNT))
     echo -e "${GREEN}Valid runs accumulated: ${VALID_RUNS_FETCHED}${NC}"
 
-    while IFS= read -r RUN_DATA; do
+    mapfile -t RUN_ROWS < <(echo "$VALID_PAGE" | jq -c '.[]')
+    for RUN_DATA in "${RUN_ROWS[@]}"; do
         FOUND_JOB=false
         RUN_ID=$(echo "$RUN_DATA" | jq -r '.id')
         RUN_COMMIT=$(echo "$RUN_DATA" | jq -r '.head_sha')
@@ -219,7 +220,8 @@ while true; do
         if [ "$MATCH_COUNT" -gt 0 ]; then
             FOUND_JOB=true
             SORTED_JOBS=$(echo "$MATCHING_JOBS" | jq 'sort_by((.run_attempt // 0), (.completed_at // .started_at // .run_started_at // .created_at // ""))')
-            while IFS= read -r SUBJOB; do
+            mapfile -t SUBJOB_ROWS < <(echo "$SORTED_JOBS" | jq -c '.[]')
+            for SUBJOB in "${SUBJOB_ROWS[@]}"; do
                     JOB_CONCLUSION=$(echo "$SUBJOB" | jq -r '.conclusion // "null"')
                     JOB_STATUS=$(echo "$SUBJOB" | jq -r '.status')
                     JOB_ID=$(echo "$SUBJOB" | jq -r '.id')
@@ -314,7 +316,7 @@ while true; do
                     else
                         echo -e "${YELLOW}Conclusion: ${JOB_CONCLUSION}${NC}"
                     fi
-            done < <(echo "$SORTED_JOBS" | jq -c '.[]')
+            done
         fi
 
         if [ "$FOUND_JOB" = false ]; then
@@ -325,7 +327,7 @@ while true; do
         if [ "$STOP_SEARCH" = true ]; then
             break
         fi
-    done < <(echo "$VALID_PAGE" | jq -c '.[]')
+    done
 
     if [ "$FOUND_SUCCESS" = true ] || [ "$STOP_SEARCH" = true ]; then
         break
