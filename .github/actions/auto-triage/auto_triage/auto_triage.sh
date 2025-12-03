@@ -57,8 +57,8 @@ if [ ! -s "$SUBJOB_RUNS_FILE" ]; then
     ls -l "$CANON_DATA_DIR"
     exit 1
 fi
-SUMMARY_COUNT=$(jq '.runs | length' "$SUMMARY_FILE")
-FAIL_COUNT=$(jq '[.[] | select(.status != "success")] | length' "$SUBJOB_RUNS_FILE")
+SUMMARY_COUNT=$(jq 'def runs_data: (if type=="array" then . else (.runs // [])); runs_data | length' "$SUMMARY_FILE")
+FAIL_COUNT=$(jq 'def runs_data: (if type=="array" then . else (.runs // [])); runs_data | map(select(.status != "success")) | length' "$SUBJOB_RUNS_FILE")
 echo "runs recorded: $SUMMARY_COUNT"
 echo "failures recorded: $FAIL_COUNT"
 

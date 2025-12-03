@@ -15,7 +15,7 @@ Available Workspace
 Workflow Overview
 -----------------
 1. Inspect `./data/subjob_runs.json` to understand the run history:
-   - File structure:
+   - Preferred/new structure:
      ```json
      {
        "status": "ok" | "failure_limit_exceeded" | "no_success_found",
@@ -27,15 +27,17 @@ Workflow Overview
        ]
      }
      ```
+   - Legacy structure (older artifacts): the file may instead be a **raw JSON array** of run objects with no `status`/`message`. When you encounter this format, treat the array itself as `runs` and assume `status: "ok"` (no special fallback).
    - `runs` is the array you previously read; it is ordered `[oldest success, oldest failure, ..., newest failure]`.
    - Each run object has:
      - `run_number`: 0, 1, 2, … (higher number = newer failure).
      - `status`: `"success"` or `"failure"`.
      - `run_url`, `job_url`, `commit`, `completed_at`, etc.
-   - `status` at the top level tells you whether the boundary search hit a fallback:
+   - `status` at the top level (when present) tells you whether the boundary search hit a fallback:
      - `"ok"` → normal behavior.
      - `"failure_limit_exceeded"` → 200 failed runs were scanned without finding a successful run; you **must** follow the fallback in *Special Cases*.
      - `"no_success_found"` → no successes exist in the window; treat this the same as the failure-limit fallback.
+     - If the file was a bare array (legacy), default to `"ok"`.
    - Example (truncated):
      ```json
      {
@@ -91,6 +93,18 @@ Commit Metadata Collection
        - `./download_data_between_commits_batch.sh <good_commit> <bad_commit> 4 ./auto_triage/data/commit_info.json`
      - **Important:** Use the same output file (`./auto_triage/data/commit_info.json`) for all batch calls; results will be appended.
      - Each batch processes up to 10 commits (batches are zero-indexed).
+8. **Verify and backfill commit coverage:**
+   - Capture the expected commit count via `git rev-list --count <good_commit>..<bad_commit>` (this equals the batch controller’s `Commits in range`).
+   - After running all batches, check `jq 'length' ./auto_triage/data/commit_info.json`.
+   - If counts match, proceed. If not:
+     1. **Retry failing batches** up to two additional times (you may re-run the batch script for the specific index or narrow the commit window to just the problematic span).
+     2. **Manually backfill any remaining missing commits** before giving up:
+        - List the missing SHAs with `git log --oneline --reverse <good_commit>..<bad_commit>` and compare against the collected `commit_short` values (e.g., using `comm` or `rg`).
+        - For each missing SHA:
+          - Extract the PR number from the commit message (`git log -1 --format="%s" <sha>`).
+          - Use `gh api repos/tenstorrent/tt-metal/pulls/<pr_number>` and `gh api repos/tenstorrent/tt-metal/pulls/<pr_number>/reviews` to gather the same metadata fields the batch script writes (`pr_title`, `pr_url`, `authors`, `approvers`, Copilot overview, etc.). You may reuse helper functions from `download_data_between_commits_batch.sh` by invoking that script with a reduced range that only contains the missing commit; if that still fails, construct the JSON entry manually using `jq -n '{...}'` and append it with `jq '. += [<entry>]' commit_info.json`.
+          - Ensure the manually-added objects follow the existing schema (`commit`, `commit_short`, `pr_number`, `authors`, `approvers`, `copilot_overview`, etc.).
+     3. Only after retries **and** manual attempts fail for specific commits should you fall back to the partial-data string described below.
 
 Special Cases
 -------------
@@ -102,6 +116,10 @@ Special Cases
   - Still capture the deterministic error message (if any) in `error_message.txt`.
   - Write a JSON string to `commit_info.json`, for example: `"failure_limit_exceeded: more than 200 failed runs without a success; default to Case 2 or Case 3."`
   - This string instructs the main analysis to pick either Case 2 (if the error is deterministic and clearly tt-metal related) or Case 3 (if it appears external/non-deterministic).
+- **Partial commit downloads despite retries/manual backfill:** When specific commits cannot be retrieved even after the manual process above (API errors, permission denials, corrupted metadata), treat this as metadata unavailable.
+  - Replace the JSON array with a descriptive string (e.g., `"partial_commit_download: missing 9 of 36 commits due to GitHub API failures; default to Case 2 unless other evidence suggests Case 3."`)
+  - Include the missing PR numbers or SHAs in the message if known.
+  - Do not pass along a truncated commit array—downstream reasoning relies on complete coverage.
 
 Outputs
 -------
