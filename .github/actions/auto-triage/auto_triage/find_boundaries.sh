@@ -395,9 +395,13 @@ if [ "$FOUND_SUCCESS" = true ] && [ "$FOUND_FAILURE" = true ]; then
 fi
 
 if [ "$FOUND_SUCCESS" = false ] && [ "$FOUND_FAILURE" = false ]; then
-    echo -e "${RED}Error: Could not find any runs with subjob '${SUBJOB_NAME}'${NC}"
-    echo "Make sure the subjob name is correct and exists in the workflow."
-    exit 1
+    if [ "$EXCEEDED_FAILURE_LIMIT" = true ]; then
+        echo -e "${YELLOW}⚠ Failure limit reached without locating a successful run. Proceeding with fallback metadata.${NC}"
+    else
+        echo -e "${RED}Error: Could not find any runs with subjob '${SUBJOB_NAME}'${NC}"
+        echo "Make sure the subjob name is correct and exists in the workflow."
+        exit 1
+    fi
 fi
 
 if [ "$EXCEEDED_FAILURE_LIMIT" = true ]; then
