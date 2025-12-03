@@ -29,6 +29,18 @@ fi
 WORKFLOW_NAME="$1"
 SUBJOB_NAME="$2"
 
+# Normalize Unicode dash/hyphen characters to ASCII '-'
+normalize_hyphens() {
+    python3 - "$1" <<'PY'
+import sys, unicodedata
+text = sys.argv[1]
+print(''.join('-' if unicodedata.category(ch) == 'Pd' else ch for ch in text), end='')
+PY
+}
+
+WORKFLOW_NAME=$(normalize_hyphens "$WORKFLOW_NAME")
+SUBJOB_NAME=$(normalize_hyphens "$SUBJOB_NAME")
+
 REPO="tenstorrent/tt-metal"
 BASE_URL="https://github.com/${REPO}"
 DATA_DIR="auto_triage/data"
@@ -168,10 +180,12 @@ while true; do
                     --arg subjob "$SUBJOB_NAME" \
                     --arg workflow "$WORKFLOW_NAME" \
                     --argjson attempt "$ATTEMPT" -c '
+                        def normalize_dash:
+                          gsub("[\u2010\u2011\u2012\u2013\u2014\u2015\u2212\uFE58\uFE63\uFF0D]"; "-");
                         def match_subjob($name; $workflow; $subjob):
-                          ($name | ascii_downcase) as $n
-                          | ($subjob | ascii_downcase) as $s
-                          | ($workflow | ascii_downcase) as $w
+                          ($name | normalize_dash | ascii_downcase) as $n
+                          | ($subjob | normalize_dash | ascii_downcase) as $s
+                          | ($workflow | normalize_dash | ascii_downcase) as $w
                           | ($w + " / " + $s) as $ws
                           | ($n == $s
                              or $n == $ws
