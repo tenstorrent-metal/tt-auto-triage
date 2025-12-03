@@ -14,10 +14,37 @@ Available Workspace
 
 Workflow Overview
 -----------------
-1. Inspect `./data/subjob_runs.json` (ordered newest → oldest). Identify the last successful run and the subsequent failures.
-2. Download evidence exactly as follows:
-   - **Oldest failing run** (first failure after the last success).
-   - **Two most recent failing runs** (if fewer than three failures exist, download every failing run).
+1. Inspect `./data/subjob_runs.json` to understand the run history:
+   - The JSON array structure: `[oldest success, oldest failure, ..., newest failure]`
+   - Each run object has a `run_number` field (0, 1, 2, ...) that equals its array index.
+   - Each run has a `status` field: `"success"` or `"failure"`.
+   - **Important:** `run_number` increases as failures get newer (higher number = newer failure).
+   - The array is built by `find_boundaries.sh` which:
+     - Sorts successes by `completed_at` (ascending) and takes the oldest → gets `run_number: 0`
+     - Sorts failures by `completed_at` (ascending, oldest first) → get `run_number: 1, 2, 3, ...`
+     - Final order: `[oldest success (run_number 0), oldest failure (run_number 1), ..., newest failure (highest run_number)]`
+   - You can verify this by checking the `completed_at` timestamp field: higher `run_number` = later timestamp.
+   
+   Example structure (based on actual data):
+   ```json
+   [
+     { "run_number": 0, "status": "success", "commit": "abc123", "completed_at": "2025-12-03T02:00:00Z", ... },  // Most recent (newest success)
+     { "run_number": 7, "status": "failure", "commit": "ad8d0d3...", "completed_at": "2025-12-03T01:33:50Z", ... },  // Newest failure
+     { "run_number": 6, "status": "failure", "commit": "5e09214...", "completed_at": "2025-12-03T01:16:13Z", ... },
+     { "run_number": 1, "status": "failure", "commit": "514ae86...", "completed_at": "2025-12-02T23:15:04Z", ... }   // Oldest failure (lowest run_number)
+   ]
+   ```
+   Note: In this example, run_number 7 is newer than run_number 1. Higher run_number = newer run.
+
+2. Identify the runs you need:
+   - **Last successful run:** Find the run object with `"status": "success"`. This is your baseline. It will have the highest `run_number` among successful runs.
+   - **Oldest failing run:** Among all runs with `"status": "failure"`, find the one with the **lowest `run_number`** (furthest from index 0, earliest timestamp). This is the first failure chronologically.
+   - **Two most recent failing runs:** Among all runs with `"status": "failure"`, find the two with the **highest `run_number`** values (closest to index 0, latest timestamps). If there's only one failure, download just that one.
+
+3. Download evidence exactly as follows:
+   - Download the **oldest failing run** (lowest `run_number` among failures).
+   - Download the **two most recent failing runs** (highest `run_number` values among failures).
+   - If fewer than three failures exist total, download every failing run.
    - For each run, call `./get_annotations.sh <job_url>` first. If annotations lack actionable detail (common), immediately fall back to `./get_logs.sh <job_url>`.
 3. Ignore infrastructure/setup failures (e.g., runner disconnects, missing dependencies, GitHub outages). Such runs must not influence determinism decisions.
 4. Determine whether there is a repeatable deterministic failure signature:
@@ -29,7 +56,10 @@ Workflow Overview
 Commit Metadata Collection
 --------------------------
 6. **Only proceed with commit collection if you identified a deterministic failure that appears related to tt-metal code changes.** If the failures are non-deterministic, infrastructure-related, or clearly unrelated to tt-metal (e.g., flaky tests, runner issues, external dependencies), skip this step entirely and leave `commit_info.json` as an empty array (`[]`).
-7. Locate the last successful run and the first deterministic failing run identified above. Invoke:
+7. Locate the commit hashes from the runs you identified:
+   - Use the `commit` field from the **last successful run** (the one with `"status": "success"`).
+   - Use the `commit` field from the **oldest failing run** (the failure with the lowest `run_number`).
+   - Invoke:
    ```
    ./download_data_between_commits.sh <good_commit> <bad_commit> ./auto_triage/data/commit_info.json
    ```
