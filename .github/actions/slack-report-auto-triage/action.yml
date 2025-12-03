@@ -11,6 +11,9 @@ inputs:
   job_name:
     description: "The job/subjob name (from user input)."
     required: true
+  workflow_name:
+    description: "The workflow name (from user input)."
+    required: true
 runs:
   using: "composite"
   steps:
@@ -37,19 +40,30 @@ runs:
         # Get job_name input - this should always override the LLM's failing_job_name
         JOB_NAME_VALUE="${{ inputs.job_name }}"
         
-        # Debug: Log the input value (will be visible in workflow logs)
+        # Get workflow_name input - this should always override the LLM's workflow_name
+        WORKFLOW_NAME_VALUE="${{ inputs.workflow_name }}"
+        
+        # Debug: Log the input values (will be visible in workflow logs)
         echo "DEBUG: job_name input value: '${JOB_NAME_VALUE}'"
         echo "DEBUG: job_name input length: ${#JOB_NAME_VALUE}"
+        echo "DEBUG: workflow_name input value: '${WORKFLOW_NAME_VALUE}'"
+        echo "DEBUG: workflow_name input length: ${#WORKFLOW_NAME_VALUE}"
 
-        # Force the JSON payload to reflect the user-provided job name so downstream
+        # Force the JSON payload to reflect the user-provided job name and workflow name so downstream
         # tooling (and the final Slack message) never rely on the LLM's guess.
-        if [ -n "$JOB_NAME_VALUE" ]; then
+        if [ -n "$JOB_NAME_VALUE" ] || [ -n "$WORKFLOW_NAME_VALUE" ]; then
           TMP_JSON=$(mktemp)
-          jq --arg job_name "$JOB_NAME_VALUE" '.failing_job_name = $job_name' "$MESSAGE_PATH" > "$TMP_JSON"
+          if [ -n "$JOB_NAME_VALUE" ] && [ -n "$WORKFLOW_NAME_VALUE" ]; then
+            jq --arg job_name "$JOB_NAME_VALUE" --arg workflow_name "$WORKFLOW_NAME_VALUE" '.failing_job_name = $job_name | .workflow_name = $workflow_name' "$MESSAGE_PATH" > "$TMP_JSON"
+          elif [ -n "$JOB_NAME_VALUE" ]; then
+            jq --arg job_name "$JOB_NAME_VALUE" '.failing_job_name = $job_name' "$MESSAGE_PATH" > "$TMP_JSON"
+          elif [ -n "$WORKFLOW_NAME_VALUE" ]; then
+            jq --arg workflow_name "$WORKFLOW_NAME_VALUE" '.workflow_name = $workflow_name' "$MESSAGE_PATH" > "$TMP_JSON"
+          fi
           mv "$TMP_JSON" "$MESSAGE_PATH"
         fi
 
-        TEXT=$(jq -r --arg run_url "$RUN_URL" --arg run_label "$RUN_LABEL" --arg job_name "$JOB_NAME_VALUE" '
+        TEXT=$(jq -r --arg run_url "$RUN_URL" --arg run_label "$RUN_LABEL" --arg job_name "$JOB_NAME_VALUE" --arg workflow_name "$WORKFLOW_NAME_VALUE" '
           def short_hash(h):
             if (h // "") == "" then "unknown" else (h[0:8]) end;
 
@@ -117,7 +131,7 @@ runs:
           |
           (
             section_line("RUN"; "<\($run_url)|\($run_label)>")
-            + section_line("FAILING WORKFLOW"; (.workflow_name // "unknown workflow"))
+            + section_line("FAILING WORKFLOW"; (if ($workflow_name // "") != "" then $workflow_name else (.workflow_name // "unknown workflow") end))
             + section_line("FAILING JOB"; (if ($job_name // "") != "" then $job_name else (.failing_job_name // .workflow_name // "unknown job") end))
             + section_line("FAILING TEST"; (.failing_test_name // "unknown test"))
             + section_line("FAILING RUN"; (if (.failing_run_url // "") != "" then "<\(.failing_run_url)|\(.failing_run_label // "latest failing run")>" else "" end))
