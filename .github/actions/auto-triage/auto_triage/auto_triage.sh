@@ -69,7 +69,7 @@ if ! command -v copilot >/dev/null 2>&1; then
     exit 1
 fi
 
-INSTRUCTIONS_FILE="${ROOT}/instructions_for_opencode.txt"
+INSTRUCTIONS_FILE="${ROOT}/instructions_for_llm.txt"
 if [ ! -f "$INSTRUCTIONS_FILE" ]; then
     echo "Error: ${INSTRUCTIONS_FILE} not found." >&2
     exit 1
