@@ -1,24 +1,14 @@
 {
-    "case": "2",
-    "scenario": "Deterministic failure but culprit commit unknown",
+    "case": "3",
+    "scenario": "Failure likely outside tt-metal",
     "workflow_name": "t3000-unit-tests",
     "failing_job_name": "t3k llama3.2-11b-vision tests",
     "failing_test_name": "models/tt_transformers/tests/multimodal/test_llama_class_embedding.py",
-    "failure_message": "[2025-11-30T09:07:18Z] RuntimeError: TT_FATAL @ /project/ttnn/cpp/ttnn/operations/data_movement/concat/device/concat_device_operation.cpp:42: in_ref.layout() == first_input.layout() info: All Tensors should have same layouts.",
-    "failing_run_url": "https://github.com/tenstorrent/tt-metal/actions/runs/1234567891/job/2222222222",
-    "failing_run_label": "Run #1234567891 (newest failure)",
+    "failure_message": "[2025-11-30T10:15:32Z] ERROR runner: ssh: connect to host 10.2.8.45 port 22: Connection timed out (t3k llama3.2-11b-vision tests never starts)",
+    "failing_run_url": "https://github.com/tenstorrent/tt-metal/actions/runs/1234567892/job/3333333333",
+    "failing_run_label": "Run #1234567892 (latest job)",
     "commits": [],
-    "relevant_developers": [
-        {"name": "Colman Glagovich", "slack_id": "U06UEFWB4P9"},
-        {"name": "Miguel Tairum", "slack_id": "U03PUAKE719"},
-        {"name": "Utku Aydonat", "slack_id": "U080FKG7KEU"},
-        {"name": "Gongyu Wang", "slack_id": "U08JFM3CFA4"},
-        {"name": "Saad Jameel", "slack_id": "U06LRK6JDGB"}
-    ],
-    "relevant_files": [
-        "ttnn/cpp/ttnn/operations/data_movement/concat/device/concat_device_operation.cpp",
-        "models/tt_transformers/tests/multimodal/test_llama_class_embedding.py"
-    ],
-    "slack_message": "Case 2: t3k llama3.2-11b-vision tests deterministically fail due to layout mismatch in concat operation, but logs for the first bad job expired and the commit span is too large to pin a culprit. Need developers to look into the issue."
+    "notes": "No tt-metal commits touch llama3.2-11b-vision test code in window; logs show runners lose SSH connectivity mid-setup before tests execute, pointing to infrastructure instability rather than code changes.",
+    "slack_message": "Case 3: Hanging jobs traced to runner connectivity loss (timeout before tests start). Evidence suggests infra instability rather than tt-metal changes. Please loop in infra-oncall."
 }
 
