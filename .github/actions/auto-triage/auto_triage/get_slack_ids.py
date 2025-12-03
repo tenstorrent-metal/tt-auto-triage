@@ -32,7 +32,7 @@ def normalize(value: str) -> str:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Resolve Slack user or user-group IDs from a local directory."
+        description="Resolve Slack user IDs from a local directory (groups are handled separately)."
     )
     parser.add_argument(
         "query",
@@ -168,12 +168,11 @@ def search_usergroups(query: str, usergroups: List[Dict]) -> List[Dict]:
 def gather_matches(
     query: str,
     users: List[Dict],
-    usergroups: List[Dict],
     include_bots: bool,
     limit: int,
 ) -> List[Dict]:
+    """Gather user matches only (groups are handled separately)."""
     matches = search_users(query, users, include_bots)
-    matches.extend(search_usergroups(query, usergroups))
     matches.sort(key=lambda item: item["score"], reverse=True)
     if limit > 0:
         return matches[:limit]
@@ -181,6 +180,7 @@ def gather_matches(
 
 
 def emit_table(rows: List[List[Dict]]):
+    """Emit table output for user matches only."""
     for group in rows:
         if not group:
             print("No matches found.")
@@ -190,34 +190,26 @@ def emit_table(rows: List[List[Dict]]):
         print(f"Query: {query}")
         print("-" * 60)
         for match in group:
-            entity_type = match.get("entity_type", "user")
-            if entity_type == "user":
-                print(
-                    f"{match['id']:<12}  {match.get('real_name') or match.get('display_name') or '(unknown)'}"
-                )
-                if match.get("display_name"):
-                    print(f"  Display: {match['display_name']}")
-                if match.get("email"):
-                    print(f"  Email:   {match['email']}")
-            else:
-                print(f"{match['id']:<12}  {match.get('name') or match.get('handle') or '(unknown)'} [usergroup]")
-                if match.get("handle"):
-                    print(f"  Handle:  @{match['handle']}")
-                if match.get("description"):
-                    print(f"  Desc:    {match['description']}")
+            print(
+                f"{match['id']:<12}  {match.get('real_name') or match.get('display_name') or '(unknown)'}"
+            )
+            if match.get("display_name"):
+                print(f"  Display: {match['display_name']}")
+            if match.get("email"):
+                print(f"  Email:   {match['email']}")
             print(f"  Reason:  {match['reason']} (score {match['score']})")
             print("")
         print("-" * 60)
 
 
 def load_directory(path: str) -> Dict:
+    """Load users directory (groups are handled separately)."""
     directory_path = Path(path)
     if not directory_path.exists():
         raise FileNotFoundError(f"Directory file '{path}' does not exist.")
     with directory_path.open("r", encoding="utf-8") as fh:
         data = json.load(fh)
     data.setdefault("users", [])
-    data.setdefault("usergroups", [])
     return data
 
 
@@ -232,12 +224,11 @@ def main() -> int:
         return 1
 
     users = directory.get("users", [])
-    usergroups = directory.get("usergroups", [])
 
     all_results = []
     for query in args.query:
         matches = gather_matches(
-            query, users, usergroups, args.include_bots, args.limit
+            query, users, args.include_bots, args.limit
         )
         all_results.append(matches)
 

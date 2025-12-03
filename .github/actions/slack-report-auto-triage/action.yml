@@ -45,8 +45,13 @@ runs:
             if p == null then
               "Unknown"
             else
-              (if use_slack_id and (p.slack_id // "") != "" then 
-                "<@" + p.slack_id + ">"
+              (if use_slack_id and (p.slack_id // "") != "" then
+                # Groups/subteams start with "S" and use <!subteam^ID|@handle> format
+                (if (p.slack_id | startswith("S")) then
+                  "<!subteam^" + p.slack_id + "|@" + (p.name // p.login // "group") + ">"
+                else
+                  "<@" + p.slack_id + ">"
+                end)
               else 
                 (p.name // p.login // "Unknown")
               end)

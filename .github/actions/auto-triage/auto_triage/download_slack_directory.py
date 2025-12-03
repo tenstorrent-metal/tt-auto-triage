@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Download Slack users and user groups into a single JSON directory file.
+Download Slack users and user groups into separate JSON files.
 
 Requirements:
   * A Slack bot token with `users:read` and/or `usergroups:read`.
@@ -22,17 +22,23 @@ import requests
 
 
 SLACK_API_BASE = "https://slack.com/api"
-DEFAULT_OUTPUT = "auto_triage/data/slack_directory.json"
+DEFAULT_USERS_OUTPUT = "auto_triage/data/slack_directory.json"
+DEFAULT_GROUPS_OUTPUT = "auto_triage/data/slack_groups.json"
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Download Slack users and user groups into JSON."
+        description="Download Slack users and user groups into separate JSON files."
     )
     parser.add_argument(
         "--output",
-        default=DEFAULT_OUTPUT,
-        help=f"Output file path (default: {DEFAULT_OUTPUT}).",
+        default=DEFAULT_USERS_OUTPUT,
+        help=f"Output file path for users (default: {DEFAULT_USERS_OUTPUT}).",
+    )
+    parser.add_argument(
+        "--groups-output",
+        default=DEFAULT_GROUPS_OUTPUT,
+        help=f"Output file path for groups (default: {DEFAULT_GROUPS_OUTPUT}).",
     )
     parser.add_argument(
         "--pretty",
@@ -159,14 +165,28 @@ def main() -> int:
         )
         return 2
 
-    payload = {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
-        "users": users_data,
-        "usergroups": usergroups_data,
-    }
+    # Write users to separate file
+    if users_data:
+        users_payload = {
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "users": users_data,
+        }
+        write_output(args.output, users_payload, args.pretty)
+        print(f"Wrote Slack users directory to {args.output}")
+    else:
+        print("Warning: No users fetched, skipping users file.", file=sys.stderr)
 
-    write_output(args.output, payload, args.pretty)
-    print(f"Wrote Slack directory to {args.output}")
+    # Write groups to separate file
+    if usergroups_data:
+        groups_payload = {
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "usergroups": usergroups_data,
+        }
+        write_output(args.groups_output, groups_payload, args.pretty)
+        print(f"Wrote Slack groups directory to {args.groups_output}")
+    else:
+        print("Warning: No groups fetched, skipping groups file.", file=sys.stderr)
+
     return 0
 
 
