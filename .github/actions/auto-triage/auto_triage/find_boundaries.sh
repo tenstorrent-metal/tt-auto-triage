@@ -41,6 +41,12 @@ PY
 WORKFLOW_NAME=$(normalize_hyphens "$WORKFLOW_NAME")
 SUBJOB_NAME=$(normalize_hyphens "$SUBJOB_NAME")
 
+FAILURE_LIMIT=200
+FAILURE_ONLY_COUNT=0
+EXCEEDED_FAILURE_LIMIT=false
+BOUNDARY_STATUS="ok"
+BOUNDARY_MESSAGE=""
+
 REPO="tenstorrent/tt-metal"
 BASE_URL="https://github.com/${REPO}"
 DATA_DIR="auto_triage/data"
@@ -296,6 +302,15 @@ while true; do
                             --argjson run_number "$PROCESSED" \
                             '$arr + [{status:$status, run_url:$run_url, job_url:$job_url, run_id:$run_id, job_id:$job_id, commit:$commit, completed_at:$completed_at, job_attempt:$job_attempt, run_number:$run_number}]' \
                         )
+                        if [ "$FOUND_SUCCESS" = false ]; then
+                            FAILURE_ONLY_COUNT=$((FAILURE_ONLY_COUNT + 1))
+                            if [ "$FAILURE_ONLY_COUNT" -ge "$FAILURE_LIMIT" ]; then
+                                echo -e "${YELLOW}Reached failure limit (${FAILURE_LIMIT}) without finding a successful run.${NC}"
+                                EXCEEDED_FAILURE_LIMIT=true
+                                STOP_SEARCH=true
+                                break
+                            fi
+                        fi
                     else
                         echo -e "${YELLOW}Conclusion: ${JOB_CONCLUSION}${NC}"
                     fi
@@ -383,6 +398,14 @@ if [ "$FOUND_SUCCESS" = false ] && [ "$FOUND_FAILURE" = false ]; then
     exit 1
 fi
 
+if [ "$EXCEEDED_FAILURE_LIMIT" = true ]; then
+    BOUNDARY_STATUS="failure_limit_exceeded"
+    BOUNDARY_MESSAGE="More than ${FAILURE_LIMIT} failed runs were scanned without finding a successful run. The commit window is too old—default to Case 2 or Case 3."
+elif [ "$FOUND_SUCCESS" = false ]; then
+    BOUNDARY_STATUS="no_success_found"
+    BOUNDARY_MESSAGE="No successful runs were found within the current history window."
+fi
+
 if [ "$SUBJOB_RUNS_JSON" != "[]" ]; then
     SUBJOB_RUNS_JSON=$(echo "$SUBJOB_RUNS_JSON" | jq '
         def normalize(arr):
@@ -421,7 +444,13 @@ if [ -n "$SUMMARY_JSON_PATH" ]; then
     tmp_summary="$(mktemp)"
     jq -n \
         --argjson runs "$SUBJOB_RUNS_JSON" \
-        '{runs: $runs}' > "$tmp_summary"
+        --arg status "$BOUNDARY_STATUS" \
+        --arg message "$BOUNDARY_MESSAGE" \
+        '{runs: $runs, status: $status, message: $message}' > "$tmp_summary"
     mv "$tmp_summary" "$SUMMARY_JSON_PATH"
-    echo "$SUBJOB_RUNS_JSON" > "$RUNS_JSON_PATH"
+    jq -n \
+        --argjson runs "$SUBJOB_RUNS_JSON" \
+        --arg status "$BOUNDARY_STATUS" \
+        --arg message "$BOUNDARY_MESSAGE" \
+        '{runs: $runs, status: $status, message: $message}' > "$RUNS_JSON_PATH"
 fi

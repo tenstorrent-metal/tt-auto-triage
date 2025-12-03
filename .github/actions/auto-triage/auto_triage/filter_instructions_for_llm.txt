@@ -15,31 +15,45 @@ Available Workspace
 Workflow Overview
 -----------------
 1. Inspect `./data/subjob_runs.json` to understand the run history:
-   - The JSON array structure: `[oldest success, oldest failure, ..., newest failure]`
-   - Each run object has a `run_number` field (0, 1, 2, ...) that equals its array index.
-   - Each run has a `status` field: `"success"` or `"failure"`.
-   - **Important:** `run_number` increases as failures get newer (higher number = newer failure).
-   - The array is built by `find_boundaries.sh` which:
-     - Sorts successes by `completed_at` (ascending) and takes the oldest → gets `run_number: 0`
-     - Sorts failures by `completed_at` (ascending, oldest first) → get `run_number: 1, 2, 3, ...`
-     - Final order: `[oldest success (run_number 0), oldest failure (run_number 1), ..., newest failure (highest run_number)]`
-   - You can verify this by checking the `completed_at` timestamp field: higher `run_number` = later timestamp.
-   
-   Example structure (based on actual data):
-   ```json
-   [
-     { "run_number": 0, "status": "success", "commit": "abc123", "completed_at": "2025-12-03T02:00:00Z", ... },  // Most recent (newest success)
-     { "run_number": 7, "status": "failure", "commit": "ad8d0d3...", "completed_at": "2025-12-03T01:33:50Z", ... },  // Newest failure
-     { "run_number": 6, "status": "failure", "commit": "5e09214...", "completed_at": "2025-12-03T01:16:13Z", ... },
-     { "run_number": 1, "status": "failure", "commit": "514ae86...", "completed_at": "2025-12-02T23:15:04Z", ... }   // Oldest failure (lowest run_number)
-   ]
-   ```
-   Note: In this example, run_number 7 is newer than run_number 1. Higher run_number = newer run.
+   - File structure:
+     ```json
+     {
+       "status": "ok" | "failure_limit_exceeded" | "no_success_found",
+       "message": "<human readable summary>",
+       "runs": [
+         { "run_number": 0, "status": "success", ... },
+         { "run_number": 1, "status": "failure", ... },
+         ...
+       ]
+     }
+     ```
+   - `runs` is the array you previously read; it is ordered `[oldest success, oldest failure, ..., newest failure]`.
+   - Each run object has:
+     - `run_number`: 0, 1, 2, … (higher number = newer failure).
+     - `status`: `"success"` or `"failure"`.
+     - `run_url`, `job_url`, `commit`, `completed_at`, etc.
+   - `status` at the top level tells you whether the boundary search hit a fallback:
+     - `"ok"` → normal behavior.
+     - `"failure_limit_exceeded"` → 200 failed runs were scanned without finding a successful run; you **must** follow the fallback in *Special Cases*.
+     - `"no_success_found"` → no successes exist in the window; treat this the same as the failure-limit fallback.
+   - Example (truncated):
+     ```json
+     {
+       "status": "ok",
+       "message": "",
+       "runs": [
+         { "run_number": 0, "status": "success", "commit": "abc123", "completed_at": "2025-12-03T02:00:00Z" },
+         { "run_number": 7, "status": "failure", "commit": "ad8d0d3...", "completed_at": "2025-12-03T01:33:50Z" },
+         { "run_number": 6, "status": "failure", "commit": "5e09214...", "completed_at": "2025-12-03T01:16:13Z" }
+       ]
+     }
+     ```
+     Here `run_number` 7 is newer than 6, which is newer than 1, etc.
 
 2. Identify the runs you need:
-   - **Last successful run:** Find the run object with `"status": "success"`. This is your baseline. It will have the highest `run_number` among successful runs.
-   - **Oldest failing run:** Among all runs with `"status": "failure"`, find the one with the **lowest `run_number`** (furthest from index 0, earliest timestamp). This is the first failure chronologically.
-   - **Two most recent failing runs:** Among all runs with `"status": "failure"`, find the two with the **highest `run_number`** values (closest to index 0, latest timestamps). If there's only one failure, download just that one.
+   - **Last successful run:** In `runs`, find the entry with `"status": "success"`; this is your baseline and will have the highest `run_number` among successes.
+   - **Oldest failing run:** Among `"failure"` entries, pick the **lowest `run_number`**; this is the first failure chronologically.
+   - **Two most recent failing runs:** Choose the two `"failure"` entries with the **highest `run_number"` values (if fewer exist, use all failures).
 
 3. Download evidence exactly as follows:
    - Download the **oldest failing run** (lowest `run_number` among failures).
@@ -83,6 +97,11 @@ Special Cases
 - **Purely non-deterministic / infra failures:** If every failing run is due to setup/infrastructure noise, random test flakiness, or issues clearly unrelated to tt-metal code changes, **this is a valid and acceptable outcome.** Skip downloading commits entirely. Write an empty JSON array (`[]`) to `./auto_triage/data/commit_info.json` and leave `error_message.txt` blank. This signals Case 3 to the main model, which is the correct classification for non-deterministic failures.
 - **No clear deterministic failure:** If you cannot identify a repeatable failure signature across multiple runs, or if failures appear random/unrelated to code changes, treat this as non-deterministic. Leave `commit_info.json` as `[]` and `error_message.txt` blank.
 - **Commit span too large (>100) or metadata unavailable:** If the helper scripts refuse to download (or logs for the oldest failing run are missing), write a JSON string into `commit_info.json`, e.g. `"too many commits to analyze; default to Case 2 unless other evidence suggests Case 3"`. Still populate `error_message.txt` with the clearest deterministic message you found (or leave it empty if none were available).
+- **Failure history too long (`subjob_runs.json.status` = `failure_limit_exceeded` or `no_success_found`):** `find_boundaries.sh` already scanned 200+ failed runs without finding a success, so there is no trustworthy commit boundary.
+  - Do **not** attempt to download commits; you lack the "good" commit.
+  - Still capture the deterministic error message (if any) in `error_message.txt`.
+  - Write a JSON string to `commit_info.json`, for example: `"failure_limit_exceeded: more than 200 failed runs without a success; default to Case 2 or Case 3."`
+  - This string instructs the main analysis to pick either Case 2 (if the error is deterministic and clearly tt-metal related) or Case 3 (if it appears external/non-deterministic).
 
 Outputs
 -------
