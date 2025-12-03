@@ -92,6 +92,13 @@ runs:
           def join_people(arr; use_slack_id):
             arr | map(person(.; use_slack_id)) | join(", ");
 
+          def ensure_case3_ping(arr; case_val):
+            if ((case_val | tostring) == "3") then
+              (arr // []) + [{ "name": "metalinfa", "slack_id": "S0985AN7TC5" }]
+            else
+              (arr // [])
+            end;
+
           def section_line(lbl; txt):
             if (txt // "") != "" then "*\(lbl):* " + txt + "\n" else "" end;
 
@@ -142,7 +149,10 @@ runs:
             + commits_section(.commits)
             # Only show and ping top-level relevant_developers if there are no commits (Case 2 or Case 3)
             # When commits exist (Case 1 or Case 4), relevant_developers are shown within commit entries (names only, no pings)
-            + (if $has_commits then "" else section_people("RELEVANT DEVELOPERS"; .relevant_developers; true) end)
+            + (if $has_commits
+               then ""
+               else section_people("RELEVANT DEVELOPERS"; ensure_case3_ping(.relevant_developers; .case); true)
+              end)
             + section_files("RELEVANT FILES"; .relevant_files)
             + section_line("NOTES"; .notes)
           ) | gsub("\n{3,}"; "\n\n")
