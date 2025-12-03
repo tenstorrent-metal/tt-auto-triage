@@ -102,22 +102,16 @@ runs:
         GH_TOKEN: ${{ github.token }}
         GITHUB_TOKEN: ${{ github.token }}
 
-    - name: Produce filtered commit list
+    - name: Verify filter stage outputs
       if: inputs.slack-test-only != 'true'
       shell: bash
       run: |
         set -euo pipefail
         cd "${GITHUB_WORKSPACE}/.auto_triage"
         COMMIT_FILE="auto_triage/data/commit_info.json"
-        FILTERED_FILE="auto_triage/data/filtered_commit_info.json"
         if [ ! -f "$COMMIT_FILE" ]; then
             echo "Filter stage did not produce $COMMIT_FILE" >&2
             exit 1
-        fi
-        if jq -e 'type=="array"' "$COMMIT_FILE" >/dev/null 2>&1; then
-            jq '[.[] | select((.is_irrelevant // false) == false)]' "$COMMIT_FILE" > "$FILTERED_FILE"
-        else
-            cp "$COMMIT_FILE" "$FILTERED_FILE"
         fi
         if [ ! -f "auto_triage/data/error_message.txt" ]; then
             touch "auto_triage/data/error_message.txt"

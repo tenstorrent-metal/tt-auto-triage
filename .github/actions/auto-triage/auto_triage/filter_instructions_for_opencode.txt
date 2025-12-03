@@ -3,7 +3,7 @@ Filter Stage Playbook
 
 Purpose
 -------
-Identify the newest deterministic failure signature, gather the associated commit window, and pre-filter obviously irrelevant commits before the main analysis model runs. This stage must be exhaustive when collecting evidence, but its outputs are limited to the source metadata the next model will consume.
+Identify the newest deterministic failure signature and gather the associated commit window. This stage must be exhaustive when collecting evidence, but its outputs are limited to the source metadata the next model will consume.
 
 Available Workspace
 -------------------
@@ -23,11 +23,13 @@ Workflow Overview
 4. Determine whether there is a repeatable deterministic failure signature:
    - Prefer an error that appears in multiple runs with the same stack trace or message.
    - If only one test-executing run exists, treat that signature as deterministic if it clearly points to tt-metal code.
+   - **Important:** It is perfectly acceptable and expected for failures to be non-deterministic. If failures appear to be random, infrastructure-related, or unrelated to tt-metal code changes, this is a valid finding. Do not force determinism where none exists.
 5. Save the deterministic error snippet (2–6 lines) into `./auto_triage/data/error_message.txt`. If no deterministic failure can be found, write an empty file.
 
 Commit Metadata Collection
 --------------------------
-6. Locate the last successful run and the first deterministic failing run identified above. Invoke:
+6. **Only proceed with commit collection if you identified a deterministic failure that appears related to tt-metal code changes.** If the failures are non-deterministic, infrastructure-related, or clearly unrelated to tt-metal (e.g., flaky tests, runner issues, external dependencies), skip this step entirely and leave `commit_info.json` as an empty array (`[]`).
+7. Locate the last successful run and the first deterministic failing run identified above. Invoke:
    ```
    ./download_data_between_commits.sh <good_commit> <bad_commit> ./auto_triage/data/commit_info.json
    ```
@@ -45,35 +47,32 @@ Commit Metadata Collection
        - `./download_data_between_commits_batch.sh <good_commit> <bad_commit> 4 ./auto_triage/data/commit_info.json`
      - **Important:** Use the same output file (`./auto_triage/data/commit_info.json`) for all batch calls; results will be appended.
      - Each batch processes up to 10 commits (batches are zero-indexed).
-7. For each commit entry, set the `is_irrelevant` flag based on your best judgment:
-   - **Leave `is_irrelevant: false`** when the commit plausibly touches the failing subsystem or files mentioned in the deterministic error. When in doubt, prefer keeping the commit relevant so the main model can evaluate it later.
-   - **Set `is_irrelevant: true`** only for commits that clearly cannot affect the failure (pure documentation, unrelated tooling, mismatched programming language, etc.).
-   - Always preserve the full entry even when marking it irrelevant.
 
 Special Cases
 -------------
-- **Purely non-deterministic / infra failures:** If every failing run is due to setup/infrastructure noise, you may skip downloading commits. Instead, write an empty JSON array (`[]`) to `./auto_triage/data/commit_info.json` and leave `error_message.txt` blank. This signals Case 3 to the main model.
-- **Deterministic failure but no plausible commits:** After populating commit metadata, you may mark every commit with `is_irrelevant: true`. The main model will interpret this as Case 3 territory.
+- **Purely non-deterministic / infra failures:** If every failing run is due to setup/infrastructure noise, random test flakiness, or issues clearly unrelated to tt-metal code changes, **this is a valid and acceptable outcome.** Skip downloading commits entirely. Write an empty JSON array (`[]`) to `./auto_triage/data/commit_info.json` and leave `error_message.txt` blank. This signals Case 3 to the main model, which is the correct classification for non-deterministic failures.
+- **No clear deterministic failure:** If you cannot identify a repeatable failure signature across multiple runs, or if failures appear random/unrelated to code changes, treat this as non-deterministic. Leave `commit_info.json` as `[]` and `error_message.txt` blank.
 - **Commit span too large (>100) or metadata unavailable:** If the helper scripts refuse to download (or logs for the oldest failing run are missing), write a JSON string into `commit_info.json`, e.g. `"too many commits to analyze; default to Case 2 unless other evidence suggests Case 3"`. Still populate `error_message.txt` with the clearest deterministic message you found (or leave it empty if none were available).
 
 Optional Tools
 --------------
-- You may call helper scripts like `./get_changed_files.sh <commit>` or `./get_commit_diff.sh <commit>` when you need extra signal to decide whether a commit is relevant, but use them sparingly. The main analysis stage will perform the deep dive; this filter phase should only gather just enough context to tag obviously irrelevant commits.
+- You may call helper scripts like `./get_changed_files.sh <commit>` or `./get_commit_diff.sh <commit>` if needed, but use them sparingly. The main analysis stage will perform the deep dive; this stage should only gather the commit metadata.
 
 Outputs
 -------
 - `./auto_triage/data/commit_info.json`
-  - Preferred format is a JSON array of commit objects (each with `is_irrelevant` set).
-  - The file may also be a JSON string for the “too many commits” scenario described above.
+  - Preferred format is a JSON array of commit objects with metadata (commit hash, PR info, authors, approvers, Copilot overview, etc.).
+  - **An empty array (`[]`) is a valid and expected output** when failures are non-deterministic or unrelated to tt-metal code changes. Do not force commit collection when evidence suggests the issue is external.
+  - The file may also be a JSON string for the "too many commits" scenario described above.
 - `./auto_triage/data/error_message.txt`
-  - Contains the deterministic failure excerpt (or is empty if determinism could not be established).
+  - Contains the deterministic failure excerpt (or is empty if determinism could not be established or failures are non-deterministic).
 
 What **Not** to Do
 ------------------
 - Do **not** produce `explanation.md`, `slack_message.json`, or any Case outputs.
-- Do **not** spend tokens summarizing commits; simply gather metadata and set `is_irrelevant`.
+- Do **not** spend tokens summarizing commits; simply gather metadata.
 - Do **not** delete or rename any existing automation scripts.
-- Avoid running the LLM twice; this filter stage is the only LLM invocation before the main analysis.
+- Avoid running the LLM twice; this stage is the only LLM invocation before the main analysis.
 
-When unsure, err on the side of leaving a commit marked as relevant (i.e., keep `is_irrelevant: false`). The main model will perform the final reasoning using the filtered list and the captured error message.
+The main model will perform the final reasoning using the commit list and the captured error message.
 
