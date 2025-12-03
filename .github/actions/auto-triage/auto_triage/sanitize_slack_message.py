@@ -42,19 +42,51 @@ def require_type(value, expected_type, path):
         raise ValueError(f"{path} must be of type {expected_type.__name__}")
 
 
+def normalize_whitespace(value: str) -> str:
+    return value.strip()
+
+
+def strip_slack_mention(value: str) -> str:
+    """Remove leading @ characters so Slack doesn't auto-mention."""
+    return value.lstrip("@").strip()
+
+
+def normalize_person_name(value: str) -> str:
+    return strip_slack_mention(normalize_whitespace(value))
+
+
 def require_string(value, path, allow_empty=False):
     require_type(value, str, path)
-    if not allow_empty and not value.strip():
+    value = value.strip()
+    if not allow_empty and not value:
         raise ValueError(f"{path} must be a non-empty string")
+    return value
+
+
+def normalize_identity_fields(person: dict) -> None:
+    """Trim whitespace and strip leading @ for names/logins/slack IDs."""
+    if "name" in person and person["name"] is not None:
+        person["name"] = normalize_person_name(str(person["name"]))
+    if "login" in person and person["login"] is not None:
+        person["login"] = normalize_whitespace(str(person["login"]))
+    if "slack_id" in person and person["slack_id"] is not None:
+        person["slack_id"] = normalize_whitespace(str(person["slack_id"]))
+
+
+def extract_identity(person: dict):
+    slack_id = (person.get("slack_id") or "").strip()
+    name = normalize_person_name(person.get("name") or person.get("login") or "")
+    return slack_id, name.lower() if name else ""
 
 
 def validate_person(person, path):
     require_type(person, dict, path)
     if "name" not in person:
         raise ValueError(f"{path}.name is required")
-    require_string(person["name"], f"{path}.name")
+    person["name"] = normalize_person_name(require_string(person["name"], f"{path}.name"))
+    normalize_identity_fields(person)
     if "slack_id" in person and person["slack_id"] is not None:
-        require_string(person["slack_id"], f"{path}.slack_id", allow_empty=True)
+        person["slack_id"] = require_string(person["slack_id"], f"{path}.slack_id", allow_empty=True)
 
 
 def validate_person_list(entries, path):
@@ -65,30 +97,27 @@ def validate_person_list(entries, path):
 
 def check_no_overlap(relevant_devs, author, approvers, path):
     """Ensure relevant_developers doesn't include author or approvers."""
-    author_id = author.get("slack_id") or author.get("name") or author.get("login") or ""
-    author_name = author.get("name") or author.get("login") or ""
+    author_id, author_name = extract_identity(author)
     
     approver_ids = set()
     approver_names = set()
     if approvers:
         for approver in approvers:
-            aid = approver.get("slack_id") or approver.get("name") or approver.get("login") or ""
-            aname = approver.get("name") or approver.get("login") or ""
+            aid, aname = extract_identity(approver)
             if aid:
                 approver_ids.add(aid)
             if aname:
                 approver_names.add(aname)
     
     for dev in relevant_devs:
-        dev_id = dev.get("slack_id") or dev.get("name") or dev.get("login") or ""
-        dev_name = dev.get("name") or dev.get("login") or ""
+        dev_id, dev_name = extract_identity(dev)
         
         # Check if this developer matches the author
-        if (author_id and dev_id and author_id == dev_id) or (author_name and dev_name and author_name.lower() == dev_name.lower()):
+        if (author_id and dev_id and author_id == dev_id) or (author_name and dev_name and author_name == dev_name):
             raise ValueError(f"{path}.relevant_developers contains the commit author ({author_name or author_id}), which is not allowed")
         
         # Check if this developer matches any approver
-        if (dev_id and dev_id in approver_ids) or (dev_name and dev_name.lower() in {n.lower() for n in approver_names}):
+        if (dev_id and dev_id in approver_ids) or (dev_name and dev_name in approver_names):
             raise ValueError(f"{path}.relevant_developers contains an approver ({dev_name or dev_id}), which is not allowed")
 
 
@@ -112,8 +141,7 @@ def validate_commit(commit, index):
         seen_ids = set()
         seen_names = set()
         for dev in commit["relevant_developers"]:
-            dev_id = dev.get("slack_id") or ""
-            dev_name = (dev.get("name") or dev.get("login") or "").lower()
+            dev_id, dev_name = extract_identity(dev)
             if dev_id and dev_id in seen_ids:
                 raise ValueError(f"{path}.relevant_developers contains duplicate entry (slack_id: {dev_id})")
             if dev_name and dev_name in seen_names:
@@ -152,17 +180,15 @@ def validate_payload(payload):
     all_authors_approvers = set()
     for commit in payload["commits"]:
         author = commit.get("author", {})
-        author_id = author.get("slack_id") or author.get("name") or author.get("login") or ""
-        author_name = author.get("name") or author.get("login") or ""
+        author_id, author_name = extract_identity(author)
         if author_id:
             all_authors_approvers.add(("id", author_id))
         if author_name:
-            all_authors_approvers.add(("name", author_name.lower()))
+            all_authors_approvers.add(("name", author_name))
         
         approvers = commit.get("approvers", [])
         for approver in approvers:
-            aid = approver.get("slack_id") or approver.get("name") or approver.get("login") or ""
-            aname = approver.get("name") or approver.get("login") or ""
+            aid, aname = extract_identity(approver)
             if aid:
                 all_authors_approvers.add(("id", aid))
             if aname:
@@ -178,8 +204,7 @@ def validate_payload(payload):
         seen_ids = set()
         seen_names = set()
         for dev in payload["relevant_developers"]:
-            dev_id = dev.get("slack_id") or ""
-            dev_name = (dev.get("name") or dev.get("login") or "").lower()
+            dev_id, dev_name = extract_identity(dev)
             if dev_id and dev_id in seen_ids:
                 raise ValueError(f"Top-level relevant_developers contains duplicate entry (slack_id: {dev_id})")
             if dev_name and dev_name in seen_names:
@@ -191,8 +216,7 @@ def validate_payload(payload):
         if payload["commits"]:
             # Check top-level relevant_developers against all commit authors/approvers
             for dev in payload["relevant_developers"]:
-                dev_id = dev.get("slack_id") or dev.get("name") or dev.get("login") or ""
-                dev_name = dev.get("name") or dev.get("login") or ""
+                dev_id, dev_name = extract_identity(dev)
                 if (dev_id and ("id", dev_id) in all_authors_approvers) or (dev_name and ("name", dev_name.lower()) in all_authors_approvers):
                     raise ValueError(f"Top-level relevant_developers contains a commit author or approver ({dev_name or dev_id}), which is not allowed")
     

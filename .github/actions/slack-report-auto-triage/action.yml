@@ -41,6 +41,14 @@ runs:
         echo "DEBUG: job_name input value: '${JOB_NAME_VALUE}'"
         echo "DEBUG: job_name input length: ${#JOB_NAME_VALUE}"
 
+        # Force the JSON payload to reflect the user-provided job name so downstream
+        # tooling (and the final Slack message) never rely on the LLM's guess.
+        if [ -n "$JOB_NAME_VALUE" ]; then
+          TMP_JSON=$(mktemp)
+          jq --arg job_name "$JOB_NAME_VALUE" '.failing_job_name = $job_name' "$MESSAGE_PATH" > "$TMP_JSON"
+          mv "$TMP_JSON" "$MESSAGE_PATH"
+        fi
+
         TEXT=$(jq -r --arg run_url "$RUN_URL" --arg run_label "$RUN_LABEL" --arg job_name "$JOB_NAME_VALUE" '
           def short_hash(h):
             if (h // "") == "" then "unknown" else (h[0:8]) end;
@@ -90,7 +98,7 @@ runs:
             "- HASH: " + commit_link(c) + "\n"
             + "  AUTHOR: " + person(c.author; true) + "\n"
             + (if (c.approvers | type) == "array" and (c.approvers | length) > 0 then
-                "  APPROVERS: " + join_people(c.approvers; true) + "\n"
+                "  APPROVERS: " + join_people(c.approvers; false) + "\n"
               else "" end)
             + (if (c.relevant_developers | type) == "array" and (c.relevant_developers | length) > 0 then
                 "  RELEVANT DEVELOPERS: " + join_people(c.relevant_developers; false) + "\n"
