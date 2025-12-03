@@ -41,22 +41,26 @@ runs:
             else short_hash(c.hash // c.commit)
             end;
 
-          def person(p):
+          def person(p; use_slack_id):
             if p == null then
               "Unknown"
             else
-              (if (p.slack_id // "") != "" then "<@" + p.slack_id + ">" else (p.name // p.login // "Unknown") end)
+              (if use_slack_id and (p.slack_id // "") != "" then 
+                "<@" + p.slack_id + ">"
+              else 
+                (p.name // p.login // "Unknown")
+              end)
             end;
 
-          def join_people(arr):
-            arr | map(person(.)) | join(", ");
+          def join_people(arr; use_slack_id):
+            arr | map(person(.; use_slack_id)) | join(", ");
 
           def section_line(lbl; txt):
             if (txt // "") != "" then "*\(lbl):* " + txt + "\n" else "" end;
 
-          def section_people(lbl; arr):
+          def section_people(lbl; arr; use_slack_id):
             if (arr | type) == "array" and (arr | length) > 0 then
-              "*\(lbl):* " + join_people(arr) + "\n"
+              "*\(lbl):* " + join_people(arr; use_slack_id) + "\n"
             else "" end;
 
           def section_files(lbl; arr):
@@ -69,12 +73,12 @@ runs:
 
           def commit_entry(c):
             "- HASH: " + commit_link(c) + "\n"
-            + "  AUTHOR: " + person(c.author) + "\n"
+            + "  AUTHOR: " + person(c.author; true) + "\n"
             + (if (c.approvers | type) == "array" and (c.approvers | length) > 0 then
-                "  APPROVERS: " + join_people(c.approvers) + "\n"
+                "  APPROVERS: " + join_people(c.approvers; true) + "\n"
               else "" end)
             + (if (c.relevant_developers | type) == "array" and (c.relevant_developers | length) > 0 then
-                "  RELEVANT DEVELOPERS: " + join_people(c.relevant_developers) + "\n"
+                "  RELEVANT DEVELOPERS: " + join_people(c.relevant_developers; false) + "\n"
               else "" end)
             + (if (c.relevant_files | type) == "array" and (c.relevant_files | length) > 0 then
                 "  RELEVANT FILES:\n```\n" + (c.relevant_files | join("\n")) + "\n```\n"
@@ -85,6 +89,9 @@ runs:
               "*COMMITS:*\n" + (arr | map(commit_entry(.)) | join("\n")) + "\n"
             else "" end;
 
+          # Determine if commits exist (Case 1 or Case 4)
+          (if ((.commits | type) == "array" and (.commits | length) > 0) then true else false end) as $has_commits
+          |
           (
             section_line("RUN"; "<\($run_url)|\($run_label)>")
             + section_line("FAILING WORKFLOW"; (.workflow_name // "unknown workflow"))
@@ -96,7 +103,8 @@ runs:
             + section_code("FAILURE MESSAGE"; .failure_message)
             + (if (.slack_message // "") != "" then (.slack_message + "\n") else "" end)
             + commits_section(.commits)
-            + section_people("RELEVANT DEVELOPERS"; .relevant_developers)
+            # Only ping relevant_developers if there are no commits (Case 2 or Case 3)
+            + section_people("RELEVANT DEVELOPERS"; .relevant_developers; ($has_commits | not))
             + section_files("RELEVANT FILES"; .relevant_files)
             + section_line("NOTES"; .notes)
           ) | gsub("\n{3,}"; "\n\n")
