@@ -164,7 +164,24 @@ while true; do
                     break
                 fi
 
-                FILTERED=$(echo "$JOB_ENTRIES" | jq --argjson attempt "$ATTEMPT" -c "[.[] | select(.name == \"${SUBJOB_NAME}\" or .name == \"${WORKFLOW_NAME} / ${SUBJOB_NAME}\" or (.name | endswith(\"${SUBJOB_NAME}\")) or (.name | contains(\"${SUBJOB_NAME}\"))) | select(.status == \"completed\") | (.run_attempt = (.run_attempt // \$attempt))]" 2>/dev/null || echo "")
+                FILTERED=$(echo "$JOB_ENTRIES" | jq \
+                    --arg subjob "$SUBJOB_NAME" \
+                    --arg workflow "$WORKFLOW_NAME" \
+                    --argjson attempt "$ATTEMPT" -c '
+                        def match_subjob($name; $workflow; $subjob):
+                          ($name | ascii_downcase) as $n
+                          | ($subjob | ascii_downcase) as $s
+                          | ($workflow | ascii_downcase) as $w
+                          | ($w + " / " + $s) as $ws
+                          | ($n == $s
+                             or $n == $ws
+                             or ($n | endswith($s))
+                             or ($n | contains($s)));
+                        [.[] 
+                         | select(match_subjob(.name; $workflow; $subjob))
+                         | select(.status == "completed")
+                         | (.run_attempt = (.run_attempt // $attempt))
+                        ]' 2>/dev/null || echo "")
                 if [ "$FILTERED" != "[]" ]; then
                     MATCHING_JOBS=$(jq -n --argjson acc "$MATCHING_JOBS" --argjson new "$FILTERED" '$acc + $new')
                 fi
