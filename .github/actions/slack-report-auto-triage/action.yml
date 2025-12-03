@@ -131,8 +131,8 @@ runs:
           |
           (
             section_line("RUN"; "<\($run_url)|\($run_label)>")
-            + section_line("FAILING WORKFLOW"; (if ($workflow_name // "") != "" then $workflow_name else (.workflow_name // "unknown workflow") end))
-            + section_line("FAILING JOB"; (if ($job_name // "") != "" then $job_name else (.failing_job_name // .workflow_name // "unknown job") end))
+            + section_line("FAILING WORKFLOW"; (if (($workflow_name // "") | length) > 0 then $workflow_name else (.workflow_name // "unknown workflow") end))
+            + section_line("FAILING JOB"; (if (($job_name // "") | length) > 0 then $job_name else (.failing_job_name // .workflow_name // "unknown job") end))
             + section_line("FAILING TEST"; (.failing_test_name // "unknown test"))
             + section_line("FAILING RUN"; (if (.failing_run_url // "") != "" then "<\(.failing_run_url)|\(.failing_run_label // "latest failing run")>" else "" end))
             + section_line("CASE"; .case // "?")
