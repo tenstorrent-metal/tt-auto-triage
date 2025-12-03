@@ -8,12 +8,6 @@ inputs:
   job-name:
     description: Job/subjob name within the workflow.
     required: true
-  model:
-    description: Model identifier (kept for compatibility, currently unused).
-    required: true
-  filter-model:
-    description: Model identifier for the filter stage (kept for compatibility, currently unused).
-    required: true
   copilot-pat:
     description: Personal Access Token for GitHub/Copilot authentication.
     required: true
@@ -93,7 +87,6 @@ runs:
         ./filter_triage.sh \
           "${{ inputs.workflow-name }}" \
           "${{ inputs.job-name }}" \
-          "${{ inputs.filter-model }}" \
           ci
       env:
         # Use TESTING_COPILOT_PAT for Copilot CLI authentication
@@ -126,7 +119,6 @@ runs:
         ./auto_triage.sh \
           "${{ inputs.workflow-name }}" \
           "${{ inputs.job-name }}" \
-          "${{ inputs.model }}" \
           ci
       env:
         REUSE_DATA: "true"

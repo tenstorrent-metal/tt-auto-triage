@@ -1,22 +1,20 @@
 #!/bin/bash
 #
-# Filter stage driver: determines deterministic failures, gathers commits, and flags irrelevant ones.
+# Filter stage driver: determines deterministic failures, gathers commits, and identifies commit ranges.
 # Usage:
-#   ./filter_triage.sh <workflow_name> <subjob_name> <model> [ci-mode]
-# Note: model parameter is kept for compatibility but currently unused
+#   ./filter_triage.sh <workflow_name> <subjob_name> [ci-mode]
 #
 
 set -euo pipefail
 
-if [ $# -lt 3 ]; then
-    echo "Usage: $0 <workflow_name> <subjob_name> <model> [ci-mode]" >&2
+if [ $# -lt 2 ]; then
+    echo "Usage: $0 <workflow_name> <subjob_name> [ci-mode]" >&2
     exit 1
 fi
 
 WORKFLOW="$1"
 SUBJOB="$2"
-MODEL="$3"
-CI_MODE="${4:-}"
+CI_MODE="${3:-}"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CANON_DATA_DIR="${ROOT}/auto_triage/data"
@@ -66,7 +64,7 @@ You are operating in a CI environment with no interactive approval. Complete the
 $(cat "$INSTRUCTIONS_FILE")
 EOF
 
-echo "=== Launching GitHub Copilot CLI filter stage (model parameter: ${MODEL}, using default model) ==="
+echo "=== Launching GitHub Copilot CLI filter stage ==="
 # Ensure COPILOT_GITHUB_TOKEN is set (should be set by action.yml, but provide fallback)
 # GH_TOKEN is used by bash scripts for gh api calls and should remain as github.token
 if [ -z "${COPILOT_GITHUB_TOKEN:-}" ]; then
