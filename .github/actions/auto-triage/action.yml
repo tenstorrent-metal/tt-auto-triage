@@ -110,7 +110,7 @@ runs:
         CANCEL_MESSAGE=$(jq -r '.message // ""' "$CANCEL_FILE")
         {
           echo "should_cancel=${SHOULD_CANCEL}"
-          echo "cancel_message<<'EOF'"
+          echo "cancel_message<<EOF"
           echo "${CANCEL_MESSAGE}"
           echo "EOF"
         } >> "$GITHUB_OUTPUT"
