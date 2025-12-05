@@ -83,6 +83,21 @@ Workflow Overview
    - Prefer an error that appears in multiple runs with the same stack trace or message.
    - If only one test-executing run exists, treat that signature as deterministic if it clearly points to tt-metal code.
    - **Important:** It is perfectly acceptable and expected for failures to be non-deterministic. If failures appear to be random, infrastructure-related, or unrelated to tt-metal code changes, this is a valid finding. Do not force determinism where none exists.
+   - **Check Known Patterns:** A file named `non-deterministic-error-examples.json` may exist in your current directory. You **must** use `grep` or `rg` to search this file for key phrases from your candidate error message.
+     - Run: `grep -F "substring from error" non-deterministic-error-examples.json` (or use `rg`).
+     - The file format is:
+       ```json
+       {
+         "examples": [
+           {
+             "job": "some example job",
+             "test": "tests/ttnn/unit_tests/...",
+             "error_message": "RuntimeError: TT_FATAL: ..."
+           }
+         ]
+       }
+       ```
+     - If you find a matching error pattern in that file, treat the failure as non-deterministic/infra noise and either cancel the triage run (see Cancellation Lever), or look at other job failures if they exist.
 5. Save the deterministic error snippet (2–6 lines) into `./auto_triage/data/error_message.txt`. If no deterministic failure can be found, write an empty file.
 
 Commit Metadata Collection
