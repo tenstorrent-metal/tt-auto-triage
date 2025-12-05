@@ -9,5 +9,5 @@
     "failing_run_label": "Run #1234567892 (latest job)",
     "commits": [],
     "notes": "No tt-metal commits touch llama3.2-11b-vision test code in window; logs show runners lose SSH connectivity mid-setup before tests execute, pointing to infrastructure instability rather than code changes.",
-    "slack_message": "Case 3: Hanging jobs traced to runner connectivity loss (timeout before tests start). Evidence suggests infra instability rather than tt-metal changes. Please loop in infra-oncall."
+    "slack_message": "Hanging jobs traced to runner connectivity loss (timeout before tests start). Evidence suggests infra instability rather than tt-metal changes. Please loop in infra-oncall."
 }

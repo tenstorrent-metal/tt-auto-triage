@@ -25,7 +25,7 @@
                 ]
             }
         ],
-        "slack_message": "Case 1: Deterministic failure traced to commit af12b3c4. Reduce-max kernel now reuses dirty buffers; reverting or zeroing buffers fixes the nightly."
+        "slack_message": "Deterministic failure traced to commit af12b3c4. Reduce-max kernel now reuses dirty buffers; reverting or zeroing buffers fixes the nightly."
     },
     {
         "case": "2",
@@ -45,7 +45,7 @@
             "ttnn/tensorcore/tests/test_tensorcore_smoke.py",
             "ttnn/tensorcore/scripts/train_setup.py"
         ],
-        "slack_message": "Case 2: tensorcore-smoke deterministically fails because train_setup cannot read latest_success.marker, but logs for the first bad job expired and the 143-commit span is too large to pin a culprit. Need developers to look into the issue."
+        "slack_message": "tensorcore-smoke deterministically fails because train_setup cannot read latest_success.marker, but logs for the first bad job expired and the 143-commit span is too large to pin a culprit. Need developers to look into the issue."
     },
     {
         "case": "3",
@@ -58,7 +58,7 @@
         "failing_run_label": "Run #1234567892 (latest job)",
         "commits": [],
         "notes": "No tt-metal commits touch memory pool code in window; logs show runners lose SSH connectivity mid-setup, pointing to infra.",
-        "slack_message": "Case 3: Hanging jobs traced to runner connectivity loss (timeout before tests start). Evidence suggests infra instability rather than tt-metal changes. Please loop in infra-oncall."
+        "slack_message": "Hanging jobs traced to runner connectivity loss (timeout before tests start). Evidence suggests infra instability rather than tt-metal changes. Please loop in infra-oncall."
     },
     {
         "case": "4",
@@ -103,6 +103,6 @@
                 ]
             }
         ],
-        "slack_message": "Case 4: Graph partitioning crash could stem from either c3d9c9f (empty subgraphs) or db45e6f (validator rejects duplicates). Need graph-runtime owners to inspect both diffs."
+        "slack_message": "Graph partitioning crash could stem from either c3d9c9f (empty subgraphs) or db45e6f (validator rejects duplicates). Need graph-runtime owners to inspect both diffs."
     }
 ]
