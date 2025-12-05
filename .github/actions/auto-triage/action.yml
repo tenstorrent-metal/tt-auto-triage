@@ -95,8 +95,31 @@ runs:
         GH_TOKEN: ${{ github.token }}
         GITHUB_TOKEN: ${{ github.token }}
 
-    - name: Verify filter stage outputs
+    - name: Evaluate cancellation flag
+      id: check-cancel
       if: inputs.slack-test-only != 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        cd "${GITHUB_WORKSPACE}/.auto_triage"
+        CANCEL_FILE="cancel.json"
+        if [ ! -f "$CANCEL_FILE" ]; then
+          echo '{"should_cancel": false, "message": ""}' > "$CANCEL_FILE"
+        fi
+        SHOULD_CANCEL=$(jq -r '.should_cancel // false' "$CANCEL_FILE")
+        CANCEL_MESSAGE=$(jq -r '.message // ""' "$CANCEL_FILE")
+        {
+          echo "should_cancel=${SHOULD_CANCEL}"
+          echo "cancel_message<<'EOF'"
+          echo "${CANCEL_MESSAGE}"
+          echo "EOF"
+        } >> "$GITHUB_OUTPUT"
+        if [ "$SHOULD_CANCEL" = "true" ]; then
+          echo "Filter stage requested cancellation: ${CANCEL_MESSAGE}"
+        fi
+
+    - name: Verify filter stage outputs
+      if: inputs.slack-test-only != 'true' && steps.check-cancel.outputs.should_cancel != 'true'
       shell: bash
       run: |
         set -euo pipefail
@@ -111,7 +134,7 @@ runs:
         fi
 
     - name: Execute auto_triage.sh
-      if: inputs.slack-test-only != 'true'
+      if: inputs.slack-test-only != 'true' && steps.check-cancel.outputs.should_cancel != 'true'
       shell: bash
       run: |
         set -euo pipefail
