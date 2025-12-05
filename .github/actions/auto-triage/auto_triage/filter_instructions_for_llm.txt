@@ -97,6 +97,8 @@ Workflow Overview
          ]
        }
        ```
+     - Remember, the job and test that a past non deterministic issue appeared on is less important then the error itself. Often very different jobs and tests will fail as a result of the same non-deterministic issue
+     - Remember, you may have to fuzzy match or imply that two errors are simimlar as every test will produce slightly different output
      - If you find a matching error pattern in that file, treat the failure as non-deterministic/infra noise and either cancel the triage run (see Cancellation Lever), or look at other job failures if they exist.
 5. Save the deterministic error snippet (2–6 lines) into `./auto_triage/data/error_message.txt`. If no deterministic failure can be found, write an empty file.
 

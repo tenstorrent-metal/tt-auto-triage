@@ -4,6 +4,11 @@
       "job": "galaxy-frequent-tests / Galaxy unit/distributed frequent tests",
       "test": "tests/ttnn/unit_tests/base_functionality/test_multi_device_trace_TG.py::test_multi_device_single_trace[silicon_arch_name=wormhole_b0-device_params={'trace_region_size': 60000, 'num_command_queues': 2}-enable_multi_cq=False-8x4_grid-shape=(1, 3, 128, 128)]",
       "error_message": "RuntimeError: TT_FATAL: @/project/tt_metal/fabric/topology_mapper.cpp:748: info: result.success Graph specified in MGD could not fit in the discovered physical topology for mesh 0. Could not find valid mapping for mesh 0 under the given constraints. Logical graph may not fit in the physical topology.. Either relax pinnings or modify the MGD. If this is unexpected, run ./build/test/tt_metal/tt_fabric/test_system_health to check connectivity."
+    },
+    {
+      "job": "many jobs",
+      "test": "many tests",
+      "error_message": "RuntimeError: TT_THROW @ /project/tt_metal/impl/program/program.cpp:907: tt::exception ⇥ info: ⇥ Statically allocated circular buffers on core range [(x=0,y=0) - (x=7,y=6)] grow to 1607360 B which is beyond max L1 size of 1572864 B"
     }
   ]
 }

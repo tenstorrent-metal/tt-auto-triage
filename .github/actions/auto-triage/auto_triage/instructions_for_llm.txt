@@ -85,6 +85,7 @@ Shared Workflow (Main Analysis)
      ```json
      { "examples": [ {"job": "...", "test": "...", "error_message": "..." } ] }
      ```
+   - Remember, the job and test that a past non deterministic issue appeared on is less important then the error itself. Often very different jobs and tests will fail as a result of the same non-deterministic issue. You may have to use fuzzy matching or reasoning to determine if two errors are the same because every test's output is slightly different
    - Treat every commit in `commit_info.json` as a plausible candidate. You must evaluate each commit on its own merits and pick Case 1 whenever a single culprit can be defended.
    - Choose Case 4 only when, after reviewing the commits, you still have ≥2 genuinely plausible suspects that cannot be disambiguated.
    - If `commit_info.json` contains a JSON string (e.g., `too many commits...`, `failure_limit_exceeded: ...`, or `partial_commit_download: missing 9 of 36 commits...`), obey the instruction. Strings indicate the filter stage could not gather complete metadata, so **only Case 2 or Case 3 are allowed**—decide between them based on whether the error appears deterministic/tt-metal-related (Case 2) or external/non-deterministic (Case 3). This same limitation is announced in `subjob_runs.json.status` when applicable; make sure your final case selection respects it.
