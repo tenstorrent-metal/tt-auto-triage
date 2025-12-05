@@ -19,9 +19,9 @@ Cancellation Lever
   ```json
   { "should_cancel": false, "message": "" }
   ```
-- Set `should_cancel` to `true` and populate `message` with **one of the exact phrases below** when you are certain continuing would waste compute:
-  1. `"this is non-deterministic on the output report"` — use when the failure is clearly non-deterministic/infra noise and would inevitably become Case 3.
-  2. `"this run was invoked in error"` — use when the job/workflow inputs are wrong (e.g., subjob never existed, boundaries could not even start) and no triage is possible.
+- Set `should_cancel` to `true` and populate `message` with whatever your justification for canceling is. Here are some possible examples:
+  1. `"the failure is clearly non-deterministic/infra noise and would inevitably become Case 3"`
+  2. `"this run was invoked in error. the job/workflow inputs are wrong (subjob never existed, boundaries could not even start) and no triage is possible."`
 - When cancelling:
   - Write `jq -n --arg msg "<phrase>" '{should_cancel: true, message: $msg}' > ./cancel.json`.
   - You may skip commit downloads entirely; leave `./auto_triage/data/commit_info.json` as `[]` and `error_message.txt` blank unless a deterministic snippet is already captured.
