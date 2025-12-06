@@ -37,6 +37,28 @@ runs:
         SLACK_TS: ${{ inputs.slack_ts }}
       run: |
         set -euo pipefail
+        
+        # Check for cancellation FIRST
+        CANCEL_FILE=".auto_triage/cancel.json"
+        if [ -f "$CANCEL_FILE" ]; then
+          SHOULD_CANCEL=$(jq -r '.should_cancel // false' "$CANCEL_FILE")
+          if [ "$SHOULD_CANCEL" = "true" ]; then
+            CANCEL_MESSAGE=$(jq -r '.message // "Auto-triage cancelled"' "$CANCEL_FILE")
+            echo "Cancellation detected: $CANCEL_MESSAGE"
+            
+            # Construct cancellation payload
+            if [ -n "$SLACK_TS" ]; then
+               PAYLOAD=$(jq -n --arg msg "Auto-triage cancelled: $CANCEL_MESSAGE" --arg ts "$SLACK_TS" '{text: $msg, thread_ts: $ts}')
+            else
+               PAYLOAD=$(jq -n --arg msg "Auto-triage cancelled: $CANCEL_MESSAGE" '{text: $msg}')
+            fi
+            
+            echo "payload=$PAYLOAD" >> "$GITHUB_OUTPUT"
+            echo "has_payload=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+        fi
+
         if [ -z "${MESSAGE_PATH:-}" ]; then
           echo "has_payload=false" >> "$GITHUB_OUTPUT"
           exit 0
