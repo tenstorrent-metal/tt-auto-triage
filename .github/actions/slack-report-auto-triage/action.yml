@@ -48,9 +48,9 @@ runs:
             
             # Construct cancellation payload
             if [ -n "$SLACK_TS" ]; then
-               PAYLOAD=$(jq -n --arg msg "Auto-triage cancelled: $CANCEL_MESSAGE" --arg ts "$SLACK_TS" '{text: $msg, thread_ts: $ts}')
+               PAYLOAD=$(jq -cn --arg msg "Auto-triage cancelled: $CANCEL_MESSAGE" --arg ts "$SLACK_TS" '{text: $msg, thread_ts: $ts}')
             else
-               PAYLOAD=$(jq -n --arg msg "Auto-triage cancelled: $CANCEL_MESSAGE" '{text: $msg}')
+               PAYLOAD=$(jq -cn --arg msg "Auto-triage cancelled: $CANCEL_MESSAGE" '{text: $msg}')
             fi
             
             echo "payload=$PAYLOAD" >> "$GITHUB_OUTPUT"
