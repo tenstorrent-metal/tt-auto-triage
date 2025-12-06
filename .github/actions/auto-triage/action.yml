@@ -183,7 +183,7 @@ runs:
 
     - name: Send Slack notification
       if: always()
-      uses: tenstorrent-metal/tt-auto-triage/.github/actions/slack-report-auto-triage@main
+      uses: tenstorrent-metal/tt-auto-triage/.github/actions/slack-report-auto-triage@ebanerjee/nesting-slack-messages
       with:
         # slack_webhook_url is no longer used, using env.SLACK_BOT_TOKEN and env.SLACK_CHANNEL_ID instead inside the action
         channel_id: ${{ env.SLACK_CHANNEL_ID }}
