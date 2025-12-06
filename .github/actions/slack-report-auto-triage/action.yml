@@ -2,8 +2,11 @@ name: "Auto Triage Slack Reporter"
 description: "Format slack_message.json and send it to Slack."
 inputs:
   slack_webhook_url:
-    description: "Webhook URL for the Slack channel to be posted to."
-    required: true
+    description: "Webhook URL for the Slack channel to be posted to (deprecated in favor of channel_id + env.SLACK_BOT_TOKEN)."
+    required: false
+  channel_id:
+    description: "Slack Channel ID to post message to."
+    required: false
   slack_message_path:
     description: "Path to slack_message.json."
     required: false
@@ -18,6 +21,10 @@ inputs:
     description: "Optional metadata JSON containing auto-fix PR info."
     required: false
     default: ""
+  slack_ts:
+    description: "Slack message timestamp for threading replies"
+    required: false
+    default: ""
 runs:
   using: "composite"
   steps:
@@ -27,6 +34,7 @@ runs:
       env:
         MESSAGE_PATH: ${{ inputs.slack_message_path }}
         AUTO_FIX_META: ${{ inputs.auto_fix_meta_path }}
+        SLACK_TS: ${{ inputs.slack_ts }}
       run: |
         set -euo pipefail
         if [ -z "${MESSAGE_PATH:-}" ]; then
@@ -178,27 +186,28 @@ runs:
           echo "has_payload=false" >> "$GITHUB_OUTPUT"
           exit 0
         fi
+        
+        if [ -n "$SLACK_TS" ]; then
+            # If a timestamp is provided, add it to the payload for threading
+            PAYLOAD=$(jq -cn --arg text "$TEXT" --arg ts "$SLACK_TS" '{text: $text, thread_ts: $ts}')
+        else
+            PAYLOAD=$(jq -cn --arg text "$TEXT" '{text: $text}')
+        fi
 
-        PAYLOAD=$(jq -cn --arg text "$TEXT" '{text: $text}')
         echo "payload=$PAYLOAD" >> "$GITHUB_OUTPUT"
         echo "has_payload=true" >> "$GITHUB_OUTPUT"
 
-    - name: Report via Slack webhook
+    - name: Report via Slack
       if: steps.build.outputs.has_payload == 'true'
-      shell: bash
+      uses: slackapi/slack-github-action@v1.26.0
+      with:
+        payload: ${{ steps.build.outputs.payload }}
+        channel-id: ${{ inputs.channel_id }}
       env:
+        SLACK_BOT_TOKEN: ${{ env.SLACK_BOT_TOKEN }}
         SLACK_WEBHOOK_URL: ${{ inputs.slack_webhook_url }}
-        PAYLOAD: ${{ steps.build.outputs.payload }}
-      run: |
-        set -euo pipefail
-        if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
-          echo "Slack webhook URL is not set."
-          exit 1
-        fi
-        curl -s -X POST -H 'Content-type: application/json' --data "$PAYLOAD" "$SLACK_WEBHOOK_URL"
 
     - name: Skip Slack notification
       if: steps.build.outputs.has_payload != 'true'
       shell: bash
       run: echo "ℹ️ No Slack payload produced; notification skipped."
-
