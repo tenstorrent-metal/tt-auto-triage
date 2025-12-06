@@ -25,6 +25,10 @@ inputs:
     description: "Slack message timestamp for threading replies"
     required: false
     default: ""
+  allow_pings:
+    description: "Whether to allow pinging users/groups in the message."
+    required: false
+    default: "false"
 runs:
   using: "composite"
   steps:
@@ -35,6 +39,7 @@ runs:
         MESSAGE_PATH: ${{ inputs.slack_message_path }}
         AUTO_FIX_META: ${{ inputs.auto_fix_meta_path }}
         SLACK_TS: ${{ inputs.slack_ts }}
+        ALLOW_PINGS: ${{ inputs.allow_pings }}
       run: |
         set -euo pipefail
         
@@ -108,7 +113,8 @@ runs:
           --arg run_label "$RUN_LABEL" \
           --arg job_name "$JOB_NAME_VALUE" \
           --arg workflow_name "$WORKFLOW_NAME_VALUE" \
-          --arg auto_fix "$AUTO_FIX_NOTE" '
+          --arg auto_fix "$AUTO_FIX_NOTE" \
+          --arg allow_pings "$ALLOW_PINGS" '
           def short_hash(h):
             if (h // "") == "" then "unknown" else (h[0:8]) end;
 
@@ -122,7 +128,8 @@ runs:
             if p == null then
               "Unknown"
             else
-              (if use_slack_id and (p.slack_id // "") != "" then
+              # Only ping if allow_pings is true AND use_slack_id is true AND slack_id exists
+              (if ($allow_pings == "true") and use_slack_id and (p.slack_id // "") != "" then
                 # Groups/subteams start with "S" and use <!subteam^ID|@handle> format
                 (if (p.slack_id | startswith("S")) then
                   "<!subteam^" + p.slack_id + "|@" + (p.name // p.login // "group") + ">"

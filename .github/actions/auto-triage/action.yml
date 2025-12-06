@@ -19,6 +19,10 @@ inputs:
     description: "Slack message timestamp for threading replies"
     required: false
     default: ""
+  allow-pings:
+    description: "Whether to allow pinging users/groups in the Slack message."
+    required: false
+    default: "false"
 runs:
   using: composite
   steps:
@@ -101,15 +105,20 @@ runs:
 
     - name: Evaluate cancellation flag
       id: check-cancel
-      if: inputs.slack-test-only != 'true'
+      if: always()
       shell: bash
       run: |
         set -euo pipefail
         cd "${GITHUB_WORKSPACE}/.auto_triage"
         CANCEL_FILE="cancel.json"
+        
+        # If cancel.json doesn't exist, it means we failed before creating it or unexpected error
         if [ ! -f "$CANCEL_FILE" ]; then
-          echo '{"should_cancel": false, "message": ""}' > "$CANCEL_FILE"
+          echo "cancel.json not found. Assuming no cancellation or generic failure."
+          echo "should_cancel=false" >> "$GITHUB_OUTPUT"
+          exit 0
         fi
+        
         SHOULD_CANCEL=$(jq -r '.should_cancel // false' "$CANCEL_FILE")
         CANCEL_MESSAGE=$(jq -r '.message // ""' "$CANCEL_FILE")
         {
@@ -121,10 +130,6 @@ runs:
         
         if [ "$SHOULD_CANCEL" = "true" ]; then
           echo "Filter stage requested cancellation: ${CANCEL_MESSAGE}"
-          # Prepare a simple slack message for cancellation reason
-          mkdir -p .auto_triage/output
-          # Use jq to create a minimal JSON structure
-          jq -n --arg msg "Auto-triage cancelled: ${CANCEL_MESSAGE}" '{slack_message: $msg, scenario: "Cancelled"}' > .auto_triage/output/slack_message.json
         fi
 
     - name: Verify filter stage outputs
@@ -167,7 +172,7 @@ runs:
         cd "${GITHUB_WORKSPACE}/.auto_triage"
         ./run_auto_fix.sh \
           "${{ inputs.workflow-name }}" \
-          "${{ inputs.job-name }}"
+          "${{ inputs.job-name }}" \
       env:
         COPILOT_GITHUB_TOKEN: ${{ inputs.copilot-pat }}
         GH_TOKEN: ${{ github.token }}
@@ -192,6 +197,7 @@ runs:
         workflow_name: ${{ inputs.workflow-name }}
         auto_fix_meta_path: .auto_triage/data/auto_fix_metadata.json
         slack_ts: ${{ inputs.slack_ts }}
+        allow_pings: ${{ inputs.allow-pings }}
     - name: Publish triage report to summary
       if: always() && inputs.slack-test-only != 'true'
       shell: bash
