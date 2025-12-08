@@ -189,7 +189,7 @@ runs:
           (if ((.commits | type) == "array" and (.commits | length) > 0) then true else false end) as $has_commits
           |
           (
-            section_line("RUN"; "<\($run_url)|\($run_label)>")
+            section_line("FULL REPORT"; "<\($run_url)|\($run_label)>")
             + section_line("FAILING WORKFLOW"; (if (($workflow_name // "") | length) > 0 then $workflow_name else (.workflow_name // "unknown workflow") end))
             + section_line("FAILING JOB"; (if (($job_name // "") | length) > 0 then $job_name else (.failing_job_name // .workflow_name // "unknown job") end))
             + section_line("FAILING TEST"; (.failing_test_name // "unknown test"))
