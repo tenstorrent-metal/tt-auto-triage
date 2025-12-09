@@ -76,7 +76,7 @@ Shared Workflow (Main Analysis)
 1. The filter stage already downloaded logs/annotations, determined the deterministic failure signature, and produced the following artifacts:
    - `./auto_triage/data/error_message.txt` – the canonical deterministic error snippet (possibly empty).
    - `./auto_triage/data/commit_info.json` – every commit between the last success and the first deterministic failure. This may be an empty array or even a JSON string (for the "too many commits" fallback). Handle each possibility explicitly in your reasoning.
-2. Start by reading error_message.txt. Treat that deterministic error as the anchor. Using that error, and the knowledge of what test failed, determine what files and systems you believe are relevant in the failure. You must use these files to guide your analysis as you read through information on past commits.
+2. Start by reading error_message.txt. Treat that deterministic error as the anchor. Using that error, and the knowledge of what test failed, determine what files and systems you believe are relevant in the failure. Specifically look through source files in tt-metal to determine likely sources of broken code. You must use these files to guide your analysis as you read through information on past commits.
 3. Then read commit_info.json; do **not** re-download runs unless the existing evidence is insufficient to choose a case.
 4. If you absolutely need additional logs or metadata, justify the cost clearly in `explanation.md` and stop as soon as you have enough data. Infra/setup failures identified by the filter stage must remain excluded from your determinism logic.
 5. Determine whether tt-metal commits plausibly explain the failure:
