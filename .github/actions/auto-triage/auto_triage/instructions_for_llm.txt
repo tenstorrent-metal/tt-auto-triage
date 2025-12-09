@@ -76,9 +76,10 @@ Shared Workflow (Main Analysis)
 1. The filter stage already downloaded logs/annotations, determined the deterministic failure signature, and produced the following artifacts:
    - `./auto_triage/data/error_message.txt` – the canonical deterministic error snippet (possibly empty).
    - `./auto_triage/data/commit_info.json` – every commit between the last success and the first deterministic failure. This may be an empty array or even a JSON string (for the "too many commits" fallback). Handle each possibility explicitly in your reasoning.
-2. Start by reading `commit_info.json` and `error_message.txt`. Treat that deterministic error as the anchor; do **not** re-download runs unless the existing evidence is insufficient to choose a case.
-3. If you absolutely need additional logs or metadata, justify the cost clearly in `explanation.md` and stop as soon as you have enough data. Infra/setup failures identified by the filter stage must remain excluded from your determinism logic.
-4. Determine whether tt-metal commits plausibly explain the failure:
+2. Start by reading error_message.txt. Treat that deterministic error as the anchor. Using that error, and the knowledge of what test failed, determine what files and systems you believe are relevant in the failure. You must use these files to guide your analysis as you read through information on past commits.
+3. Then read commit_info.json; do **not** re-download runs unless the existing evidence is insufficient to choose a case.
+4. If you absolutely need additional logs or metadata, justify the cost clearly in `explanation.md` and stop as soon as you have enough data. Infra/setup failures identified by the filter stage must remain excluded from your determinism logic.
+5. Determine whether tt-metal commits plausibly explain the failure:
    - **If `commit_info.json` is empty (`[]`), this indicates the filter stage found non-deterministic or infrastructure-related failures. This is a valid finding—choose Case 3 and explain why the failures appear unrelated to tt-metal code changes.**
    - **Check Known Patterns:** You should also double-check `non-deterministic-error-examples.json` if it exists. Use `grep` or `rg` to search for the error message in that file. If a match is found, this strongly confirms Case 3.
      The file format is:
@@ -90,9 +91,9 @@ Shared Workflow (Main Analysis)
    - Choose Case 4 only when, after reviewing the commits, you still have ≥2 genuinely plausible suspects that cannot be disambiguated.
    - If `commit_info.json` contains a JSON string (e.g., `too many commits...`, `failure_limit_exceeded: ...`, or `partial_commit_download: missing 9 of 36 commits...`), obey the instruction. Strings indicate the filter stage could not gather complete metadata, so **only Case 2 or Case 3 are allowed**—decide between them based on whether the error appears deterministic/tt-metal-related (Case 2) or external/non-deterministic (Case 3). This same limitation is announced in `subjob_runs.json.status` when applicable; make sure your final case selection respects it.
    - **Remember: Case 3 is a valid and acceptable outcome. Do not force a deterministic explanation when evidence points to non-deterministic, infrastructure-related, or external issues.**
-5. Keep a ranked shortlist of plausible commits. Case 1 requires exactly one remaining candidate; Case 4 requires ≥2.
-6. Contact planning: while you work, note commit authors, file owners (`git log`, `git blame`, `.github/CODEOWNERS`), and capture GitHub profile URLs for everyone you may need to ping. Use the metadata already present in `commit_info.json` whenever possible.
-7. In your final report, include links to the last successful job run, the first failing job run, and every commit between them (use the compare URL and the commit metadata).
+6. Keep a ranked shortlist of plausible commits. Case 1 requires exactly one remaining candidate; Case 4 requires ≥2.
+7. Contact planning: while you work, note commit authors, file owners (`git log`, `git blame`, `.github/CODEOWNERS`), and capture GitHub profile URLs for everyone you may need to ping. Use the metadata already present in `commit_info.json` whenever possible.
+8. In your final report, include links to the last successful job run, the first failing job run, and every commit between them (use the compare URL and the commit metadata).
 
 Failure Evidence Rules
 ----------------------
