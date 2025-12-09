@@ -185,7 +185,8 @@ Trigger this case when:
 Actions:
 1. Run `./download_data_between_commits.sh <good> <bad>` to gather metadata.
 2. Use Copilot summaries, changed files, and diffs to confirm that exactly one commit remains plausible. If any other commit still looks viable, stop and treat the whole analysis as Case 4 instead.
-3. Prepare outputs under `./output/`:
+3. Remember not to get tunnel visioned. It's very easy to just choose one commit that may have caused the failure and then try to fit the failure to that commit, but this is likely to be inaccurate. If you're working towards case 1, you should at least briefly go through EVERY COMMIT to make sure you haven't missed something. One of your greatest weaknesses in the past is that you wouldn't even look at the commit that ended up being the source of the error before deeply analyzing and choosing a different commit that wasn't actually relevant.
+4. Prepare outputs under `./output/`:
    - `slack_message.json` using the Case 1 template (exactly one `commits` entry with `hash`, `url`, `author`, `approvers`, `relevant_developers`, `relevant_files`, populated Slack IDs when obtainable, and a concise `slack_message`). **CRITICAL:** The `relevant_developers` field in the commit object **MUST NOT** include the commit author or any approvers. Only include codeowners who need to review the fix. If you cannot find appropriate codeowners, use an empty array `[]`.
    - `explanation.md` (title: `# Auto Triage Explanation: <job_name>` where `<job_name>` is **the exact job name from the prompt** - do NOT use test name or workflow name, subtitle: `## Failing Test: <test_name>`, then `## Case 1 – <case name>`). Cover:
      - Why the failure is deterministic.

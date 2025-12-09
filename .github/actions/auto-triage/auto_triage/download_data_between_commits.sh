@@ -2,8 +2,8 @@
 
 # Controller script to orchestrate downloading Copilot metadata between two commits.
 # Usage: ./download_data_between_commits.sh <start_commit> <end_commit> [output_file]
-# - If commit span <= 30, downloads directly.
-# - If commit span is between 31 and 100, instructs caller to run the batch script in chunks.
+# - If commit span <= 10, downloads directly.
+# - If commit span is between 11 and 100, instructs caller to run the batch script in chunks.
 # - If commit span > 100, fails immediately.
 
 set -euo pipefail
