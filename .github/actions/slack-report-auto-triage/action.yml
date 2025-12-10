@@ -75,7 +75,7 @@ runs:
         fi
 
         RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-        RUN_LABEL="run #${GITHUB_RUN_NUMBER:-$GITHUB_RUN_ID}"
+        RUN_LABEL="full_report_link #${GITHUB_RUN_NUMBER:-$GITHUB_RUN_ID}"
         
         # Get job_name input - this should always override the LLM's failing_job_name
         JOB_NAME_VALUE="${{ inputs.job_name }}"
