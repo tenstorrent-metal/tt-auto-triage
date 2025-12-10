@@ -127,17 +127,20 @@ Commit Metadata Collection
      - **Important:** Use the same output file (`./auto_triage/data/commit_info.json`) for all batch calls; results will be appended.
      - Each batch processes up to 10 commits (batches are zero-indexed).
 8. **Verify and backfill commit coverage:**
-   - Capture the expected commit count via `git rev-list --count <good_commit>..<bad_commit>` (this equals the batch controller’s `Commits in range`).
+   - Capture the expected commit count via `git rev-list --count <good_commit>..<bad_commit>` (this equals the batch controller’s `Commits in range`). You may also use the helper script:
+     - `./list_commits_between.sh <good_commit> <bad_commit> ./auto_triage/data/commit_list.json` to dump the exact set of SHAs in JSON form.
    - After running all batches, check `jq 'length' ./auto_triage/data/commit_info.json`.
    - If counts match, proceed. If not:
      1. **Retry failing batches** up to two additional times (you may re-run the batch script for the specific index or narrow the commit window to just the problematic span).
      2. **Manually backfill any remaining missing commits** before giving up:
-        - List the missing SHAs with `git log --oneline --reverse <good_commit>..<bad_commit>` and compare against the collected `commit_short` values (e.g., using `comm` or `rg`).
+        - Use `./list_commits_between.sh <good_commit> <bad_commit>` (or `git log --oneline --reverse <good_commit>..<bad_commit>`) to enumerate the expected SHAs, then compare against the collected `commit_short` values (e.g., using `comm` or `rg`).
         - For each missing SHA:
-          - Extract the PR number from the commit message (`git log -1 --format="%s" <sha>`).
+          - First try to download it directly with `./download_data_for_single_commit.sh <sha> ./auto_triage/data/commit_info.json` so that a single problematic commit does not corrupt the rest of the batch.
+          - If that fails, extract the PR number from the commit message (`git log -1 --format="%s" <sha>`).
           - Use `gh api repos/tenstorrent/tt-metal/pulls/<pr_number>` and `gh api repos/tenstorrent/tt-metal/pulls/<pr_number>/reviews` to gather the same metadata fields the batch script writes (`pr_title`, `pr_url`, `authors`, `approvers`, Copilot overview, etc.). You may reuse helper functions from `download_data_between_commits_batch.sh` by invoking that script with a reduced range that only contains the missing commit; if that still fails, construct the JSON entry manually using `jq -n '{...}'` and append it with `jq '. += [<entry>]' commit_info.json`.
           - Ensure the manually-added objects follow the existing schema (`commit`, `commit_short`, `pr_number`, `authors`, `approvers`, `copilot_overview`, etc.).
-     3. Only after retries **and** manual attempts fail for specific commits should you fall back to the partial-data string described below.
+     3. Only after retries **and** manual attempts fail for specific commits should you mark the commit metadata as **incomplete**: leave `commit_info.json` as a truncated JSON array containing **all successfully downloaded commits**, and record the missing coverage in a separate status file such as:
+        - `./auto_triage/data/commit_download_status.json` with fields like `{"status": "partial_commit_download", "expected_commits": <N>, "downloaded_commits": <M>, "missing_commits": ["<sha1>", "<sha2>", ...], "message": "partial_commit_download: missing 9 of 36 commits due to GitHub API failures"}`.
 
 Special Cases
 -------------
@@ -151,10 +154,10 @@ Special Cases
   - Write a JSON string to `commit_info.json`, for example: `"failure_limit_exceeded: more than 30 failed runs without a success; default to Case 2 or Case 3."`
   - This string instructs the main analysis to pick either Case 2 (if the error is deterministic and clearly tt-metal related) or Case 3 (if it appears external/non-deterministic).
 - If the workflow/job inputs were incorrect or no subjob could be found at all, set `cancel.json` with `message: "this run was invoked in error"` so downstream stages are skipped entirely.
-- **Partial commit downloads despite retries/manual backfill:** When specific commits cannot be retrieved even after the manual process above (API errors, permission denials, corrupted metadata), treat this as metadata unavailable.
-  - Replace the JSON array with a descriptive string (e.g., `"partial_commit_download: missing 9 of 36 commits due to GitHub API failures; default to Case 2 unless other evidence suggests Case 3."`)
-  - Include the missing PR numbers or SHAs in the message if known.
-  - Do not pass along a truncated commit array—downstream reasoning relies on complete coverage.
+- **Partial commit downloads despite retries/manual backfill:** When specific commits cannot be retrieved even after the manual process above (API errors, permission denials, corrupted metadata), treat this as **partial but still useful** metadata.
+  - **Do not** replace the JSON array with a string and **do not** discard successfully downloaded commits.
+  - Instead, leave `commit_info.json` as a truncated array containing all commits whose metadata you were able to fetch, and populate `commit_download_status.json` (or an equivalent status file) with a descriptive message such as `"partial_commit_download: missing 9 of 36 commits due to GitHub API failures"`, including the missing PR numbers or SHAs when known.
+  - The downstream main analysis model will treat this as a dedicated **Case 5** scenario: it will still attempt to identify the most likely culprit from the available commits, but must explicitly acknowledge the missing coverage and handle the risk that an unseen commit is actually responsible.
 
 Outputs
 -------
@@ -164,6 +167,8 @@ Outputs
   - The file may also be a JSON string for the "too many commits" scenario described above.
 - `./auto_triage/data/error_message.txt`
   - Contains the deterministic failure excerpt (or is empty if determinism could not be established or failures are non-deterministic).
+- `./auto_triage/data/commit_download_status.json` (optional)
+  - When present, this file documents whether commit metadata is **complete** or **partial**, along with counts and any known missing SHAs/PRs. The main analysis model will use this to decide whether full commit coverage exists (Cases 1/4) or whether it must fall back to the partial-information Case 5.
 
 What **Not** to Do
 ------------------

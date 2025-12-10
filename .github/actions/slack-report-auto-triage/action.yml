@@ -178,6 +178,9 @@ runs:
               else "" end)
             + (if (c.relevant_files | type) == "array" and (c.relevant_files | length) > 0 then
                 "  RELEVANT FILES:\n```\n" + (c.relevant_files | join("\n")) + "\n```\n"
+              else "" end)
+            + (if (c.confidence // null) != null then
+                "  CONFIDENCE: " + ((c.confidence | tostring)) + "/100\n"
               else "" end);
 
           def commits_section(arr):
@@ -185,7 +188,7 @@ runs:
               "*COMMITS:*\n" + (arr | map(commit_entry(.)) | join("\n")) + "\n"
             else "" end;
 
-          # Determine if commits exist (Case 1 or Case 4)
+          # Determine if commits exist (any case with commit entries)
           (if ((.commits | type) == "array" and (.commits | length) > 0) then true else false end) as $has_commits
           |
           (
@@ -198,9 +201,12 @@ runs:
             + section_code("FAILURE MESSAGE"; .failure_message)
             + (if (.slack_message // "") != "" then (.slack_message + "\n") else "" end)
             + commits_section(.commits)
-            # Only show and ping top-level relevant_developers if there are no commits (Case 2 or Case 3)
-            # When commits exist (Case 1 or Case 4), relevant_developers are shown within commit entries (names only, no pings)
-            + (if $has_commits
+            # Show and ping top-level relevant_developers when there are no commits (Cases 2/3),
+            # and also for Case 5 where commit metadata is incomplete but we still want codeowners engaged.
+            # When commits exist for Cases 1/4, relevant_developers are shown within commit entries (names only, no pings).
+            + (if ($has_commits and ((.case | tostring) == "5"))
+               then section_people("RELEVANT DEVELOPERS"; ensure_case3_ping(.relevant_developers; .case); true)
+               elif $has_commits
                then ""
                else section_people("RELEVANT DEVELOPERS"; ensure_case3_ping(.relevant_developers; .case); true)
               end)

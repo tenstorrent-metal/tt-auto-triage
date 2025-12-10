@@ -29,6 +29,8 @@ Workspace Layout
   - **This is a valid and acceptable outcome.** Use Case 3 when evidence shows the issue is external (infrastructure, flaky machines, mismatched dependencies, non-deterministic test failures, random test flakiness, or commits that clearly cannot affect the failing test). Case 3 is the correct classification for non-deterministic failures and should be chosen whenever failures appear random, infrastructure-related, or unrelated to tt-metal code changes. Do not force a deterministic explanation when none exists.
 - **Case 4 – Deterministic failure with multiple plausible commits**
   - The issue clearly comes from the commit window, but the evidence cannot single out one commit with high confidence. Use this whenever you have ≥2 plausible suspects (even if one is slightly more likely).
+- **Case 5 – Deterministic failure with incomplete commit metadata (best-effort culprit)**
+  - The failure is deterministic and clearly tied to the commit window, but some commits in the range could not be downloaded even after retries/manual backfill. You must still rank all **available** commits by likelihood, pick the best candidate, and explicitly acknowledge that unseen commits might actually be responsible.
 
 You must justify the selected case explicitly in `./output/explanation.md`. The document structure must be:
 - **Title:** `# Auto Triage Explanation: <job_name>` where `<job_name>` is **the exact job name provided in the prompt above** (e.g., if the prompt says "for workflow 'X' and job 'Y'", use 'Y' exactly as provided). **DO NOT use the test name or workflow name in the title - use the job name from the prompt.**
@@ -39,7 +41,7 @@ Slack Message Output
 --------------------
 - In addition to `explanation.md`, produce exactly one `./output/slack_message.json` per run.
 - The JSON **must** match the schema for the active case in `./auto_triage/slack_message_template.json`. Treat that file as the canonical contract for required top-level keys (`case`, `scenario`, `failure_message`, `failing_run_url`, `failing_run_label`, `commits`, `relevant_developers`, `notes`, `slack_message`, etc.). After writing `./output/slack_message.json`, run `./sanitize_slack_message.py ./output/slack_message.json`. The sanitizer now validates the schema and will fail if any field has the wrong type (e.g., strings instead of `{ "name": "...", "slack_id": "" }` objects). When it reports an error, fix the JSON immediately and rerun the sanitizer before proceeding.
-- Populate commit objects with `hash`, `url`, `author`, `approvers`, `relevant_developers`, and `relevant_files`. When a field from the template does not apply to the chosen case (e.g., `commits` for Case 2), leave it as an empty array or omit it exactly as the template shows.
+- Populate commit objects with `hash`, `url`, `author`, `approvers`, `relevant_developers`, `relevant_files`, and a numeric `confidence` score between 0 and 100 indicating how likely that commit is to have caused the failure. The `commits` array must be ordered in **descending** confidence (highest score at the top). When a field from the template does not apply to the chosen case (e.g., `commits` for Case 2), leave it as an empty array or omit it exactly as the template shows.
 - **CRITICAL: `relevant_developers` rules - READ CAREFULLY:**
   - **`author` and `approvers`** (within commit objects): These are people who were directly involved in making the commit (the commit author and those who approved the PR).
   - **`relevant_developers`** (within commit objects or at top level): 
@@ -53,6 +55,7 @@ Slack Message Output
 - **Ping behavior in Slack messages:**
   - **If commits exist (Case 1 or Case 4):** Only commit authors will be pinged (using Slack IDs). `relevant_developers` will be shown as names only (no pings).
   - **If no commits (Case 2 or Case 3):** Only top-level `relevant_developers` will be pinged (using Slack IDs).
+  - **If commits exist but commit metadata is incomplete (Case 5):** Commit authors **and** top-level `relevant_developers` will be pinged. This explicitly calls out both the most likely culprit(s) and the codeowners who should double-check the partial analysis.
   - **All fields must still be populated** in `slack_message.json` regardless of ping behavior - the Slack reporter handles the conditional pinging automatically.
 - **Security:** **NEVER** write Slack IDs to `explanation.md`. Only include names and GitHub handles/URLs in the markdown report. Slack IDs should only exist in `slack_message.json`.
 - Resolve Slack IDs as follows:
@@ -87,12 +90,13 @@ Shared Workflow (Main Analysis)
      { "examples": [ {"job": "...", "test": "...", "error_message": "..." } ] }
      ```
    - Remember, the job and test that a past non deterministic issue appeared on is less important then the error itself. Often very different jobs and tests will fail as a result of the same non-deterministic issue. You may have to use fuzzy matching or reasoning to determine if two errors are the same because every test's output is slightly different
-   - Treat every commit in `commit_info.json` as a plausible candidate. You must evaluate each commit on its own merits by looking at the **actual code diffs and changed files that could influence the failing test**, not just by running a few searches. Case 1 is only allowed when every other commit has been explicitly ruled out with clear, code-based reasoning or safely discarded via conservative rules (e.g., comments/docs-only changes).
-   - Choose Case 4 whenever, after this review, ≥2 genuinely plausible suspects remain that you cannot confidently disambiguate. When in doubt between Case 1 and Case 4, prefer Case 4.
-   - If `commit_info.json` contains a JSON string (e.g., `too many commits...`, `failure_limit_exceeded: ...`, or `partial_commit_download: missing 9 of 36 commits...`), obey the instruction. Strings indicate the filter stage could not gather complete metadata, so **only Case 2 or Case 3 are allowed**—decide between them based on whether the error appears deterministic/tt-metal-related (Case 2) or external/non-deterministic (Case 3). This same limitation is announced in `subjob_runs.json.status` when applicable; make sure your final case selection respects it.
-   - **Remember: Case 3 is a valid and acceptable outcome. Do not force a deterministic explanation when evidence points to non-deterministic, infrastructure-related, or external issues.**
-6. Keep a ranked shortlist of plausible commits. Before deciding on Case 1, your shortlist **must** contain exactly one remaining candidate and you **must** have written down why **every other commit** in the window cannot reasonably cause the failure. If any commit is still under-analyzed or only ruled out via shallow checks, you are not allowed to choose Case 1; treat the situation as Case 4 instead. Case 4 requires ≥2 well-motivated candidates.
-7. Contact planning: while you work, note commit authors, file owners (`git log`, `git blame`, `.github/CODEOWNERS`), and capture GitHub profile URLs for everyone you may need to ping. Use the metadata already present in `commit_info.json` whenever possible.
+  - Treat every commit in `commit_info.json` as a plausible candidate. You must evaluate each commit on its own merits by looking at the **actual code diffs and changed files that could influence the failing test**, not just by running a few searches. Case 1 is only allowed when every other commit has been explicitly ruled out with clear, code-based reasoning or safely discarded via conservative rules (e.g., comments/docs-only changes).
+  - Choose Case 4 whenever, after this review, ≥2 genuinely plausible suspects remain that you cannot confidently disambiguate. When in doubt between Case 1 and Case 4, prefer Case 4.
+  - If `commit_info.json` contains a JSON string (e.g., `too many commits...` or `failure_limit_exceeded: ...`), obey the instruction. Strings indicate the filter stage could not gather a structured commit list, so **only Case 2 or Case 3 are allowed**—decide between them based on whether the error appears deterministic/tt-metal-related (Case 2) or external/non-deterministic (Case 3). This same limitation is announced in `subjob_runs.json.status` when applicable; make sure your final case selection respects it.
+  - If `./auto_triage/data/commit_download_status.json` exists and reports a `"status"` such as `"partial_commit_download"` or any non-zero `missing_commits`/`expected_commits - downloaded_commits`, treat commit metadata as **incomplete**. In that situation you must not claim full coverage (Cases 1 or 4); instead, you may choose between Case 2, Case 3, or the partial-information **Case 5** depending on whether the failure is tt-metal-related and whether the available commits still support a plausible culprit.
+  - **Remember: Case 3 is a valid and acceptable outcome. Do not force a deterministic explanation when evidence points to non-deterministic, infrastructure-related, or external issues.**
+6. For any case that uses commits (1, 4, or 5), assign each commit in `commit_info.json` a numeric **confidence score** between 0 and 100 describing how likely it is to have caused the failure, and keep a ranked shortlist ordered from highest to lowest confidence. Before deciding on Case 1, your ranked list **must** contain exactly one remaining candidate with a very high score (above 95) and you **must** have written down why **every other commit** in the window both (a) has a lower confidence (strictly below 90) and (b) cannot reasonably cause the failure. If any commit is still under-analyzed or only ruled out via shallow checks, you are not allowed to choose Case 1; treat the situation as Case 4 or Case 5 instead (Case 4 requires ≥2 well-motivated candidates with similar confidence, Case 5 is reserved for incomplete commit metadata).
+7. Contact planning: while you work, note commit authors, file owners (`git log`, `git blame`, `.github/CODEOWNERS`), and capture GitHub profile URLs for everyone you may need to ping. Use the metadata already present in `commit_info.json` whenever possible, and ensure that any ranked commit list you present in `explanation.md` includes both the numeric confidence scores and the rationale behind the ordering.
 8. In your final report, include links to the last successful job run, the first failing job run, and every commit between them (use the compare URL and the commit metadata).
 
 Failure Evidence Rules
@@ -176,6 +180,18 @@ Toolbox Reference
    ```
    Parses the Slack payload, removes any `<content>` wrappers or other artifacts, and rewrites a clean JSON file. Always run this after generating `slack_message.json`.
 
+11. **List commits between two SHAs (metadata-only)**
+    ```
+    ./list_commits_between.sh <good_commit> <bad_commit> [output_json]
+    ```
+    Produces a JSON array of objects `{ "sha": "...", "short": "...", "subject": "..." }` either to stdout or to the specified file. Use this when you need an authoritative list of SHAs in the window (for coverage checks or manual backfill) without hitting GitHub APIs.
+
+12. **Download metadata for a single commit**
+    ```
+    ./download_data_for_single_commit.sh <commit_sha> [output_json]
+    ```
+    Uses the same schema as the batch downloader to fetch metadata for **one** commit at a time and append it to the specified JSON (default: `./data/commit_info.json`). Prefer this when a single problematic commit keeps causing batch downloads to fail so you can isolate it without corrupting the rest of the batch.
+
 Case 1 – Deterministic Failure With Identified Commit
 -----------------------------------------------------
 Trigger this case when:
@@ -250,6 +266,17 @@ Actions:
 2. Populate `./output/slack_message.json` using the Case 4 template: `commits` must contain every plausible commit (≥2), each with `hash`, `url`, `author`, `approvers`, `relevant_developers`, `relevant_files`, and Slack IDs when available. **CRITICAL:** For each commit, `relevant_developers` **MUST NOT** include that commit's author or any of its approvers. Only include codeowners of files that need changes to fix the issue. If you cannot find appropriate codeowners for a commit, use an empty array `[]` for that commit's `relevant_developers`. Mention the relative confidence (high/medium/low) in both the JSON narrative and the summary sentence.
 3. In `./output/explanation.md`, clearly state this is Case 4, summarize the shared failure signature, and explain why each candidate commit could be responsible. Cite files + before/after hunks, link to each commit URL, and note the confidence bucket for every entry. Include guidance on how to validate or bisect the suspects sequentially.
 4. Treat every candidate as if it were the Case 1 culprit: list clickable commit links, exact error tie-in, and the "who to contact" details. Include commit authors/approvers for attribution, but prioritize codeowners of files that need to be changed (from `git log`, `git blame`, `.github/CODEOWNERS`). **Never include Slack IDs in explanation.md** - only names and GitHub information. After covering the per-commit info, add the overall contact section so humans know who to loop in.
+
+Case 5 – Deterministic Failure With Incomplete Commit Metadata (Best-Effort Culprit)
+------------------------------------------------------------------------------------
+Use this case when the failure is clearly deterministic and tied to the commit window, but **commit metadata is incomplete** even after retries and manual backfill (for example, `commit_download_status.json` reports `"partial_commit_download"` or non-zero missing commits). You still have a non-empty set of commits in `commit_info.json` to reason about, but you cannot guarantee that every commit in the true window is represented.
+
+Actions:
+1. Treat the available commits exactly as you would for Case 1/Case 4: examine actual diffs, changed files, and Copilot summaries to decide which commits plausibly explain the failure. Assign each commit a numeric confidence score between 0 and 100 and keep the list sorted from highest to lowest confidence.
+2. If one commit clearly stands out among the **available** commits, you may present it as the best-effort culprit, but you **must** explicitly call out in both `explanation.md` and `slack_message.json` that some commits could not be downloaded and that the true culprit might be among the missing ones.
+3. Populate `./output/slack_message.json` using the Case 5 template: include every plausible available commit (≥1) in the `commits` array with `hash`, `url`, `author`, `approvers`, `relevant_developers`, `relevant_files`, and a numeric `confidence` field. Ensure the array is sorted in descending confidence. Top-level `relevant_developers` should list codeowners who should double-check the analysis; for Case 5 both commit authors and these codeowners will be pinged.
+4. In `./output/explanation.md`, clearly state this is Case 5, summarize the deterministic failure signature, describe which commits you considered and their confidence scores, and explain why you believe the highlighted commit(s) are the most likely cause **given the partial metadata**. Include counts from `commit_download_status.json` (expected vs. downloaded commits, list of missing SHAs/PRs when known) so humans understand the residual risk.
+5. Provide explicit guidance for follow-up validation (e.g., targeted bisects across the most suspicious available commits, re-running the job after regenerating metadata, or manually inspecting the missing SHAs if/when they become available).
 
 Contact Guidance (All Cases)
 ----------------------------

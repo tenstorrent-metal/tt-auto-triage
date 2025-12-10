@@ -22,7 +22,8 @@
                 "relevant_files": [
                     "ttnn/tensor_ops/src/reduce_max.cpp",
                     "ttnn/tensor_ops/include/reduce_kernels.hpp"
-                ]
+                ],
+                "confidence": 98
             }
         ],
         "slack_message": "Deterministic failure traced to commit af12b3c4. Reduce-max kernel now reuses dirty buffers; reverting or zeroing buffers fixes the nightly."
@@ -84,7 +85,8 @@
                 "relevant_files": [
                     "ttnn/graph/src/partitioner.cpp",
                     "ttnn/graph/include/partition_plan.hpp"
-                ]
+                ],
+                "confidence": 82
             },
             {
                 "hash": "db45e6f7a8b9c0d1e2f3a456b789c012def34567",
@@ -100,9 +102,61 @@
                 "relevant_files": [
                     "ttnn/graph/src/placement_validator.cpp",
                     "ttnn/runtime/include/runtime_checks.hpp"
-                ]
+                ],
+                "confidence": 80
             }
         ],
         "slack_message": "Graph partitioning crash could stem from either c3d9c9f (empty subgraphs) or db45e6f (validator rejects duplicates). Need graph-runtime owners to inspect both diffs."
+    },
+    {
+        "case": "5",
+        "scenario": "Deterministic failure with incomplete commit metadata (best-effort culprit)",
+        "workflow_name": "ttnn-nightly",
+        "failing_job_name": "ttnn/ops regression sweep",
+        "failing_test_name": "ttnn/ops/test_fused_matmul::test_int8_pipeline",
+        "failure_message": "[2025-12-01T05:18:02Z] ttnn/ops/test_fused_matmul::test_int8_pipeline FAILED: RuntimeError: accumulated scale mismatch across chips",
+        "failing_run_url": "https://github.com/tenstorrent/tt-metal/actions/runs/1234567894/job/5555555555",
+        "failing_run_label": "Run #1234567894 (latest deterministic failure)",
+        "commits": [
+            {
+                "hash": "aa11bb22cc33dd44ee55ff6677889900aabbccdd",
+                "url": "https://github.com/tenstorrent/tt-metal/commit/aa11bb22cc33dd44ee55ff6677889900aabbccdd",
+                "author": {"name": "Nora Kim", "slack_id": "U11N1EXAMPLE"},
+                "approvers": [
+                    {"name": "ttnn-core-owners", "slack_id": "S12P2EXAMPLE"}
+                ],
+                "relevant_developers": [
+                    {"name": "ttnn-kernels-owners", "slack_id": "S13Q3EXAMPLE"}
+                ],
+                "relevant_files": [
+                    "ttnn/ops/src/fused_matmul.cpp",
+                    "ttnn/ops/include/fused_matmul_kernels.hpp"
+                ],
+                "confidence": 88
+            },
+            {
+                "hash": "ee11ff22aa33bb44cc55dd6677889900ffeeddcc",
+                "url": "https://github.com/tenstorrent/tt-metal/commit/ee11ff22aa33bb44cc55dd6677889900ffeeddcc",
+                "author": {"name": "Omar Diaz", "slack_id": "U14R4EXAMPLE"},
+                "approvers": [],
+                "relevant_developers": [
+                    {"name": "ttnn-infra-owners", "slack_id": "S15S5EXAMPLE"}
+                ],
+                "relevant_files": [
+                    "ttnn/runtime/src/pipeline_config.cpp"
+                ],
+                "confidence": 72
+            }
+        ],
+        "relevant_developers": [
+            {"name": "ttnn-core-owners", "slack_id": "S12P2EXAMPLE"},
+            {"name": "ttnn-kernels-owners", "slack_id": "S13Q3EXAMPLE"}
+        ],
+        "relevant_files": [
+            "ttnn/ops/src/fused_matmul.cpp",
+            "ttnn/ops/include/fused_matmul_kernels.hpp",
+            "ttnn/runtime/src/pipeline_config.cpp"
+        ],
+        "slack_message": "Deterministic failure in fused int8 matmul strongly implicates aa11bb22 (scale handling, ~88% confidence) but commit metadata is incomplete (for example, 2 of 27 commits failed to download). Pinging both the most likely authors and ttnn core/kernel owners to double-check the analysis and inspect missing SHAs."
     }
 ]
