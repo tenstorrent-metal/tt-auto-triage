@@ -74,3 +74,22 @@ fi
 # Use programmatic mode with --allow-all-tools for CI environment
 copilot -p "$PROMPT" --allow-all-tools
 
+# De-duplicate commit_info.json entries after the filter LLM has finished.
+# This ensures that any overlapping batches or manual backfills in the
+# filter stage do not cause the main analysis LLM to see duplicate commits.
+COMMIT_FILE="${CANON_DATA_DIR}/commit_info.json"
+if [ -f "$COMMIT_FILE" ]; then
+    # Only attempt de-duplication when the file is a JSON array. If it is a
+    # string (e.g., "too many commits" fallback), leave it untouched.
+    if jq -e 'type == "array"' "$COMMIT_FILE" >/dev/null 2>&1; then
+        echo "=== De-duplicating commit_info.json entries (filter stage) ==="
+        TMP_COMMIT_FILE="$(mktemp)"
+        if jq 'unique_by(.commit // .commit_short // .commit_sha // "")' "$COMMIT_FILE" > "$TMP_COMMIT_FILE" 2>/dev/null; then
+            mv "$TMP_COMMIT_FILE" "$COMMIT_FILE"
+        else
+            echo "Warning: failed to de-duplicate commit_info.json; leaving original file unchanged." >&2
+            rm -f "$TMP_COMMIT_FILE" || true
+        fi
+    fi
+fi
+
