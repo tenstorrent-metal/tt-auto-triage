@@ -131,7 +131,7 @@ Commit Metadata Collection
      - `./list_commits_between.sh <good_commit> <bad_commit> ./auto_triage/data/commit_list.json` to dump the exact set of SHAs in JSON form.
    - After running all batches, check `jq 'length' ./auto_triage/data/commit_info.json`.
    - If counts match, proceed. If not:
-     1. **Retry failing batches** up to two additional times (you may re-run the batch script for the specific index or narrow the commit window to just the problematic span).
+     1. **Retry failing batches** up to one additional time (you may re-run the batch script for the specific index or narrow the commit window to just the problematic span).
      2. **Manually backfill any remaining missing commits** before giving up:
         - Use `./list_commits_between.sh <good_commit> <bad_commit>` (or `git log --oneline --reverse <good_commit>..<bad_commit>`) to enumerate the expected SHAs, then compare against the collected `commit_short` values (e.g., using `comm` or `rg`).
         - For each missing SHA:
