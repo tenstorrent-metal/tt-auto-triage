@@ -43,6 +43,12 @@ runs:
       run: |
         set -euo pipefail
         
+        # Prepare context variables
+        RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+        RUN_LABEL="full_report_link #${GITHUB_RUN_NUMBER:-$GITHUB_RUN_ID}"
+        JOB_NAME_VALUE="${{ inputs.job_name }}"
+        WORKFLOW_NAME_VALUE="${{ inputs.workflow_name }}"
+        
         # Check for cancellation FIRST
         CANCEL_FILE=".auto_triage/cancel.json"
         if [ -f "$CANCEL_FILE" ]; then
@@ -51,11 +57,17 @@ runs:
             CANCEL_MESSAGE=$(jq -r '.message // "Auto-triage cancelled"' "$CANCEL_FILE")
             echo "Cancellation detected: $CANCEL_MESSAGE"
             
+            # Construct richer cancellation message
+            RICH_MESSAGE="*Auto-triage cancelled:* $CANCEL_MESSAGE\n"
+            RICH_MESSAGE+="*Workflow:* $WORKFLOW_NAME_VALUE\n"
+            RICH_MESSAGE+="*Job:* $JOB_NAME_VALUE\n"
+            RICH_MESSAGE+="*Run:* <$RUN_URL|$RUN_LABEL>"
+            
             # Construct cancellation payload
             if [ -n "$SLACK_TS" ]; then
-               PAYLOAD=$(jq -cn --arg msg "Auto-triage cancelled: $CANCEL_MESSAGE" --arg ts "$SLACK_TS" '{text: $msg, thread_ts: $ts}')
+               PAYLOAD=$(jq -cn --arg msg "$RICH_MESSAGE" --arg ts "$SLACK_TS" '{text: $msg, thread_ts: $ts}')
             else
-               PAYLOAD=$(jq -cn --arg msg "Auto-triage cancelled: $CANCEL_MESSAGE" '{text: $msg}')
+               PAYLOAD=$(jq -cn --arg msg "$RICH_MESSAGE" '{text: $msg}')
             fi
             
             echo "payload=$PAYLOAD" >> "$GITHUB_OUTPUT"
@@ -73,15 +85,6 @@ runs:
           echo "has_payload=false" >> "$GITHUB_OUTPUT"
           exit 0
         fi
-
-        RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
-        RUN_LABEL="full_report_link #${GITHUB_RUN_NUMBER:-$GITHUB_RUN_ID}"
-        
-        # Get job_name input - this should always override the LLM's failing_job_name
-        JOB_NAME_VALUE="${{ inputs.job_name }}"
-        
-        # Get workflow_name input - this should always override the LLM's workflow_name
-        WORKFLOW_NAME_VALUE="${{ inputs.workflow_name }}"
         
         # Debug: Log the input values (will be visible in workflow logs)
         echo "DEBUG: job_name input value: '${JOB_NAME_VALUE}'"
