@@ -26,7 +26,7 @@ inputs:
   send-slack-message:
     description: "Whether to send a Slack message."
     required: false
-    default: "false"
+    default: "true"
 runs:
   using: composite
   steps:
