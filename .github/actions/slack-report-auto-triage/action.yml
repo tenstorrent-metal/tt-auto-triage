@@ -57,26 +57,27 @@ runs:
             # The RAW_MESSAGE now contains ONLY the core error text (Fix 1 applied in find_boundaries.sh).
             RAW_MESSAGE=$(jq -r '.message // "Auto-triage cancelled"' "$CANCEL_FILE")
             
-            # Convert literal "\n" sequences to actual newlines
-            CLEAN_MESSAGE_WITH_NEWLINES=$(printf '%s' "$RAW_MESSAGE" | awk '{gsub(/\\n/, "\n"); print}')
+            # 1. Convert literal "\n" sequences (from jq) to actual newlines (\n)
+            CORE_MESSAGE_WITH_NEWLINES=$(printf '%s' "$RAW_MESSAGE" | awk '{gsub(/\\n/, "\n"); print}')
 
             echo "Cancellation detected:"
-            printf '%s\n' "$CLEAN_MESSAGE_WITH_NEWLINES"
+            printf '%s\n' "$CORE_MESSAGE_WITH_NEWLINES"
             
-            # Construct richer cancellation message: hardcoded BOLD prefix + message + metadata
+            # 2. Construct RICH_MESSAGE with actual newlines
             RICH_MESSAGE=$(printf '*Auto-triage cancelled:*\n%s\n*Workflow:* %s\n*Job:* %s\n*Run:* <%s|%s>' \
-              "$CLEAN_MESSAGE_WITH_NEWLINES" \
+              "$CORE_MESSAGE_WITH_NEWLINES" \
               "$WORKFLOW_NAME_VALUE" \
               "$JOB_NAME_VALUE" \
               "$RUN_URL" \
               "$RUN_LABEL")
             
-            # Use heredoc for robust multiline output (essential for message content)
-            {
-              echo "slack_message_text<<EOF"
-              printf '%s\n' "$RICH_MESSAGE"
-              echo "EOF"
-            } >> "$GITHUB_OUTPUT"
+            # 3. CRITICAL FINAL STEP: Convert ALL actual newlines (\n) to the escaped sequence \\n
+            # This ensures the GHA variable is a single line, and the Slack action sees the \\n
+            # which it is expecting to render a newline character.
+            ESCAPED_RICH_MESSAGE=$(printf '%s' "$RICH_MESSAGE" | tr '\n' '\f' | sed 's/\f/\\n/g')
+            
+            # Use single-line output for the escaped message
+            echo "slack_message_text=$ESCAPED_RICH_MESSAGE" >> "$GITHUB_OUTPUT"
             
             if [ -n "$SLACK_TS" ]; then
               echo "slack_ts=$SLACK_TS" >> "$GITHUB_OUTPUT"
@@ -235,12 +236,12 @@ runs:
           exit 0
         fi
         
-        # Use heredoc for robust multiline output (for the regular path)
-        {
-          echo "slack_message_text<<EOF"
-          printf '%s\n' "$TEXT"
-          echo "EOF"
-        } >> "$GITHUB_OUTPUT"
+        # CRITICAL FINAL STEP: Convert ALL actual newlines (\n) in TEXT to the escaped sequence \\n
+        # The TEXT variable contains actual newlines from the final jq script.
+        ESCAPED_TEXT=$(printf '%s' "$TEXT" | tr '\n' '\f' | sed 's/\f/\\n/g')
+        
+        # Use single-line output for the escaped message
+        echo "slack_message_text=$ESCAPED_TEXT" >> "$GITHUB_OUTPUT"
         
         if [ -n "$SLACK_TS" ]; then
           echo "slack_ts=$SLACK_TS" >> "$GITHUB_OUTPUT"
