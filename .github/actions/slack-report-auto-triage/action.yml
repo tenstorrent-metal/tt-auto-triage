@@ -71,13 +71,14 @@ runs:
               "$RUN_URL" \
               "$RUN_LABEL")
             
-            # 3. CRITICAL FINAL STEP: Convert ALL actual newlines (\n) to the escaped sequence \\n
-            # This ensures the GHA variable is a single line, and the Slack action sees the \\n
-            # which it is expecting to render a newline character.
-            ESCAPED_RICH_MESSAGE=$(printf '%s' "$RICH_MESSAGE" | tr '\n' '\f' | sed 's/\f/\\n/g')
-            
-            # Use single-line output for the escaped message
-            echo "slack_message_text=$ESCAPED_RICH_MESSAGE" >> "$GITHUB_OUTPUT"
+            # 3. Use heredoc format to preserve actual newlines in the output variable.
+            # The Slack action's `text` input expects ACTUAL newline characters, not escaped \n sequences.
+            # GitHub Actions heredoc format: key<<DELIMITER ... DELIMITER
+            {
+              echo 'slack_message_text<<SLACKEOF'
+              printf '%s\n' "$RICH_MESSAGE"
+              echo 'SLACKEOF'
+            } >> "$GITHUB_OUTPUT"
             
             if [ -n "$SLACK_TS" ]; then
               echo "slack_ts=$SLACK_TS" >> "$GITHUB_OUTPUT"
@@ -236,12 +237,13 @@ runs:
           exit 0
         fi
         
-        # CRITICAL FINAL STEP: Convert ALL actual newlines (\n) in TEXT to the escaped sequence \\n
-        # The TEXT variable contains actual newlines from the final jq script.
-        ESCAPED_TEXT=$(printf '%s' "$TEXT" | tr '\n' '\f' | sed 's/\f/\\n/g')
-        
-        # Use single-line output for the escaped message
-        echo "slack_message_text=$ESCAPED_TEXT" >> "$GITHUB_OUTPUT"
+        # Use heredoc format to preserve actual newlines in the output variable.
+        # The Slack action's `text` input expects ACTUAL newline characters, not escaped \n sequences.
+        {
+          echo 'slack_message_text<<SLACKEOF'
+          printf '%s\n' "$TEXT"
+          echo 'SLACKEOF'
+        } >> "$GITHUB_OUTPUT"
         
         if [ -n "$SLACK_TS" ]; then
           echo "slack_ts=$SLACK_TS" >> "$GITHUB_OUTPUT"
