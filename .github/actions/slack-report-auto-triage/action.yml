@@ -71,18 +71,21 @@ runs:
               "$RUN_URL" \
               "$RUN_LABEL")
             
-            # 3. Use heredoc format to preserve actual newlines in the output variable.
-            # The Slack action's `text` input expects ACTUAL newline characters, not escaped \n sequences.
-            # GitHub Actions heredoc format: key<<DELIMITER ... DELIMITER
-            {
-              echo 'slack_message_text<<SLACKEOF'
-              printf '%s\n' "$RICH_MESSAGE"
-              echo 'SLACKEOF'
-            } >> "$GITHUB_OUTPUT"
+            # 3. Write a JSON payload file. Using jq ensures proper JSON escaping of newlines
+            # and special characters. The Slack action's payload-file-path input reads this file
+            # and the JSON parser correctly interprets \n as newlines.
+            PAYLOAD_FILE=".auto_triage/slack_payload.json"
+            mkdir -p "$(dirname "$PAYLOAD_FILE")"
             
             if [ -n "$SLACK_TS" ]; then
-              echo "slack_ts=$SLACK_TS" >> "$GITHUB_OUTPUT"
+              jq -n --arg text "$RICH_MESSAGE" --arg thread_ts "$SLACK_TS" \
+                '{text: $text, thread_ts: $thread_ts}' > "$PAYLOAD_FILE"
+            else
+              jq -n --arg text "$RICH_MESSAGE" \
+                '{text: $text}' > "$PAYLOAD_FILE"
             fi
+            
+            echo "payload_file=$PAYLOAD_FILE" >> "$GITHUB_OUTPUT"
             echo "has_payload=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -237,26 +240,29 @@ runs:
           exit 0
         fi
         
-        # Use heredoc format to preserve actual newlines in the output variable.
-        # The Slack action's `text` input expects ACTUAL newline characters, not escaped \n sequences.
-        {
-          echo 'slack_message_text<<SLACKEOF'
-          printf '%s\n' "$TEXT"
-          echo 'SLACKEOF'
-        } >> "$GITHUB_OUTPUT"
+        # Write a JSON payload file. Using jq ensures proper JSON escaping of newlines
+        # and special characters. The Slack action's payload-file-path input reads this file
+        # and the JSON parser correctly interprets \n as newlines.
+        PAYLOAD_FILE=".auto_triage/slack_payload.json"
+        mkdir -p "$(dirname "$PAYLOAD_FILE")"
         
         if [ -n "$SLACK_TS" ]; then
-          echo "slack_ts=$SLACK_TS" >> "$GITHUB_OUTPUT"
+          jq -n --arg text "$TEXT" --arg thread_ts "$SLACK_TS" \
+            '{text: $text, thread_ts: $thread_ts}' > "$PAYLOAD_FILE"
+        else
+          jq -n --arg text "$TEXT" \
+            '{text: $text}' > "$PAYLOAD_FILE"
         fi
+        
+        echo "payload_file=$PAYLOAD_FILE" >> "$GITHUB_OUTPUT"
         echo "has_payload=true" >> "$GITHUB_OUTPUT"
 
     - name: Report via Slack
       if: steps.build.outputs.has_payload == 'true'
       uses: slackapi/slack-github-action@v1.26.0
       with:
-        # Use 'text' and 'thread-ts' inputs (essential fix)
-        text: ${{ steps.build.outputs.slack_message_text }}
-        thread-ts: ${{ steps.build.outputs.slack_ts }}
+        # Use payload-file-path to ensure proper JSON encoding of newlines and special chars
+        payload-file-path: ${{ steps.build.outputs.payload_file }}
         channel-id: ${{ inputs.channel_id }}
       env:
         SLACK_BOT_TOKEN: ${{ env.SLACK_BOT_TOKEN }}
