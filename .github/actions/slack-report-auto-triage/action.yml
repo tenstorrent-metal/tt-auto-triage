@@ -54,11 +54,21 @@ runs:
         if [ -f "$CANCEL_FILE" ]; then
           SHOULD_CANCEL=$(jq -r '.should_cancel // false' "$CANCEL_FILE")
           if [ "$SHOULD_CANCEL" = "true" ]; then
-            CANCEL_MESSAGE=$(jq -r '.message // "Auto-triage cancelled"' "$CANCEL_FILE")
-            echo "Cancellation detected: $CANCEL_MESSAGE"
+            # The cancel message may already include its own prefix and/or literal '\n'
+            # sequences. Normalize it for Slack by:
+            #   1) stripping any leading "Auto-triage cancelled:" label, and
+            #   2) converting '\n' sequences into real newlines.
+            RAW_MESSAGE=$(jq -r '.message // "Auto-triage cancelled"' "$CANCEL_FILE")
+            # Strip leading "Auto-triage cancelled:" (case-insensitive, optional dash/space)
+            CLEAN_MESSAGE=$(printf '%s' "$RAW_MESSAGE" | sed -E 's/^[[:space:]]*Auto-?triage cancelled:?[[:space:]]*//I')
+            # Turn literal "\n" sequences into real newlines so Slack renders them properly
+            CLEAN_MESSAGE=$(printf '%b' "$CLEAN_MESSAGE")
+
+            echo "Cancellation detected:"
+            printf '%s\n' "$CLEAN_MESSAGE"
             
             # Construct richer cancellation message
-            RICH_MESSAGE="*Auto-triage cancelled:* $CANCEL_MESSAGE\n"
+            RICH_MESSAGE="*Auto-triage cancelled:* $CLEAN_MESSAGE\n"
             RICH_MESSAGE+="*Workflow:* $WORKFLOW_NAME_VALUE\n"
             RICH_MESSAGE+="*Job:* $JOB_NAME_VALUE\n"
             RICH_MESSAGE+="*Run:* <$RUN_URL|$RUN_LABEL>"
