@@ -78,7 +78,9 @@ echo "Finding workflow ID..."
 WORKFLOW_ID=""
 for EXT in yaml yml YAML YML; do
     WORKFLOW_FILE="${WORKFLOW_NAME}.${EXT}"
-    WORKFLOW_ID=$(gh api "repos/${REPO}/actions/workflows/${WORKFLOW_FILE}" --jq '.id' 2>/dev/null || echo "")
+    # Try to extract the workflow id; on HTTP errors gh may still return JSON without .id
+    WORKFLOW_ID_RAW=$(gh api "repos/${REPO}/actions/workflows/${WORKFLOW_FILE}" 2>/dev/null || echo "")
+    WORKFLOW_ID=$(printf '%s' "$WORKFLOW_ID_RAW" | jq -r '.id // empty' 2>/dev/null || echo "")
     if [ -n "$WORKFLOW_ID" ]; then
         WORKFLOW_NAME="${WORKFLOW_NAME}"
         WORKFLOW_FILENAME="$WORKFLOW_FILE"
@@ -137,7 +139,8 @@ while true; do
     if [ -z "$PAGE_RESPONSE" ]; then
         if [ "$PAGE" -eq 1 ]; then
             echo -e "${RED}Error: Could not fetch workflow runs${NC}"
-            exit 1
+            # Treat this as a cancellation so the caller can surface a clear message in Slack
+            write_cancel_and_exit "Auto-triage cancelled: could not fetch workflow runs for workflow '${WORKFLOW_NAME}' (check that the workflow exists and that permissions are correct)."
         fi
         break
     fi
