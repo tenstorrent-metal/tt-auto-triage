@@ -150,6 +150,26 @@ runs:
           echo "Filter stage requested cancellation: ${CANCEL_MESSAGE}"
         fi
 
+    - name: Write cancellation explanation
+      if: steps.check-cancel.outputs.should_cancel == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        cd "${GITHUB_WORKSPACE}/.auto_triage"
+        REPORT_DIR="${GITHUB_WORKSPACE}/.auto_triage/output"
+        mkdir -p "$REPORT_DIR"
+        RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+        RUN_LABEL="full_report_link #${GITHUB_RUN_NUMBER:-$GITHUB_RUN_ID}"
+        CANCEL_MESSAGE="${{ steps.check-cancel.outputs.cancel_message }}"
+        {
+          echo "*Auto-triage cancelled:*"
+          echo "$CANCEL_MESSAGE"
+          echo ""
+          echo "*Workflow:* ${{ inputs.workflow-name }}"
+          echo "*Job:* ${{ inputs.job-name }}"
+          echo "*Run:* <$RUN_URL|$RUN_LABEL>"
+        } > "$REPORT_DIR/explanation.md"
+
     - name: Verify filter stage outputs
       if: inputs.slack-test-only != 'true' && steps.check-cancel.outputs.should_cancel != 'true'
       shell: bash
