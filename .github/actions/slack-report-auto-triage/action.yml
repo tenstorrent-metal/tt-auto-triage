@@ -77,13 +77,6 @@ runs:
             PAYLOAD_FILE=".auto_triage/slack_payload.json"
             mkdir -p "$(dirname "$PAYLOAD_FILE")"
             
-            # DEBUG: Show message content
-            echo "=== DEBUG: RICH_MESSAGE line count ==="
-            echo "$RICH_MESSAGE" | wc -l
-            echo "=== DEBUG: RICH_MESSAGE content ==="
-            echo "$RICH_MESSAGE"
-            echo "==================================="
-            
             if [ -n "$SLACK_TS" ]; then
               jq -n --arg text "$RICH_MESSAGE" --arg thread_ts "$SLACK_TS" \
                 '{text: $text, thread_ts: $thread_ts}' > "$PAYLOAD_FILE"
@@ -91,11 +84,6 @@ runs:
               jq -n --arg text "$RICH_MESSAGE" \
                 '{text: $text}' > "$PAYLOAD_FILE"
             fi
-            
-            # DEBUG: Show JSON file content
-            echo "=== DEBUG: JSON payload file content ==="
-            cat "$PAYLOAD_FILE"
-            echo "========================================="
             
             echo "payload_file=$PAYLOAD_FILE" >> "$GITHUB_OUTPUT"
             echo "has_payload=true" >> "$GITHUB_OUTPUT"
@@ -113,12 +101,6 @@ runs:
           exit 0
         fi
         
-        # Debug: Log the input values (will be visible in workflow logs)
-        echo "DEBUG: job_name input value: '${JOB_NAME_VALUE}'"
-        echo "DEBUG: job_name input length: ${#JOB_NAME_VALUE}"
-        echo "DEBUG: workflow_name input value: '${WORKFLOW_NAME_VALUE}'"
-        echo "DEBUG: workflow_name input length: ${#WORKFLOW_NAME_VALUE}"
-
         # Force the JSON payload to reflect the user-provided job name and workflow name so downstream
         # tooling (and the final Slack message) never rely on the LLM's guess.
         if [ -n "$JOB_NAME_VALUE" ] || [ -n "$WORKFLOW_NAME_VALUE" ]; then
