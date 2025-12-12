@@ -203,7 +203,18 @@ runs:
         TARGET="${GITHUB_WORKSPACE}/.auto_triage/output"
         mkdir -p "$TARGET"
         cp "${{ github.action_path }}/auto_triage/sample_slack_message.json" "$TARGET/slack_message.json"
-
+    - name: Debug Slack send configuration
+      if: always()
+      shell: bash
+      run: |
+        set -euo pipefail
+        echo "Auto-triage Slack send flag (inputs.send-slack-message) = '${{ inputs.send-slack-message }}'"
+        echo "Auto-triage Slack thread timestamp (inputs.slack_ts) = '${{ inputs.slack_ts }}'"
+        if [ "${{ inputs.send-slack-message }}" = "true" ]; then
+          echo "Auto-triage: Slack notification step is ENABLED and will run (barring job-level skips)."
+        else
+          echo "Auto-triage: Slack notification step is DISABLED and will NOT run."
+        fi
     - name: Send Slack notification
       if: always() && inputs.send-slack-message == 'true'
       uses: tenstorrent-metal/tt-auto-triage/.github/actions/slack-report-auto-triage@main
