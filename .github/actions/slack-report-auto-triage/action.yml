@@ -71,48 +71,30 @@ runs:
               "$RUN_URL" \
               "$RUN_LABEL")
             
-            # DEBUG: Show what RICH_MESSAGE contains (with visible newline markers)
-            echo "=== DEBUG: RICH_MESSAGE (raw) ==="
-            printf '%s' "$RICH_MESSAGE" | cat -A
-            echo ""
-            echo "=== DEBUG: RICH_MESSAGE line count ==="
-            echo "$RICH_MESSAGE" | wc -l
-            echo "==================================="
-            
             # 3. Write a JSON payload file. Using jq ensures proper JSON escaping of newlines
             # and special characters. The Slack action's payload-file-path input reads this file
             # and the JSON parser correctly interprets \n as newlines.
             PAYLOAD_FILE=".auto_triage/slack_payload.json"
             mkdir -p "$(dirname "$PAYLOAD_FILE")"
             
-            # DEBUG TEST: Try a hardcoded message first to verify the mechanism works
-            TEST_MESSAGE="*Line 1 - Bold Test*
-Line 2 - After newline
-*Line 3* - More bold
-Line 4 - Final line"
-            
-            echo "=== DEBUG: TEST_MESSAGE (raw) ==="
-            printf '%s' "$TEST_MESSAGE" | cat -A
-            echo ""
+            # DEBUG: Show message content
+            echo "=== DEBUG: RICH_MESSAGE line count ==="
+            echo "$RICH_MESSAGE" | wc -l
+            echo "=== DEBUG: RICH_MESSAGE content ==="
+            echo "$RICH_MESSAGE"
             echo "==================================="
             
-            # Use the TEST message instead of RICH_MESSAGE to verify mechanism
-            # Comment out the next line and uncomment the one after to use real message
-            FINAL_MESSAGE="$TEST_MESSAGE"
-            # FINAL_MESSAGE="$RICH_MESSAGE"
-            
             if [ -n "$SLACK_TS" ]; then
-              jq -n --arg text "$FINAL_MESSAGE" --arg thread_ts "$SLACK_TS" \
+              jq -n --arg text "$RICH_MESSAGE" --arg thread_ts "$SLACK_TS" \
                 '{text: $text, thread_ts: $thread_ts}' > "$PAYLOAD_FILE"
             else
-              jq -n --arg text "$FINAL_MESSAGE" \
+              jq -n --arg text "$RICH_MESSAGE" \
                 '{text: $text}' > "$PAYLOAD_FILE"
             fi
             
             # DEBUG: Show JSON file content
             echo "=== DEBUG: JSON payload file content ==="
             cat "$PAYLOAD_FILE"
-            echo ""
             echo "========================================="
             
             echo "payload_file=$PAYLOAD_FILE" >> "$GITHUB_OUTPUT"
