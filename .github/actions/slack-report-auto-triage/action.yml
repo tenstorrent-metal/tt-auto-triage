@@ -54,23 +54,38 @@ runs:
         if [ -f "$CANCEL_FILE" ]; then
           SHOULD_CANCEL=$(jq -r '.should_cancel // false' "$CANCEL_FILE")
           if [ "$SHOULD_CANCEL" = "true" ]; then
-            CANCEL_MESSAGE=$(jq -r '.message // "Auto-triage cancelled"' "$CANCEL_FILE")
-            echo "Cancellation detected: $CANCEL_MESSAGE"
+            # The RAW_MESSAGE now contains ONLY the core error text (Fix 1 applied in find_boundaries.sh).
+            RAW_MESSAGE=$(jq -r '.message // "Auto-triage cancelled"' "$CANCEL_FILE")
             
-            # Construct richer cancellation message
-            RICH_MESSAGE="*Auto-triage cancelled:* $CANCEL_MESSAGE\n"
-            RICH_MESSAGE+="*Workflow:* $WORKFLOW_NAME_VALUE\n"
-            RICH_MESSAGE+="*Job:* $JOB_NAME_VALUE\n"
-            RICH_MESSAGE+="*Run:* <$RUN_URL|$RUN_LABEL>"
+            # 1. Convert literal "\n" sequences (from jq) to actual newlines (\n)
+            CORE_MESSAGE_WITH_NEWLINES=$(printf '%s' "$RAW_MESSAGE" | awk '{gsub(/\\n/, "\n"); print}')
+
+            echo "Cancellation detected:"
+            printf '%s\n' "$CORE_MESSAGE_WITH_NEWLINES"
             
-            # Construct cancellation payload
+            # 2. Construct RICH_MESSAGE with actual newlines
+            RICH_MESSAGE=$(printf '*Auto-triage cancelled:*\n%s\n*Workflow:* %s\n*Job:* %s\n*Run:* <%s|%s>' \
+              "$CORE_MESSAGE_WITH_NEWLINES" \
+              "$WORKFLOW_NAME_VALUE" \
+              "$JOB_NAME_VALUE" \
+              "$RUN_URL" \
+              "$RUN_LABEL")
+            
+            # 3. Write a JSON payload file. Using jq ensures proper JSON escaping of newlines
+            # and special characters. The Slack action's payload-file-path input reads this file
+            # and the JSON parser correctly interprets \n as newlines.
+            PAYLOAD_FILE=".auto_triage/slack_payload.json"
+            mkdir -p "$(dirname "$PAYLOAD_FILE")"
+            
             if [ -n "$SLACK_TS" ]; then
-               PAYLOAD=$(jq -cn --arg msg "$RICH_MESSAGE" --arg ts "$SLACK_TS" '{text: $msg, thread_ts: $ts}')
+              jq -n --arg text "$RICH_MESSAGE" --arg thread_ts "$SLACK_TS" \
+                '{text: $text, thread_ts: $thread_ts}' > "$PAYLOAD_FILE"
             else
-               PAYLOAD=$(jq -cn --arg msg "$RICH_MESSAGE" '{text: $msg}')
+              jq -n --arg text "$RICH_MESSAGE" \
+                '{text: $text}' > "$PAYLOAD_FILE"
             fi
             
-            echo "payload=$PAYLOAD" >> "$GITHUB_OUTPUT"
+            echo "payload_file=$PAYLOAD_FILE" >> "$GITHUB_OUTPUT"
             echo "has_payload=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -86,12 +101,6 @@ runs:
           exit 0
         fi
         
-        # Debug: Log the input values (will be visible in workflow logs)
-        echo "DEBUG: job_name input value: '${JOB_NAME_VALUE}'"
-        echo "DEBUG: job_name input length: ${#JOB_NAME_VALUE}"
-        echo "DEBUG: workflow_name input value: '${WORKFLOW_NAME_VALUE}'"
-        echo "DEBUG: workflow_name input length: ${#WORKFLOW_NAME_VALUE}"
-
         # Force the JSON payload to reflect the user-provided job name and workflow name so downstream
         # tooling (and the final Slack message) never rely on the LLM's guess.
         if [ -n "$JOB_NAME_VALUE" ] || [ -n "$WORKFLOW_NAME_VALUE" ]; then
@@ -225,21 +234,29 @@ runs:
           exit 0
         fi
         
+        # Write a JSON payload file. Using jq ensures proper JSON escaping of newlines
+        # and special characters. The Slack action's payload-file-path input reads this file
+        # and the JSON parser correctly interprets \n as newlines.
+        PAYLOAD_FILE=".auto_triage/slack_payload.json"
+        mkdir -p "$(dirname "$PAYLOAD_FILE")"
+        
         if [ -n "$SLACK_TS" ]; then
-            # If a timestamp is provided, add it to the payload for threading
-            PAYLOAD=$(jq -cn --arg text "$TEXT" --arg ts "$SLACK_TS" '{text: $text, thread_ts: $ts}')
+          jq -n --arg text "$TEXT" --arg thread_ts "$SLACK_TS" \
+            '{text: $text, thread_ts: $thread_ts}' > "$PAYLOAD_FILE"
         else
-            PAYLOAD=$(jq -cn --arg text "$TEXT" '{text: $text}')
+          jq -n --arg text "$TEXT" \
+            '{text: $text}' > "$PAYLOAD_FILE"
         fi
-
-        echo "payload=$PAYLOAD" >> "$GITHUB_OUTPUT"
+        
+        echo "payload_file=$PAYLOAD_FILE" >> "$GITHUB_OUTPUT"
         echo "has_payload=true" >> "$GITHUB_OUTPUT"
 
     - name: Report via Slack
       if: steps.build.outputs.has_payload == 'true'
       uses: slackapi/slack-github-action@v1.26.0
       with:
-        payload: ${{ steps.build.outputs.payload }}
+        # Use payload-file-path to ensure proper JSON encoding of newlines and special chars
+        payload-file-path: ${{ steps.build.outputs.payload_file }}
         channel-id: ${{ inputs.channel_id }}
       env:
         SLACK_BOT_TOKEN: ${{ env.SLACK_BOT_TOKEN }}

@@ -52,6 +52,19 @@ BASE_URL="https://github.com/${REPO}"
 DATA_DIR="auto_triage/data"
 SUMMARY_JSON_PATH="${DATA_DIR}/boundaries_summary.json"
 RUNS_JSON_PATH="${DATA_DIR}/subjob_runs.json"
+# cancel.json lives in the .auto_triage working directory, same as this script's CWD
+CANCEL_FILE="cancel.json"
+
+write_cancel_and_exit() {
+    local message="$1"
+    # Create cancel.json so the composite action can surface a Slack cancellation message
+    tmp_cancel="$(mktemp)"
+    jq -n --arg msg "$message" '{should_cancel: true, message: $msg}' > "$tmp_cancel"
+    mv "$tmp_cancel" "$CANCEL_FILE"
+    echo -e "${YELLOW}$message${NC}"
+    echo -e "${YELLOW}Created ${CANCEL_FILE}; downstream stages will treat this as a cancellation.${NC}"
+    exit 0
+}
 
 mkdir -p "$DATA_DIR"
 rm -f "$SUMMARY_JSON_PATH" "$RUNS_JSON_PATH"
@@ -65,7 +78,9 @@ echo "Finding workflow ID..."
 WORKFLOW_ID=""
 for EXT in yaml yml YAML YML; do
     WORKFLOW_FILE="${WORKFLOW_NAME}.${EXT}"
-    WORKFLOW_ID=$(gh api "repos/${REPO}/actions/workflows/${WORKFLOW_FILE}" --jq '.id' 2>/dev/null || echo "")
+    # Try to extract the workflow id; on HTTP errors gh may still return JSON without .id
+    WORKFLOW_ID_RAW=$(gh api "repos/${REPO}/actions/workflows/${WORKFLOW_FILE}" 2>/dev/null || echo "")
+    WORKFLOW_ID=$(printf '%s' "$WORKFLOW_ID_RAW" | jq -r '.id // empty' 2>/dev/null || echo "")
     if [ -n "$WORKFLOW_ID" ]; then
         WORKFLOW_NAME="${WORKFLOW_NAME}"
         WORKFLOW_FILENAME="$WORKFLOW_FILE"
@@ -76,7 +91,9 @@ done
 if [ -z "$WORKFLOW_ID" ]; then
     echo -e "${RED}Error: Could not find workflow '${WORKFLOW_NAME}' with .yaml or .yml extension${NC}"
     echo "Make sure the workflow file exists at: .github/workflows/${WORKFLOW_NAME}.yaml (or .yml)"
-    exit 1
+    # Instead of hard failing the whole job, signal a graceful cancellation so
+    # the auto-triage action can send a Slack message explaining what happened.
+    write_cancel_and_exit "Workflow '${WORKFLOW_NAME}' not found in repository ${REPO}. Verify file path."
 fi
 
 echo -e "${GREEN}Found workflow ID: ${WORKFLOW_ID}${NC}"
@@ -104,6 +121,9 @@ FIRST_FAILING_JOB_URL=""
 PROCESSED=0
 FOUND_SUCCESS=false
 STOP_SEARCH=false
+# Track whether we've ever seen the subjob at all
+SUBJOB_EVER_FOUND=false
+SUBJOB_MISSING_CANCEL_LIMIT=50
 
 # Track the most recent failure we see, then when we find the last success,
 # that failure is the first failure after the success
@@ -119,7 +139,8 @@ while true; do
     if [ -z "$PAGE_RESPONSE" ]; then
         if [ "$PAGE" -eq 1 ]; then
             echo -e "${RED}Error: Could not fetch workflow runs${NC}"
-            exit 1
+            # Treat this as a cancellation so the caller can surface a clear message in Slack
+            write_cancel_and_exit "Could not fetch workflow runs for workflow '${WORKFLOW_NAME}' (check that the workflow exists and that permissions are correct)."
         fi
         break
     fi
@@ -219,6 +240,7 @@ while true; do
         MATCH_COUNT=$(echo "$MATCHING_JOBS" | jq 'length' 2>/dev/null || echo "0")
         if [ "$MATCH_COUNT" -gt 0 ]; then
             FOUND_JOB=true
+            SUBJOB_EVER_FOUND=true
             SORTED_JOBS=$(echo "$MATCHING_JOBS" | jq 'sort_by((.run_attempt // 0), (.completed_at // .started_at // .run_started_at // .created_at // ""))')
             mapfile -t SUBJOB_ROWS < <(echo "$SORTED_JOBS" | jq -c '.[]')
             for SUBJOB in "${SUBJOB_ROWS[@]}"; do
@@ -321,6 +343,11 @@ while true; do
 
         if [ "$FOUND_JOB" = false ]; then
             echo -e "${YELLOW}Subjob not found${NC}"
+            # If we've scanned SUBJOB_MISSING_CANCEL_LIMIT runs on main without EVER
+            # seeing this subjob, assume the subjob name is wrong and cancel early.
+            if [ "$SUBJOB_EVER_FOUND" = false ] && [ "$PROCESSED" -ge "$SUBJOB_MISSING_CANCEL_LIMIT" ]; then
+                write_cancel_and_exit "Subjob '${SUBJOB_NAME}' was not found in the first ${SUBJOB_MISSING_CANCEL_LIMIT} main-branch runs of workflow '${WORKFLOW_NAME}'. Please verify the job name."
+            fi
             continue
         fi
 
