@@ -93,7 +93,7 @@ if [ -z "$WORKFLOW_ID" ]; then
     echo "Make sure the workflow file exists at: .github/workflows/${WORKFLOW_NAME}.yaml (or .yml)"
     # Instead of hard failing the whole job, signal a graceful cancellation so
     # the auto-triage action can send a Slack message explaining what happened.
-    write_cancel_and_exit "Auto-triage cancelled: workflow '${WORKFLOW_NAME}' not found in repository ${REPO}."
+    write_cancel_and_exit "Workflow '${WORKFLOW_NAME}' not found in repository ${REPO}. Verify file path."
 fi
 
 echo -e "${GREEN}Found workflow ID: ${WORKFLOW_ID}${NC}"
@@ -140,7 +140,7 @@ while true; do
         if [ "$PAGE" -eq 1 ]; then
             echo -e "${RED}Error: Could not fetch workflow runs${NC}"
             # Treat this as a cancellation so the caller can surface a clear message in Slack
-            write_cancel_and_exit "Auto-triage cancelled: could not fetch workflow runs for workflow '${WORKFLOW_NAME}' (check that the workflow exists and that permissions are correct)."
+            write_cancel_and_exit "Could not fetch workflow runs for workflow '${WORKFLOW_NAME}' (check that the workflow exists and that permissions are correct)."
         fi
         break
     fi
@@ -346,7 +346,7 @@ while true; do
             # If we've scanned SUBJOB_MISSING_CANCEL_LIMIT runs on main without EVER
             # seeing this subjob, assume the subjob name is wrong and cancel early.
             if [ "$SUBJOB_EVER_FOUND" = false ] && [ "$PROCESSED" -ge "$SUBJOB_MISSING_CANCEL_LIMIT" ]; then
-                write_cancel_and_exit "Auto-triage cancelled: subjob '${SUBJOB_NAME}' was not found in the first ${SUBJOB_MISSING_CANCEL_LIMIT} main-branch runs of workflow '${WORKFLOW_NAME}'. Please verify the job name."
+                write_cancel_and_exit "Subjob '${SUBJOB_NAME}' was not found in the first ${SUBJOB_MISSING_CANCEL_LIMIT} main-branch runs of workflow '${WORKFLOW_NAME}'. Please verify the job name."
             fi
             continue
         fi

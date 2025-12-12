@@ -54,23 +54,16 @@ runs:
         if [ -f "$CANCEL_FILE" ]; then
           SHOULD_CANCEL=$(jq -r '.should_cancel // false' "$CANCEL_FILE")
           if [ "$SHOULD_CANCEL" = "true" ]; then
-            # The cancel message may already include its own prefix and/or literal '\n'
-            # sequences. Normalize it for Slack by:
-            #   1) stripping any leading "Auto-triage cancelled:" label, and
-            #   2) converting '\n' sequences into real newlines.
+            # The RAW_MESSAGE now contains ONLY the core error text (Fix 1 applied in find_boundaries.sh).
             RAW_MESSAGE=$(jq -r '.message // "Auto-triage cancelled"' "$CANCEL_FILE")
-            # Strip leading "Auto-triage cancelled:" (case-insensitive, optional dash/space)
-            # This prevents duplication if the original message already has the prefix
-            CLEAN_MESSAGE=$(printf '%s' "$RAW_MESSAGE" | sed -E 's/^[[:space:]]*Auto-?triage cancelled:?[[:space:]]*//I')
-            # Convert literal "\n" sequences to actual newlines using awk for more reliable handling
-            CLEAN_MESSAGE_WITH_NEWLINES=$(printf '%s' "$CLEAN_MESSAGE" | awk '{gsub(/\\n/, "\n"); print}')
+            
+            # Convert literal "\n" sequences to actual newlines
+            CLEAN_MESSAGE_WITH_NEWLINES=$(printf '%s' "$RAW_MESSAGE" | awk '{gsub(/\\n/, "\n"); print}')
 
             echo "Cancellation detected:"
             printf '%s\n' "$CLEAN_MESSAGE_WITH_NEWLINES"
             
-            # Construct richer cancellation message with proper newline handling
-            # Put the prefix on its own line, then the cleaned message (which may contain newlines),
-            # then the metadata fields. This ensures proper formatting in Slack.
+            # Construct richer cancellation message: hardcoded BOLD prefix + message + metadata
             RICH_MESSAGE=$(printf '*Auto-triage cancelled:*\n%s\n*Workflow:* %s\n*Job:* %s\n*Run:* <%s|%s>' \
               "$CLEAN_MESSAGE_WITH_NEWLINES" \
               "$WORKFLOW_NAME_VALUE" \
@@ -78,17 +71,16 @@ runs:
               "$RUN_URL" \
               "$RUN_LABEL")
             
-            # Construct cancellation payload
-            # The jq -c flag is crucial: it outputs compact (single-line) JSON which is required
-            # for GitHub Actions output. The newlines in RICH_MESSAGE are correctly escaped as \n
-            # in the JSON string, which Slack will interpret properly.
-            if [ -n "$SLACK_TS" ]; then
-               PAYLOAD=$(jq -cn --arg msg "$RICH_MESSAGE" --arg ts "$SLACK_TS" '{text: $msg, thread_ts: $ts}')
-            else
-               PAYLOAD=$(jq -cn --arg msg "$RICH_MESSAGE" '{text: $msg}')
-            fi
+            # Use heredoc for robust multiline output (essential for message content)
+            {
+              echo "slack_message_text<<EOF"
+              printf '%s\n' "$RICH_MESSAGE"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
             
-            echo "payload=$PAYLOAD" >> "$GITHUB_OUTPUT"
+            if [ -n "$SLACK_TS" ]; then
+              echo "slack_ts=$SLACK_TS" >> "$GITHUB_OUTPUT"
+            fi
             echo "has_payload=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -243,21 +235,25 @@ runs:
           exit 0
         fi
         
+        # Use heredoc for robust multiline output (for the regular path)
+        {
+          echo "slack_message_text<<EOF"
+          printf '%s\n' "$TEXT"
+          echo "EOF"
+        } >> "$GITHUB_OUTPUT"
+        
         if [ -n "$SLACK_TS" ]; then
-            # If a timestamp is provided, add it to the payload for threading
-            PAYLOAD=$(jq -cn --arg text "$TEXT" --arg ts "$SLACK_TS" '{text: $text, thread_ts: $ts}')
-        else
-            PAYLOAD=$(jq -cn --arg text "$TEXT" '{text: $text}')
+          echo "slack_ts=$SLACK_TS" >> "$GITHUB_OUTPUT"
         fi
-
-        echo "payload=$PAYLOAD" >> "$GITHUB_OUTPUT"
         echo "has_payload=true" >> "$GITHUB_OUTPUT"
 
     - name: Report via Slack
       if: steps.build.outputs.has_payload == 'true'
       uses: slackapi/slack-github-action@v1.26.0
       with:
-        payload: ${{ steps.build.outputs.payload }}
+        # Use 'text' and 'thread-ts' inputs (essential fix)
+        text: ${{ steps.build.outputs.slack_message_text }}
+        thread-ts: ${{ steps.build.outputs.slack_ts }}
         channel-id: ${{ inputs.channel_id }}
       env:
         SLACK_BOT_TOKEN: ${{ env.SLACK_BOT_TOKEN }}
