@@ -61,17 +61,20 @@ runs:
             RAW_MESSAGE=$(jq -r '.message // "Auto-triage cancelled"' "$CANCEL_FILE")
             # Strip leading "Auto-triage cancelled:" (case-insensitive, optional dash/space)
             CLEAN_MESSAGE=$(printf '%s' "$RAW_MESSAGE" | sed -E 's/^[[:space:]]*Auto-?triage cancelled:?[[:space:]]*//I')
-            # Turn literal "\n" sequences into real newlines so Slack renders them properly
-            CLEAN_MESSAGE=$(printf '%b' "$CLEAN_MESSAGE")
+            # Convert literal "\n" sequences to actual newlines using sed
+            CLEAN_MESSAGE=$(printf '%s' "$CLEAN_MESSAGE" | sed 's/\\n/\n/g')
 
             echo "Cancellation detected:"
             printf '%s\n' "$CLEAN_MESSAGE"
             
-            # Construct richer cancellation message
-            RICH_MESSAGE="*Auto-triage cancelled:* $CLEAN_MESSAGE\n"
-            RICH_MESSAGE+="*Workflow:* $WORKFLOW_NAME_VALUE\n"
-            RICH_MESSAGE+="*Job:* $JOB_NAME_VALUE\n"
-            RICH_MESSAGE+="*Run:* <$RUN_URL|$RUN_LABEL>"
+            # Construct richer cancellation message, handling newlines properly
+            # Use printf to build the message so newlines in CLEAN_MESSAGE are preserved
+            RICH_MESSAGE=$(printf '*Auto-triage cancelled:* %s\n*Workflow:* %s\n*Job:* %s\n*Run:* <%s|%s>' \
+              "$CLEAN_MESSAGE" \
+              "$WORKFLOW_NAME_VALUE" \
+              "$JOB_NAME_VALUE" \
+              "$RUN_URL" \
+              "$RUN_LABEL")
             
             # Construct cancellation payload
             if [ -n "$SLACK_TS" ]; then
