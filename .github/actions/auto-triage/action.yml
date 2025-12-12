@@ -191,7 +191,7 @@ runs:
         cp "${{ github.action_path }}/auto_triage/sample_slack_message.json" "$TARGET/slack_message.json"
 
     - name: Send Slack notification
-      if: always() && inputs.send-slack-message == 'true'
+      if: always()
       uses: tenstorrent-metal/tt-auto-triage/.github/actions/slack-report-auto-triage@main
       with:
         # slack_webhook_url is no longer used, using env.SLACK_BOT_TOKEN and env.SLACK_CHANNEL_ID instead inside the action
