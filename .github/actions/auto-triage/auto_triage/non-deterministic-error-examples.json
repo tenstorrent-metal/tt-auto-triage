@@ -14,6 +14,11 @@
       "job": "t3000-unit-tests / t3k ttmetal tests",
       "test": "MeshBufferTest.DeallocationWithoutMeshDevice",
       "error_message": "Timeout waiting for Ethernet core service remote IO request flush" 
+    },
+    {
+      "job": "many jobs",
+      "test": "many tests",
+      "error_message": "RuntimeError: Failed to allocate the TLB with size ..."
     }
   ]
 }
