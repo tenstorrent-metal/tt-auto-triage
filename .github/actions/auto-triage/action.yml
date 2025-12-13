@@ -48,72 +48,97 @@ runs:
           --exclude 'auto_triage/' \
           "$GITHUB_WORKSPACE"/ "$TARGET/workspace/"
         echo "$TARGET" >> "$GITHUB_PATH"
+        # Initialize cancel.json with default state - this is the single source of truth for cancellation
+        echo '{"should_cancel": false, "message": ""}' > "$TARGET/cancel.json"
+
     - name: Find boundaries
       if: inputs.slack-test-only != 'true'
       shell: bash
       run: |
         set -euo pipefail
         cd "${GITHUB_WORKSPACE}/.auto_triage"
+        # Check cancel state
+        if [ -f cancel.json ] && [ "$(jq -r '.should_cancel // false' cancel.json)" = "true" ]; then
+          echo "Skipping: cancellation requested"
+          exit 0
+        fi
         ./find_boundaries.sh \
           "${{ inputs.workflow-name }}" \
           "${{ inputs.job-name }}"
       env:
         GH_TOKEN: ${{ github.token }}
         GITHUB_TOKEN: ${{ github.token }}
-    - name: Check early cancellation flag
-      id: pre-check-cancel
-      if: always()
+
+    - name: Download Slack directory
+      if: inputs.slack-test-only != 'true'
       shell: bash
       run: |
         set -euo pipefail
         cd "${GITHUB_WORKSPACE}/.auto_triage"
-        CANCEL_FILE="cancel.json"
-        if [ ! -f "$CANCEL_FILE" ]; then
-          echo "should_cancel=false" >> "$GITHUB_OUTPUT"
+        # Check cancel state
+        if [ -f cancel.json ] && [ "$(jq -r '.should_cancel // false' cancel.json)" = "true" ]; then
+          echo "Skipping: cancellation requested"
           exit 0
         fi
-        SHOULD_CANCEL=$(jq -r '.should_cancel // false' "$CANCEL_FILE")
-        echo "should_cancel=${SHOULD_CANCEL}" >> "$GITHUB_OUTPUT"
-    - name: Download Slack directory
-      if: inputs.slack-test-only != 'true' && steps.pre-check-cancel.outputs.should_cancel != 'true'
+        ./download_slack_directory.py
+
+    - name: Install ripgrep
+      if: inputs.slack-test-only != 'true'
       shell: bash
       run: |
         set -euo pipefail
         cd "${GITHUB_WORKSPACE}/.auto_triage"
-        ./download_slack_directory.py
-    - name: Install ripgrep
-      if: inputs.slack-test-only != 'true' && steps.pre-check-cancel.outputs.should_cancel != 'true'
-      shell: bash
-      run: |
-        set -euo pipefail
+        # Check cancel state
+        if [ -f cancel.json ] && [ "$(jq -r '.should_cancel // false' cancel.json)" = "true" ]; then
+          echo "Skipping: cancellation requested"
+          exit 0
+        fi
         sudo apt-get update && sudo apt-get install -y ripgrep
         rg --version || (echo "ripgrep installation failed" && exit 1)
+
     - name: Setup Node.js v22+
-      if: inputs.slack-test-only != 'true' && steps.pre-check-cancel.outputs.should_cancel != 'true'
+      if: inputs.slack-test-only != 'true'
       uses: actions/setup-node@v4
       with:
         node-version: '22'
+
     - name: Install GitHub Copilot CLI
-      if: inputs.slack-test-only != 'true' && steps.pre-check-cancel.outputs.should_cancel != 'true'
+      if: inputs.slack-test-only != 'true'
       shell: bash
       run: |
         set -euo pipefail
+        cd "${GITHUB_WORKSPACE}/.auto_triage"
+        # Check cancel state
+        if [ -f cancel.json ] && [ "$(jq -r '.should_cancel // false' cancel.json)" = "true" ]; then
+          echo "Skipping: cancellation requested"
+          exit 0
+        fi
         npm install -g @github/copilot
         copilot --version || (echo "Copilot CLI installation failed" && exit 1)
+
     - name: Execute filter_triage.sh
-      if: inputs.slack-test-only != 'true' && steps.pre-check-cancel.outputs.should_cancel != 'true'
+      if: inputs.slack-test-only != 'true'
       shell: bash
       run: |
-        set -euo pipefail
+        set -uo pipefail
+        cd "${GITHUB_WORKSPACE}/.auto_triage"
+        # Check cancel state
+        if [ -f cancel.json ] && [ "$(jq -r '.should_cancel // false' cancel.json)" = "true" ]; then
+          echo "Skipping: cancellation requested"
+          exit 0
+        fi
         # Verify authentication tokens are set
         if [ -z "${COPILOT_GITHUB_TOKEN:-}" ] && [ -z "${GH_TOKEN:-}" ] && [ -z "${GITHUB_TOKEN:-}" ]; then
           echo "Warning: No authentication tokens found in environment"
         fi
-        cd "${GITHUB_WORKSPACE}/.auto_triage"
-        ./filter_triage.sh \
+        # Run filter_triage.sh with error handling - fail gracefully on any error
+        if ! ./filter_triage.sh \
           "${{ inputs.workflow-name }}" \
           "${{ inputs.job-name }}" \
-          ci
+          ci; then
+          echo "filter_triage.sh failed, setting cancellation flag"
+          jq -n '{should_cancel: true, message: "Filter triage step failed unexpectedly. Check logs for details."}' > cancel.json
+        fi
       env:
         # Use TESTING_COPILOT_PAT for Copilot CLI authentication
         COPILOT_GITHUB_TOKEN: ${{ inputs.copilot-pat }}
@@ -121,46 +146,23 @@ runs:
         GH_TOKEN: ${{ github.token }}
         GITHUB_TOKEN: ${{ github.token }}
 
-    - name: Evaluate cancellation flag
-      id: check-cancel
-      if: always()
+    - name: Write cancellation explanation
+      if: inputs.slack-test-only != 'true'
       shell: bash
       run: |
         set -euo pipefail
         cd "${GITHUB_WORKSPACE}/.auto_triage"
         CANCEL_FILE="cancel.json"
-        
-        # If cancel.json doesn't exist, it means we failed before creating it or unexpected error
-        if [ ! -f "$CANCEL_FILE" ]; then
-          echo "cancel.json not found. Assuming no cancellation or generic failure."
-          echo "should_cancel=false" >> "$GITHUB_OUTPUT"
+        # Only write explanation if cancellation was requested
+        if [ ! -f "$CANCEL_FILE" ] || [ "$(jq -r '.should_cancel // false' "$CANCEL_FILE")" != "true" ]; then
+          echo "No cancellation requested, skipping"
           exit 0
         fi
-        
-        SHOULD_CANCEL=$(jq -r '.should_cancel // false' "$CANCEL_FILE")
-        CANCEL_MESSAGE=$(jq -r '.message // ""' "$CANCEL_FILE")
-        {
-          echo "should_cancel=${SHOULD_CANCEL}"
-          echo "cancel_message<<EOF"
-          echo "${CANCEL_MESSAGE}"
-          echo "EOF"
-        } >> "$GITHUB_OUTPUT"
-        
-        if [ "$SHOULD_CANCEL" = "true" ]; then
-          echo "Filter stage requested cancellation: ${CANCEL_MESSAGE}"
-        fi
-
-    - name: Write cancellation explanation
-      if: steps.check-cancel.outputs.should_cancel == 'true'
-      shell: bash
-      run: |
-        set -euo pipefail
-        cd "${GITHUB_WORKSPACE}/.auto_triage"
         REPORT_DIR="${GITHUB_WORKSPACE}/.auto_triage/output"
         mkdir -p "$REPORT_DIR"
         RUN_URL="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
         RUN_LABEL="full_report_link #${GITHUB_RUN_NUMBER:-$GITHUB_RUN_ID}"
-        CANCEL_MESSAGE="${{ steps.check-cancel.outputs.cancel_message }}"
+        CANCEL_MESSAGE=$(jq -r '.message // ""' "$CANCEL_FILE")
         {
           echo "*Auto-triage cancelled:*"
           echo "$CANCEL_MESSAGE"
@@ -171,11 +173,16 @@ runs:
         } > "$REPORT_DIR/explanation.md"
 
     - name: Verify filter stage outputs
-      if: inputs.slack-test-only != 'true' && steps.check-cancel.outputs.should_cancel != 'true'
+      if: inputs.slack-test-only != 'true'
       shell: bash
       run: |
         set -euo pipefail
         cd "${GITHUB_WORKSPACE}/.auto_triage"
+        # Check cancel state
+        if [ -f cancel.json ] && [ "$(jq -r '.should_cancel // false' cancel.json)" = "true" ]; then
+          echo "Skipping: cancellation requested"
+          exit 0
+        fi
         COMMIT_FILE="auto_triage/data/commit_info.json"
         if [ ! -f "$COMMIT_FILE" ]; then
             echo "Filter stage did not produce $COMMIT_FILE" >&2
@@ -186,11 +193,16 @@ runs:
         fi
 
     - name: Execute auto_triage.sh
-      if: inputs.slack-test-only != 'true' && steps.check-cancel.outputs.should_cancel != 'true'
+      if: inputs.slack-test-only != 'true'
       shell: bash
       run: |
         set -euo pipefail
         cd "${GITHUB_WORKSPACE}/.auto_triage"
+        # Check cancel state
+        if [ -f cancel.json ] && [ "$(jq -r '.should_cancel // false' cancel.json)" = "true" ]; then
+          echo "Skipping: cancellation requested"
+          exit 0
+        fi
         ./auto_triage.sh \
           "${{ inputs.workflow-name }}" \
           "${{ inputs.job-name }}" \
@@ -202,19 +214,26 @@ runs:
         # Use github.token for gh CLI (used by bash scripts for GitHub API calls)
         GH_TOKEN: ${{ github.token }}
         GITHUB_TOKEN: ${{ github.token }}
+
     - name: Attempt auto fix PR (optional)
       if: inputs.slack-test-only != 'true'
       shell: bash
       run: |
         set -euo pipefail
         cd "${GITHUB_WORKSPACE}/.auto_triage"
+        # Check cancel state
+        if [ -f cancel.json ] && [ "$(jq -r '.should_cancel // false' cancel.json)" = "true" ]; then
+          echo "Skipping: cancellation requested"
+          exit 0
+        fi
         ./run_auto_fix.sh \
           "${{ inputs.workflow-name }}" \
-          "${{ inputs.job-name }}" \
+          "${{ inputs.job-name }}"
       env:
         COPILOT_GITHUB_TOKEN: ${{ inputs.copilot-pat }}
         GH_TOKEN: ${{ github.token }}
         GITHUB_TOKEN: ${{ github.token }}
+
     - name: Seed Slack test payload
       if: inputs.slack-test-only == 'true'
       shell: bash
@@ -223,6 +242,7 @@ runs:
         TARGET="${GITHUB_WORKSPACE}/.auto_triage/output"
         mkdir -p "$TARGET"
         cp "${{ github.action_path }}/auto_triage/sample_slack_message.json" "$TARGET/slack_message.json"
+
     - name: Debug Slack send configuration
       if: always()
       shell: bash
@@ -235,6 +255,7 @@ runs:
         else
           echo "Auto-triage: Slack notification step is DISABLED and will NOT run."
         fi
+
     - name: Send Slack notification
       if: always() && inputs.send-slack-message == 'true'
       uses: tenstorrent-metal/tt-auto-triage/.github/actions/slack-report-auto-triage@main
@@ -247,6 +268,7 @@ runs:
         auto_fix_meta_path: .auto_triage/data/auto_fix_metadata.json
         slack_ts: ${{ inputs.slack_ts }}
         allow_pings: ${{ inputs.allow-pings }}
+
     - name: Publish triage report to summary
       if: always() && inputs.slack-test-only != 'true'
       shell: bash
@@ -261,6 +283,7 @@ runs:
         else
             echo "No explanation produced." >> "$GITHUB_STEP_SUMMARY"
         fi
+
     - name: Upload auto-triage data
       if: always() && inputs.slack-test-only != 'true'
       uses: actions/upload-artifact@v4
@@ -269,6 +292,7 @@ runs:
         path: ${{ github.workspace }}/.auto_triage/data
         if-no-files-found: ignore
         include-hidden-files: true
+
     - name: Upload auto-triage output
       if: always() && inputs.slack-test-only != 'true'
       uses: actions/upload-artifact@v4
