@@ -19,6 +19,11 @@
       "job": "many jobs",
       "test": "many tests",
       "error_message": "RuntimeError: Failed to allocate the TLB with size ..."
+    },
+    {
+      "job": "many jobs",
+      "test": "many tests",
+      "error_message": "tt-smi reset status: 1... [gw0] node down: Not properly terminated"
     }
   ]
 }
