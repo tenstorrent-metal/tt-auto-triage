@@ -24,6 +24,11 @@
       "job": "many jobs",
       "test": "many tests",
       "error_message": "tt-smi reset status: 1... [gw0] node down: Not properly terminated"
+    },
+    {
+      "job": "t3000-unit-tests / t3k tt_metal multiprocess tests",
+      "test": "unclear test name",
+      "error_message": "TT_FATAL @ /work/tt_metal/llrt/tt_cluster.cpp:476: false. Physical chip id not found for eth coord"
     }
   ]
 }
