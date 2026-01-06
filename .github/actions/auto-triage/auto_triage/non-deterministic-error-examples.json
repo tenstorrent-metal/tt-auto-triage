@@ -29,6 +29,11 @@
       "job": "t3000-unit-tests / t3k tt_metal multiprocess tests",
       "test": "unclear test name",
       "error_message": "TT_FATAL @ /work/tt_metal/llrt/tt_cluster.cpp:476: false. Physical chip id not found for eth coord"
+    },
+    {
+      "job": "many jobs",
+      "test": "many tests",
+      "error_message": "... waiting for lock 'NON_MMIO_3_PCIe' ..."
     }
   ]
 }
