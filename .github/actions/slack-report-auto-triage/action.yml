@@ -64,7 +64,7 @@ runs:
             printf '%s\n' "$CORE_MESSAGE_WITH_NEWLINES"
             
             # 2. Construct RICH_MESSAGE with actual newlines
-            RICH_MESSAGE=$(printf '*Auto-triage cancelled:*\n%s\n*Workflow:* %s\n*Job:* %s\n*Run:* <%s|%s>' \
+            RICH_MESSAGE=$(printf '*Auto-triage cancelled:*\n%s\n*Workflow:* %s\n*Job:* %s\n*Run:* <%s|%s>\n\n---\n_DISCLAIMER: This analysis has been done by AI. Do not take the results as absolute truth since it has been inaccurate in the past._' \
               "$CORE_MESSAGE_WITH_NEWLINES" \
               "$WORKFLOW_NAME_VALUE" \
               "$JOB_NAME_VALUE" \
@@ -225,6 +225,7 @@ runs:
             + section_files("RELEVANT FILES"; .relevant_files)
             + section_line("NOTES"; .notes)
             + (if ($auto_fix // "") != "" then "\n*AUTO-FIX:* Draft PR created -> <\($auto_fix)|link>\n" else "" end)
+            + "\n---\n_DISCLAIMER: This analysis has been done by AI. Do not take the results as absolute truth since it has been inaccurate in the past._"
           ) | gsub("\n{3,}"; "\n\n")
         ' "$MESSAGE_PATH")
 
