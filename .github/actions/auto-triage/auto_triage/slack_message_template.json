@@ -26,7 +26,7 @@
                 "confidence": 98
             }
         ],
-        "slack_message": "Deterministic failure traced to commit af12b3c4. Reduce-max kernel now reuses dirty buffers; reverting or zeroing buffers fixes the nightly."
+        "slack_message": "Deterministic failure traced to commit af12b3c4. Reduce-max kernel now reuses dirty buffers; reverting or zeroing buffers fixes the nightly. Keep in mind that this entire analysis is done by AI, and it is prone to false positives, especially for performance regressions and timeouts."
     },
     {
         "case": "2",
