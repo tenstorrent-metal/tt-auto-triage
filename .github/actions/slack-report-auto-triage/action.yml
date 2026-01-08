@@ -60,8 +60,16 @@ runs:
             # 1. Convert literal "\n" sequences (from jq) to actual newlines (\n)
             CORE_MESSAGE_WITH_NEWLINES=$(printf '%s' "$RAW_MESSAGE" | awk '{gsub(/\\n/, "\n"); print}')
 
+            echo "CURRENTLY ON THE SEPARATE BRANCH"
             echo "Cancellation detected:"
             printf '%s\n' "$CORE_MESSAGE_WITH_NEWLINES"
+            
+            # Debug: Check current directory and file existence
+            echo "Current directory: $(pwd)"
+            echo "Checking for error_message.txt: .auto_triage/data/error_message.txt"
+            [ -f ".auto_triage/data/error_message.txt" ] && echo "  ✓ error_message.txt exists" || echo "  ✗ error_message.txt not found"
+            echo "Checking for subjob_runs.json: .auto_triage/data/subjob_runs.json"
+            [ -f ".auto_triage/data/subjob_runs.json" ] && echo "  ✓ subjob_runs.json exists" || echo "  ✗ subjob_runs.json not found"
             
             # 2. Read error message from error_message.txt if it exists
             ERROR_MSG_FILE=".auto_triage/data/error_message.txt"
@@ -69,6 +77,9 @@ runs:
             if [ -f "$ERROR_MSG_FILE" ] && [ -s "$ERROR_MSG_FILE" ]; then
               # Read error message (limit to first 20 lines to avoid huge messages)
               ERROR_CONTENT=$(cat "$ERROR_MSG_FILE" | head -20)
+              echo "Read error message (${#ERROR_CONTENT} chars)"
+            else
+              echo "error_message.txt not found or empty"
             fi
             
             # 3. Extract latest failing job URL from subjob_runs.json if available
@@ -76,26 +87,45 @@ runs:
             FAILING_RUN_LABEL=""
             SUBJOB_RUNS_FILE=".auto_triage/data/subjob_runs.json"
             if [ -f "$SUBJOB_RUNS_FILE" ]; then
+              echo "Reading subjob_runs.json..."
               # Find the latest failing run (highest run_number with status "failure")
+              # Handle both array format and object with runs array
               LATEST_FAILURE=$(jq -r '
-                if type == "array" then . else (.runs // []) end
+                (if type == "array" then . else (.runs // []) end) as $runs
+                | $runs
                 | map(select(.status == "failure"))
                 | sort_by(.run_number // 0)
                 | last
                 // empty
-              ' "$SUBJOB_RUNS_FILE" 2>/dev/null)
+              ' "$SUBJOB_RUNS_FILE" 2>&1)
               
-              if [ -n "$LATEST_FAILURE" ] && [ "$LATEST_FAILURE" != "null" ]; then
-                FAILING_RUN_URL=$(echo "$LATEST_FAILURE" | jq -r '.job_url // .run_url // ""' 2>/dev/null)
-                RUN_ID=$(echo "$LATEST_FAILURE" | jq -r '.run_id // .job_id // ""' 2>/dev/null)
-                if [ -n "$FAILING_RUN_URL" ] && [ "$FAILING_RUN_URL" != "null" ]; then
-                  if [ -n "$RUN_ID" ] && [ "$RUN_ID" != "null" ]; then
+              if [ $? -eq 0 ] && [ -n "$LATEST_FAILURE" ] && [ "$LATEST_FAILURE" != "null" ] && [ "$LATEST_FAILURE" != "" ]; then
+                echo "Found latest failure, extracting URL..."
+                FAILING_RUN_URL=$(echo "$LATEST_FAILURE" | jq -r '.job_url // .run_url // ""' 2>/dev/null || echo "")
+                RUN_ID=$(echo "$LATEST_FAILURE" | jq -r '.run_id // .job_id // ""' 2>/dev/null || echo "")
+                echo "  FAILING_RUN_URL: ${FAILING_RUN_URL:0:50}..."
+                echo "  RUN_ID: $RUN_ID"
+                if [ -n "$FAILING_RUN_URL" ] && [ "$FAILING_RUN_URL" != "null" ] && [ "$FAILING_RUN_URL" != "" ]; then
+                  if [ -n "$RUN_ID" ] && [ "$RUN_ID" != "null" ] && [ "$RUN_ID" != "" ]; then
                     FAILING_RUN_LABEL="Run #${RUN_ID} (latest failure)"
                   else
-                    FAILING_RUN_LABEL="latest failure"
+                    # Extract run ID from URL if not in the JSON
+                    if [[ "$FAILING_RUN_URL" =~ /runs/([0-9]+) ]]; then
+                      RUN_ID_FROM_URL="${BASH_REMATCH[1]}"
+                      FAILING_RUN_LABEL="Run #${RUN_ID_FROM_URL} (latest failure)"
+                    else
+                      FAILING_RUN_LABEL="latest failure"
+                    fi
                   fi
+                  echo "  FAILING_RUN_LABEL: $FAILING_RUN_LABEL"
+                else
+                  echo "  Failed to extract URL from latest failure"
                 fi
+              else
+                echo "  No failures found or jq error: $LATEST_FAILURE"
               fi
+            else
+              echo "subjob_runs.json not found at $SUBJOB_RUNS_FILE"
             fi
             
             # 4. Construct message using jq to properly handle escaping and newlines
