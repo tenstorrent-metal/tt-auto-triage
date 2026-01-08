@@ -71,14 +71,73 @@ runs:
               ERROR_CONTENT=$(cat "$ERROR_MSG_FILE" | head -20)
             fi
             
-            # 3. Construct message using jq to properly handle escaping and newlines
-            # Include error message in a separate FAILURE MESSAGE section if available
+            # 3. Extract latest failing job URL from subjob_runs.json if available
+            FAILING_RUN_URL=""
+            FAILING_RUN_LABEL=""
+            SUBJOB_RUNS_FILE=".auto_triage/data/subjob_runs.json"
+            if [ -f "$SUBJOB_RUNS_FILE" ]; then
+              # Find the latest failing run (highest run_number with status "failure")
+              LATEST_FAILURE=$(jq -r '
+                if type == "array" then . else (.runs // []) end
+                | map(select(.status == "failure"))
+                | sort_by(.run_number // 0)
+                | last
+                // empty
+              ' "$SUBJOB_RUNS_FILE" 2>/dev/null)
+              
+              if [ -n "$LATEST_FAILURE" ] && [ "$LATEST_FAILURE" != "null" ]; then
+                FAILING_RUN_URL=$(echo "$LATEST_FAILURE" | jq -r '.job_url // .run_url // ""' 2>/dev/null)
+                RUN_ID=$(echo "$LATEST_FAILURE" | jq -r '.run_id // .job_id // ""' 2>/dev/null)
+                if [ -n "$FAILING_RUN_URL" ] && [ "$FAILING_RUN_URL" != "null" ]; then
+                  if [ -n "$RUN_ID" ] && [ "$RUN_ID" != "null" ]; then
+                    FAILING_RUN_LABEL="Run #${RUN_ID} (latest failure)"
+                  else
+                    FAILING_RUN_LABEL="latest failure"
+                  fi
+                fi
+              fi
+            fi
+            
+            # 4. Construct message using jq to properly handle escaping and newlines
+            # Include error message and failing run link if available
             PAYLOAD_FILE=".auto_triage/slack_payload.json"
             mkdir -p "$(dirname "$PAYLOAD_FILE")"
             
             # Build message using jq for proper escaping
             if [ -n "$SLACK_TS" ]; then
-              if [ -n "$ERROR_CONTENT" ]; then
+              if [ -n "$FAILING_RUN_URL" ] && [ -n "$FAILING_RUN_LABEL" ] && [ -n "$ERROR_CONTENT" ]; then
+                # All sections: failing run + error message
+                jq -n \
+                  --arg cancel_msg "$CORE_MESSAGE_WITH_NEWLINES" \
+                  --arg workflow "$WORKFLOW_NAME_VALUE" \
+                  --arg job "$JOB_NAME_VALUE" \
+                  --arg run_url "$RUN_URL" \
+                  --arg run_label "$RUN_LABEL" \
+                  --arg failing_run_url "$FAILING_RUN_URL" \
+                  --arg failing_run_label "$FAILING_RUN_LABEL" \
+                  --arg error_msg "$ERROR_CONTENT" \
+                  --arg thread_ts "$SLACK_TS" \
+                  '{
+                    text: ("*Auto-triage cancelled:*\n" + $cancel_msg + "\n*Workflow:* " + $workflow + "\n*Job:* " + $job + "\n*Run:* <" + $run_url + "|" + $run_label + ">\n*FAILING RUN:* <" + $failing_run_url + "|" + $failing_run_label + ">\n\n*FAILURE MESSAGE:*\n```" + $error_msg + "```\n\n---\n_DISCLAIMER: This analysis has been done by AI. Do not take the results as absolute truth since it has been inaccurate in the past._"),
+                    thread_ts: $thread_ts
+                  }' > "$PAYLOAD_FILE"
+              elif [ -n "$FAILING_RUN_URL" ] && [ -n "$FAILING_RUN_LABEL" ]; then
+                # Only failing run, no error message
+                jq -n \
+                  --arg cancel_msg "$CORE_MESSAGE_WITH_NEWLINES" \
+                  --arg workflow "$WORKFLOW_NAME_VALUE" \
+                  --arg job "$JOB_NAME_VALUE" \
+                  --arg run_url "$RUN_URL" \
+                  --arg run_label "$RUN_LABEL" \
+                  --arg failing_run_url "$FAILING_RUN_URL" \
+                  --arg failing_run_label "$FAILING_RUN_LABEL" \
+                  --arg thread_ts "$SLACK_TS" \
+                  '{
+                    text: ("*Auto-triage cancelled:*\n" + $cancel_msg + "\n*Workflow:* " + $workflow + "\n*Job:* " + $job + "\n*Run:* <" + $run_url + "|" + $run_label + ">\n*FAILING RUN:* <" + $failing_run_url + "|" + $failing_run_label + ">\n\n---\n_DISCLAIMER: This analysis has been done by AI. Do not take the results as absolute truth since it has been inaccurate in the past._"),
+                    thread_ts: $thread_ts
+                  }' > "$PAYLOAD_FILE"
+              elif [ -n "$ERROR_CONTENT" ]; then
+                # Only error message, no failing run
                 jq -n \
                   --arg cancel_msg "$CORE_MESSAGE_WITH_NEWLINES" \
                   --arg workflow "$WORKFLOW_NAME_VALUE" \
@@ -92,6 +151,7 @@ runs:
                     thread_ts: $thread_ts
                   }' > "$PAYLOAD_FILE"
               else
+                # Neither failing run nor error message
                 jq -n \
                   --arg cancel_msg "$CORE_MESSAGE_WITH_NEWLINES" \
                   --arg workflow "$WORKFLOW_NAME_VALUE" \
@@ -105,7 +165,35 @@ runs:
                   }' > "$PAYLOAD_FILE"
               fi
             else
-              if [ -n "$ERROR_CONTENT" ]; then
+              if [ -n "$FAILING_RUN_URL" ] && [ -n "$FAILING_RUN_LABEL" ] && [ -n "$ERROR_CONTENT" ]; then
+                # All sections: failing run + error message
+                jq -n \
+                  --arg cancel_msg "$CORE_MESSAGE_WITH_NEWLINES" \
+                  --arg workflow "$WORKFLOW_NAME_VALUE" \
+                  --arg job "$JOB_NAME_VALUE" \
+                  --arg run_url "$RUN_URL" \
+                  --arg run_label "$RUN_LABEL" \
+                  --arg failing_run_url "$FAILING_RUN_URL" \
+                  --arg failing_run_label "$FAILING_RUN_LABEL" \
+                  --arg error_msg "$ERROR_CONTENT" \
+                  '{
+                    text: ("*Auto-triage cancelled:*\n" + $cancel_msg + "\n*Workflow:* " + $workflow + "\n*Job:* " + $job + "\n*Run:* <" + $run_url + "|" + $run_label + ">\n*FAILING RUN:* <" + $failing_run_url + "|" + $failing_run_label + ">\n\n*FAILURE MESSAGE:*\n```" + $error_msg + "```\n\n---\n_DISCLAIMER: This analysis has been done by AI. Do not take the results as absolute truth since it has been inaccurate in the past._")
+                  }' > "$PAYLOAD_FILE"
+              elif [ -n "$FAILING_RUN_URL" ] && [ -n "$FAILING_RUN_LABEL" ]; then
+                # Only failing run, no error message
+                jq -n \
+                  --arg cancel_msg "$CORE_MESSAGE_WITH_NEWLINES" \
+                  --arg workflow "$WORKFLOW_NAME_VALUE" \
+                  --arg job "$JOB_NAME_VALUE" \
+                  --arg run_url "$RUN_URL" \
+                  --arg run_label "$RUN_LABEL" \
+                  --arg failing_run_url "$FAILING_RUN_URL" \
+                  --arg failing_run_label "$FAILING_RUN_LABEL" \
+                  '{
+                    text: ("*Auto-triage cancelled:*\n" + $cancel_msg + "\n*Workflow:* " + $workflow + "\n*Job:* " + $job + "\n*Run:* <" + $run_url + "|" + $run_label + ">\n*FAILING RUN:* <" + $failing_run_url + "|" + $failing_run_label + ">\n\n---\n_DISCLAIMER: This analysis has been done by AI. Do not take the results as absolute truth since it has been inaccurate in the past._")
+                  }' > "$PAYLOAD_FILE"
+              elif [ -n "$ERROR_CONTENT" ]; then
+                # Only error message, no failing run
                 jq -n \
                   --arg cancel_msg "$CORE_MESSAGE_WITH_NEWLINES" \
                   --arg workflow "$WORKFLOW_NAME_VALUE" \
@@ -117,6 +205,7 @@ runs:
                     text: ("*Auto-triage cancelled:*\n" + $cancel_msg + "\n*Workflow:* " + $workflow + "\n*Job:* " + $job + "\n*Run:* <" + $run_url + "|" + $run_label + ">\n\n*FAILURE MESSAGE:*\n```" + $error_msg + "```\n\n---\n_DISCLAIMER: This analysis has been done by AI. Do not take the results as absolute truth since it has been inaccurate in the past._")
                   }' > "$PAYLOAD_FILE"
               else
+                # Neither failing run nor error message
                 jq -n \
                   --arg cancel_msg "$CORE_MESSAGE_WITH_NEWLINES" \
                   --arg workflow "$WORKFLOW_NAME_VALUE" \
