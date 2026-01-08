@@ -1,2 +1,4 @@
 .github/actions/auto-triage/auto_triage/slack_directory.json
 .github/actions/auto-triage/auto_triage/slack_groups.json
+
+python_env/
