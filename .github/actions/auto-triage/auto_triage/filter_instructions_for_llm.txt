@@ -22,9 +22,15 @@ Cancellation Lever
 - Set `should_cancel` to `true` and populate `message` with whatever your justification for canceling is. Here are some possible examples:
   1. `"the failure is clearly non-deterministic/infra noise. The issue <insert issue here> is known to be non-deterministic. This analysis would inevitably become Case 3"`
   2. `"this run was invoked in error. the job/workflow inputs are wrong (subjob never existed, boundaries could not even start) and no triage is possible."`
+- **CRITICAL: Before cancelling, you MUST extract and save the error message:**
+  - Even when cancelling, you should still download logs/annotations from failing runs to extract the actual error message.
+  - Save the error message (2–6 lines) into `./auto_triage/data/error_message.txt` BEFORE writing to `cancel.json`.
+  - This ensures the exact error message is available for comparison and tracking, even when the full analysis is skipped.
+  - If no error message can be extracted (e.g., tests never executed), leave `error_message.txt` empty or write a brief note explaining why.
 - When cancelling:
-  - Write `jq -n --arg msg "<phrase>" '{should_cancel: true, message: $msg}' > ./cancel.json`.
-  - You may skip commit downloads entirely; leave `./auto_triage/data/commit_info.json` as `[]` and `error_message.txt` blank unless a deterministic snippet is already captured.
+  - **First:** Extract and save the error message to `./auto_triage/data/error_message.txt` (see step 5 below for format).
+  - **Then:** Write `jq -n --arg msg "<phrase>" '{should_cancel: true, message: $msg}' > ./cancel.json`.
+  - You may skip commit downloads entirely; leave `./auto_triage/data/commit_info.json` as `[]`.
   - Do **not** run any additional helper scripts after setting the cancel flag—exit as soon as artifacts are finalized.
   - If you decide **not** to cancel, leave `cancel.json` with `should_cancel: false` (the default file already satisfies this).
 
@@ -144,8 +150,8 @@ Commit Metadata Collection
 
 Special Cases
 -------------
-- **Purely non-deterministic / infra failures:** If every failing run is due to setup/infrastructure noise, random test flakiness, or issues clearly unrelated to tt-metal code changes, **this is a valid and acceptable outcome.** Skip downloading commits entirely. Write an empty JSON array (`[]`) to `./auto_triage/data/commit_info.json` and leave `error_message.txt` blank. This signals Case 3 to the main model, which is the correct classification for non-deterministic failures.
-- When you are confident the situation above applies and no further analysis is needed, set `cancel.json` with `message: "this is non-deterministic on the output report"` so the pipeline stops after the filter stage.
+- **Purely non-deterministic / infra failures:** If every failing run is due to setup/infrastructure noise, random test flakiness, or issues clearly unrelated to tt-metal code changes, **this is a valid and acceptable outcome.** Skip downloading commits entirely. Write an empty JSON array (`[]`) to `./auto_triage/data/commit_info.json`. **However, you MUST still extract and save the error message to `error_message.txt`** before cancelling—this allows the error to be tracked and compared even when the full analysis is skipped. This signals Case 3 to the main model, which is the correct classification for non-deterministic failures.
+- When you are confident the situation above applies and no further analysis is needed, **first extract the error message to `error_message.txt`**, then set `cancel.json` with `message: "this is non-deterministic on the output report"` so the pipeline stops after the filter stage.
 - **No clear deterministic failure:** If you cannot identify a repeatable failure signature across multiple runs, or if failures appear random/unrelated to code changes, treat this as non-deterministic. Leave `commit_info.json` as `[]` and `error_message.txt` blank.
 - **Commit span too large (>100) or metadata unavailable:** If the helper scripts refuse to download (or logs for the oldest failing run are missing), write a JSON string into `commit_info.json`, e.g. `"too many commits to analyze; default to Case 2 unless other evidence suggests Case 3"`. Still populate `error_message.txt` with the clearest deterministic message you found (or leave it empty if none were available).
 - **Failure history too long (`subjob_runs.json.status` = `failure_limit_exceeded` or `no_success_found`):** `find_boundaries.sh` already scanned 30+ failed runs without finding a success, so there is no trustworthy commit boundary.
