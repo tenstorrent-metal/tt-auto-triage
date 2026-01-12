@@ -13,7 +13,18 @@ import time
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional, Tuple
 
+# ============================================================================
+# CONFIGURATION FLAGS
+# ============================================================================
+
+# Set to True to ensure all issues have runs sorted chronologically
+# Set to False to skip sorting (faster, but runs may not be in chronological order)
+ENSURE_ISSUES_SORTED = False
+
+# ============================================================================
 # File paths
+# ============================================================================
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 SECRETS_FILE = os.path.join(SCRIPT_DIR, "secrets.json")
 ALL_ERRORS_FILE = os.path.join(SCRIPT_DIR, "all_errors.json")
@@ -65,8 +76,12 @@ PROJECT_FIELD_ID = _secrets["PROJECT_FIELD_ID"]
 # GitHub API Functions
 # ============================================================================
 
-def get_all_issues() -> List[Dict[str, Any]]:
-    """Get all issues from the repository and map them to centroids."""
+def get_all_issues(open_only: bool = False) -> List[Dict[str, Any]]:
+    """Get all issues from the repository and map them to centroids.
+    
+    Args:
+        open_only: If True, only fetch open issues. If False, fetch all issues.
+    """
     import requests
     
     url = f"https://api.github.com/repos/{GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}/issues"
@@ -81,7 +96,7 @@ def get_all_issues() -> List[Dict[str, Any]]:
     
     while True:
         params = {
-            "state": "all",  # Get both open and closed
+            "state": "open" if open_only else "all",  # Get open only or both open and closed
             "per_page": per_page,
             "page": page
         }
@@ -126,20 +141,42 @@ def map_issues_to_centroids(issues: List[Dict[str, Any]], issue_dump: List[Dict[
         Dictionary mapping centroid_error string to issue_number
     """
     centroid_to_issue = {}
+    issues_without_centroids = 0
+    centroids_not_found = 0
     
     for issue in issues:
         issue_body = issue.get("body", "")
         centroid_from_issue = extract_centroid_from_issue_body(issue_body)
         
         if not centroid_from_issue:
+            issues_without_centroids += 1
             continue
         
         # Find matching centroid in issue_dump
+        matched = False
         for idx, entry in enumerate(issue_dump):
             centroid_error = entry.get("centroid_error", "")
-            if centroid_error and centroid_error.strip() == centroid_from_issue.strip():
+            if not centroid_error:
+                continue
+            
+            # Try exact match
+            if centroid_error.strip() == centroid_from_issue.strip():
                 centroid_to_issue[centroid_error] = issue["number"]
+                matched = True
                 break
+            # Try case-insensitive match
+            if centroid_error.strip().lower() == centroid_from_issue.strip().lower():
+                centroid_to_issue[centroid_error] = issue["number"]
+                matched = True
+                break
+        
+        if not matched:
+            centroids_not_found += 1
+    
+    if issues_without_centroids > 0:
+        print(f"  Note: {issues_without_centroids} issue(s) had no extractable centroid")
+    if centroids_not_found > 0:
+        print(f"  Note: {centroids_not_found} issue centroid(s) not found in issue_dump")
     
     return centroid_to_issue
 
@@ -601,14 +638,20 @@ def format_issue_body(centroid_error: str, failing_runs: List[str], timestamps: 
         if is_nd:
             label += " (marked as ND)"
         
-        url_list.append((timestamp, label, url, job_workflow_suffix))
+        # Parse timestamp for proper chronological sorting
+        dt = parse_timestamp(timestamp) if timestamp else None
+        # Use datetime for sorting (None for items without timestamps, which go to end)
+        url_list.append((dt, label, url, job_workflow_suffix))
     
-    # Sort by timestamp string (alphabetically - this works for "January Xth, time" format)
-    # Items without timestamps go to the end
-    url_list.sort(key=lambda x: (x[0] == "", x[0]), reverse=True)  # Timestamps first, then no timestamps
+    # Sort chronologically (newest first), items without timestamps go to the end
+    # Key: (has_timestamp, datetime) 
+    # - Items with timestamps: (True, dt) - we want newer dt first
+    # - Items without timestamps: (False, max) - we want these last
+    # With reverse=True: (True, newer) > (True, older) > (False, max) ✓
+    url_list.sort(key=lambda x: (x[0] is not None, x[0] if x[0] is not None else datetime.max), reverse=True)
     
     # Format the list
-    for idx, (timestamp, label, url, job_workflow_suffix) in enumerate(url_list, 1):
+    for idx, (dt, label, url, job_workflow_suffix) in enumerate(url_list, 1):
         body_parts.append(f"{idx}. [{label}]({url}){job_workflow_suffix}")
     
     return "\n".join(body_parts)
@@ -861,12 +904,21 @@ def parse_timestamp(timestamp_str: str) -> Optional[datetime]:
             # Format: "January 9" and "8:59am"
             try:
                 dt = datetime.strptime(f"{date_part_clean}, {time_part}", "%B %d, %I:%M%p")
-                # Use current year (or previous year if date is in future)
+                # Determine the correct year
                 current_year = datetime.now().year
                 dt = dt.replace(year=current_year)
+                now = datetime.now()
+                
                 # If the date is more than 6 months in the future, assume it's from last year
-                if dt > datetime.now() + timedelta(days=180):
+                if dt > now + timedelta(days=180):
                     dt = dt.replace(year=current_year - 1)
+                # If the date is more than 6 months in the past, assume it's from this year (shouldn't happen for recent data)
+                # But handle edge case: if we're in early January and date is late December, it might be from last year
+                elif dt < now - timedelta(days=180):
+                    # Only adjust if we're in January and the date is December (likely from previous year)
+                    if now.month == 1 and dt.month == 12:
+                        dt = dt.replace(year=current_year - 1)
+                
                 return dt
             except ValueError:
                 pass
@@ -1005,6 +1057,134 @@ def cleanup_old_runs(issue_dump: List[Dict[str, Any]], all_timestamps: Dict[str,
     
     return issue_dump, issues_updated, issues_closed
 
+def ensure_all_issues_sorted(issue_dump: List[Dict[str, Any]], all_timestamps: Dict[str, str], centroid_to_issue: Dict[str, int], open_issues_only: bool = True) -> int:
+    """
+    Ensure all issues have their runs sorted chronologically.
+    Updates GitHub issues even if nothing else changed.
+    
+    Args:
+        issue_dump: List of issue entries
+        all_timestamps: Dictionary mapping URLs to timestamps
+        centroid_to_issue: Dictionary mapping centroids to issue numbers
+        open_issues_only: If True, only update open issues. If False, update all issues.
+    
+    Returns:
+        Number of issues updated
+    """
+    print(f"\n{'='*80}")
+    print("Ensuring all issues have runs sorted chronologically...")
+    if open_issues_only:
+        print("(Only updating open issues)")
+    print(f"{'='*80}")
+    
+    # Get open issues - we'll iterate through these directly for better matching
+    if open_issues_only:
+        print("Fetching open issues...")
+        open_issues = get_all_issues(open_only=True)
+        print(f"Found {len(open_issues)} open issue(s)")
+    else:
+        open_issues = get_all_issues(open_only=False)
+    
+    # Build mapping from centroid to issue_dump entry for fast lookup
+    centroid_to_entry = {}
+    for idx, entry in enumerate(issue_dump):
+        centroid_error = entry.get("centroid_error", "")
+        if centroid_error:
+            centroid_to_entry[centroid_error.strip().lower()] = (idx, entry)
+    
+    issues_updated = 0
+    skipped_no_match = 0
+    matched_entries = set()  # Track which issue_dump entries we've matched
+    
+    # Iterate through open issues and match them to issue_dump entries
+    for issue in open_issues:
+        issue_number = issue["number"]
+        issue_body = issue.get("body", "")
+        centroid_from_issue = extract_centroid_from_issue_body(issue_body)
+        
+        if not centroid_from_issue:
+            continue
+        
+        # Find matching entry in issue_dump
+        entry = None
+        entry_idx = None
+        
+        # Try exact match (case-insensitive)
+        centroid_key = centroid_from_issue.strip().lower()
+        if centroid_key in centroid_to_entry:
+            entry_idx, entry = centroid_to_entry[centroid_key]
+            matched_entries.add(entry_idx)
+        else:
+            # Try fuzzy match with existing centroids
+            for centroid, issue_num in centroid_to_issue.items():
+                if centroid.strip().lower() == centroid_key:
+                    # Found a match via centroid_to_issue, now find the entry
+                    for idx, e in enumerate(issue_dump):
+                        if e.get("centroid_error", "").strip().lower() == centroid_key:
+                            entry_idx, entry = idx, e
+                            matched_entries.add(entry_idx)
+                            break
+                    break
+        
+        if not entry:
+            skipped_no_match += 1
+            # Always show issue #274 if it's being skipped, or show first 10 issues
+            if issue_number == 274 or skipped_no_match <= 10:
+                print(f"  ⚠ Skipping issue #{issue_number}: No matching entry found for centroid (first 100 chars): {centroid_from_issue[:100] if len(centroid_from_issue) > 100 else centroid_from_issue}...")
+            continue
+        
+        failing_runs = entry.get("failing_runs", [])
+        run_metadata = entry.get("run_metadata", {})
+        centroid_error = entry.get("centroid_error", "")
+        
+        if not failing_runs:
+            continue
+        
+        try:
+            count = len(failing_runs)
+            # Fetch existing title to preserve group number
+            existing_title = get_issue_title(issue_number)
+            group_num = None
+            if existing_title:
+                group_num = extract_group_num_from_title(existing_title)
+            
+            # Format body - this will sort the runs chronologically
+            body = format_issue_body(centroid_error, failing_runs, all_timestamps, run_metadata)
+            title = create_title_from_count(count, centroid_error, group_num)
+            
+            # Always update to ensure sorting is correct
+            print(f"  Updating issue #{issue_number} to ensure proper sorting...")
+            update_issue(issue_number, title, body)
+            print(f"  ✓ Updated issue #{issue_number}")
+            
+            # Update project field if configured
+            if PROJECT_FIELD_ID:
+                project_item_id = get_project_item_id_for_issue(issue_number)
+                if project_item_id:
+                    update_project_field(project_item_id, count)
+            
+            issues_updated += 1
+            time.sleep(0.5)  # Rate limiting
+        except Exception as e:
+            print(f"  ✗ Error updating issue #{issue_number}: {e}")
+            # Always show full error for issue #274
+            if issue_number == 274:
+                import traceback
+                print(f"  Full traceback for issue #274:")
+                traceback.print_exc()
+    
+    # Report on entries in issue_dump that weren't matched to any open issue
+    unmatched_entries = len(issue_dump) - len(matched_entries)
+    
+    print(f"\n  Summary:")
+    print(f"    Issues updated for sorting: {issues_updated}")
+    if skipped_no_match > 0:
+        print(f"    Open issues skipped (no matching entry): {skipped_no_match}")
+    if unmatched_entries > 0:
+        print(f"    Issue dump entries not matched to open issues: {unmatched_entries}")
+    
+    return issues_updated
+
 # ============================================================================
 # Main Function
 # ============================================================================
@@ -1014,6 +1194,21 @@ def main():
     print("="*80)
     print("Syncing new errors to GitHub issues")
     print("="*80)
+    
+    # Refresh issue dump from GitHub project to ensure it's up to date
+    print(f"\n{'='*80}")
+    print("Refreshing issue dump from GitHub project...")
+    print(f"{'='*80}")
+    try:
+        # Import and run download_issue_dump to refresh issue_dump.json
+        import download_issue_dump
+        download_issue_dump.main()
+        print(f"\n✓ Issue dump refreshed successfully")
+    except Exception as e:
+        print(f"\n⚠ Warning: Failed to refresh issue dump: {e}")
+        print("  Continuing with existing issue_dump.json if it exists...")
+        import traceback
+        traceback.print_exc()
     
     # Load all errors
     print(f"\nLoading errors from {ALL_ERRORS_FILE}...")
@@ -1029,7 +1224,7 @@ def main():
     
     print(f"Found {len(all_errors)} error(s)")
     
-    # Load issue dump
+    # Load issue dump (now refreshed)
     print(f"\nLoading issue dump from {ISSUE_DUMP_FILE}...")
     try:
         with open(ISSUE_DUMP_FILE, 'r', encoding='utf-8') as f:
@@ -1046,7 +1241,7 @@ def main():
     
     # Get all GitHub issues and map to centroids
     print(f"\nFetching GitHub issues to map centroids...")
-    issues = get_all_issues()
+    issues = get_all_issues(open_only=False)  # Need all issues for mapping
     print(f"Found {len(issues)} issue(s) in repository")
     
     centroid_to_issue = map_issues_to_centroids(issues, issue_dump)
@@ -1060,6 +1255,15 @@ def main():
     
     # Clean up old runs (older than 1 month)
     issue_dump, cleanup_updated, cleanup_closed = cleanup_old_runs(issue_dump, all_timestamps, centroid_to_issue)
+    
+    # Ensure all issues have runs sorted chronologically (only if flag is enabled)
+    sorting_updated = 0
+    if ENSURE_ISSUES_SORTED:
+        sorting_updated = ensure_all_issues_sorted(issue_dump, all_timestamps, centroid_to_issue, open_issues_only=True)
+    else:
+        print(f"\n{'='*80}")
+        print("Skipping issue sorting (ENSURE_ISSUES_SORTED = False)")
+        print(f"{'='*80}")
     
     # Build set of all existing URLs from issue_dump (for fast lookup)
     print(f"\nBuilding set of existing URLs...")
@@ -1150,6 +1354,7 @@ def main():
     print(f"  Existing issues updated: {updated_count}")
     print(f"  Issues cleaned up (old runs removed): {cleanup_updated}")
     print(f"  Issues closed (all runs expired): {cleanup_closed}")
+    print(f"  Issues updated for sorting: {sorting_updated}")
     print(f"  Errors skipped (no URL): {skipped_no_url}")
     print(f"  Errors skipped (already exists): {skipped_existing}")
     print(f"  Total issues in dump: {len(issue_dump)}")

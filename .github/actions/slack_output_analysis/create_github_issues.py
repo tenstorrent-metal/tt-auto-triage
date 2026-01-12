@@ -6,9 +6,11 @@ Reads grouped_errors.json and creates an issue for each group.
 
 import json
 import os
+import re
 import sys
 import time
-from typing import Dict, List, Any
+from datetime import datetime, timedelta
+from typing import Dict, List, Any, Optional
 
 # File paths
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -429,6 +431,43 @@ def update_project_field(project_item_id: str, field_id: str, value: int) -> Non
 # Main Processing Functions
 # ============================================================================
 
+def parse_timestamp(timestamp_str: str) -> Optional[datetime]:
+    """Parse timestamp string to datetime object.
+    
+    Handles formats like "January 9th, 8:59am, 58.95 seconds"
+    """
+    if not timestamp_str:
+        return None
+    
+    try:
+        # Try to parse the format: "January 9th, 8:59am, 58.95 seconds"
+        # Remove the seconds part for parsing
+        parts = timestamp_str.split(", ")
+        if len(parts) >= 2:
+            date_part = parts[0]  # "January 9th"
+            time_part = parts[1]  # "8:59am"
+            
+            # Remove ordinal suffix (st, nd, rd, th)
+            date_part_clean = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', date_part)
+            
+            # Parse date and time
+            # Format: "January 9" and "8:59am"
+            try:
+                dt = datetime.strptime(f"{date_part_clean}, {time_part}", "%B %d, %I:%M%p")
+                # Use current year (or previous year if date is in future)
+                current_year = datetime.now().year
+                dt = dt.replace(year=current_year)
+                # If the date is more than 6 months in the future, assume it's from last year
+                if dt > datetime.now() + timedelta(days=180):
+                    dt = dt.replace(year=current_year - 1)
+                return dt
+            except ValueError:
+                pass
+    except Exception:
+        pass
+    
+    return None
+
 def format_issue_body(group_data: Dict[str, Any], group_name: str) -> str:
     """Format the issue body with centroid error and all URLs."""
     centroid = group_data["centroid"]
@@ -515,16 +554,20 @@ def format_issue_body(group_data: Dict[str, Any], group_name: str) -> str:
                 parts.append(job_name)
             job_workflow_suffix = f" - {' / '.join(parts)}"
         
-        # Use timestamp for sorting (empty string for items without timestamps)
-        sort_key = timestamp if timestamp else ""
-        url_list.append((sort_key, label, url, job_workflow_suffix))
+        # Parse timestamp for proper chronological sorting
+        dt = parse_timestamp(timestamp) if timestamp else None
+        # Use datetime for sorting (None for items without timestamps, which go to end)
+        url_list.append((dt, label, url, job_workflow_suffix))
     
-    # Sort by timestamp string (alphabetically - this works for "January Xth, time" format)
-    # Items without timestamps go to the end
-    url_list.sort(key=lambda x: (x[0] == "", x[0]), reverse=True)  # Timestamps first, then no timestamps
+    # Sort chronologically (newest first), items without timestamps go to the end
+    # Key: (has_timestamp, datetime) 
+    # - Items with timestamps: (True, dt) - we want newer dt first
+    # - Items without timestamps: (False, max) - we want these last
+    # With reverse=True: (True, newer) > (True, older) > (False, max) ✓
+    url_list.sort(key=lambda x: (x[0] is not None, x[0] if x[0] is not None else datetime.max), reverse=True)
     
     # Format the list
-    for idx, (sort_key, label, url, job_workflow_suffix) in enumerate(url_list, 1):
+    for idx, (dt, label, url, job_workflow_suffix) in enumerate(url_list, 1):
         body_parts.append(f"{idx}. [{label}]({url}){job_workflow_suffix}")
     
     return "\n".join(body_parts)

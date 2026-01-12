@@ -1,5 +1,418 @@
 [
   {
+    "centroid_error": "RuntimeError: TT_THROW @ /project/tt_metal/impl/dispatch/system_memory_manager.cpp:513: tt::exception\ninfo:\nTIMEOUT: device timeout, potential hang detected, the device is unrecoverable",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20633617762/job/59255642942",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20634423995/job/59257458946",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20634423995/job/59257458952",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20635061292/job/59258915207",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20652045009/job/59298622798",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20652917550/job/59300857453",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20669219799/job/59347313199",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20669505418/job/59348117250",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20669505418/job/59348117252",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20674503801/job/59360440323",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20674535056/job/59360519400",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20679646279/job/59372235200",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20689282284/job/59395116444",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20689282284/job/59395116445",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20689282284/job/59395116451",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20707910887/job/59442299189",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20733412188/job/59526240269",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20739692946/job/59544309041",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20740984321/job/59547928377",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20740984321/job/59547935648",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20744975704/job/59560872408",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20765985903/job/59632468189",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20772263358/job/59650974391",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20773552277/job/59654654196",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20774708186/job/59658310590",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20774708186/job/59658310593",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20799501356/job/59743067489",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20801102207/job/59747591542",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20807275243/job/59764299458",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20807275243/job/59764299488",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20807275243/job/59764299514",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20808671911/job/59768250385",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20808671911/job/59768250393",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20816222524/job/59792967295",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20816222524/job/59792980247",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20823133899/job/59817714569",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20823304803/job/59818250062",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20823341930/job/59818494481",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20823341930/job/59818494512",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20836576482/job/59862745182",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20836614781/job/59862888727",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20836653848/job/59862964093",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20836653848/job/59862964148",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20842886423/job/59880873752",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20842886423/job/59880873755",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20857682362/job/59929315944",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20891242288/job/60022818593",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20909645961/job/60070211461",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20909645961/job/60070211594"
+    ]
+  },
+  {
+    "centroid_error": "The self-hosted runner lost communication with the server. Verify the machine is running and has a healthy network connection. Anything in your workflow that terminates the runner process, starves it for CPU/Memory, or blocks its network access can cause this error.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20834876389/job/59857934126",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20836653848/job/59862964031",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20836653848/job/59862964053",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20836653848/job/59862964126",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20841935244/job/59878197361",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20857829898/job/59947539572",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20857829898/job/59947539595",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20865564286/job/59956448031",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20868800240/job/59966728139",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20869505614/job/59968693515",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20873309913/job/59979403570",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20873309913/job/59979403830",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20878847537/job/59992321511",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20880866594/job/59997132301",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20891932789/job/60024482598",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20898006650/job/60039717753",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20898006650/job/60039717861",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20898006650/job/60039717863",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20903396232/job/60052976893",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20904407564/job/60055578655",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20904407564/job/60055578661",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20904407564/job/60055578782",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20908382761/job/60068381769",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20908382761/job/60068382874",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20909645961/job/60070211539",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20920852386/job/60106306201"
+    ]
+  },
+  {
+    "centroid_error": "AVG DEVICE KERNEL SAMPLES/S 19627.91604894957 is outside of expected range (19649.122807017542, 20451.12781954887) - AssertionError: Some performance metrics are outside of expected range",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20668500120/job/59345609911",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20673954809/job/59359212213",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20819648964/job/59805030963",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20830225208/job/59842978293",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20839436027/job/59870896185",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20859558128/job/59936003629",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20864183388/job/59951820695",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20876716344/job/59987367796",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20883710601/job/60003959680",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20883710601/job/60003959681",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20891267512/job/60022869739",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20898788442/job/60041676931",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20901130687/job/60047361398",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20910987964/job/60074133384"
+    ]
+  },
+  {
+    "centroid_error": "TT_THROW: Fabric Router Sync: Timeout after 10000 ms. Device 3: Expected status 0xa2b2c2d2, got 0xa0b0c0d0\nterminate called after throwing an instance of 'std::runtime_error'\nwhat():  TT_THROW @ /work/tt_metal/impl/device/device_manager.cpp:708: tt::exception",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20674663438/job/59360819200",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20742155986/job/59551408430",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20751451456/job/59582315160",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20809957759/job/59772091478",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20836653848/job/59862964145",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20855970159/job/59923216560",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20869453009/job/59968481067",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20876424724/job/59986747683",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20880866594/job/59997132340",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20899886130/job/60044324497",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20904407564/job/60055578770"
+    ]
+  },
+  {
+    "centroid_error": "Error:Test BM_pgm_dispatch/5000_kernel_all_cores_all_processors_32_cbs_trace/512/manual_time expected value 4.58us but got 36.40us (694.41% worse)",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20679621383/job/59372175461",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20721282208/job/59486030765",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20770453547/job/59645783453",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20780964208/job/59678626430",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20809932275/job/59772021033",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20830104340/job/59842710158",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20845382394/job/59888050571",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20878034740/job/59990429895",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20883669580/job/60003868664"
+    ]
+  },
+  {
+    "centroid_error": "/work/tests/tt_metal/tt_fabric/system_health/test_system_health.cpp:550\nExpected equality of these values:\n  count\n    Which is: 1\n  num_connections_per_side\n    Which is: 2\nChip 6 has 1 connections to Chip 3, expected 2",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20799501356/job/59743067518",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20836432948/job/59862354445",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20836653848/job/59862964064",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20836653848/job/59862964065",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20836653848/job/59862964069",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20836653848/job/59862964094",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20836653848/job/59862964118",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20836653848/job/59862964122",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20845339675/job/59887907841"
+    ]
+  },
+  {
+    "centroid_error": "No failing runs found; job has not failed",
+    "failing_runs": []
+  },
+  {
+    "centroid_error": "AssertionError: Prefill or decode perf is either lower or higher than {'prefill_time_to_token': 0.06, 'decode_t/s/u': 310.0, 'decode_t/s': 310.0}. See earlier warnings for more details.\n\nWARNING: decode_t/s (301.5055494853068) is lower than expected 310.0\nWARNING: decode_t/s/u (301.5055494853068) is lower than expected 310.0",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20634423995/job/59257454853",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20705856515/job/59436607240",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20737763947/job/59538807437",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20737763947/job/59538807449",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20760511961/job/59614441543",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20773552277/job/59654648572",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20904382099/job/60055517473"
+    ]
+  },
+  {
+    "centroid_error": "AssertionError: 0.9758728235188486 - PCC value below threshold of 0.976",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20680260367/job/59373673343",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20684193955/job/59382544817",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20711914249/job/59454675112",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20714831199/job/59463855926",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20810036168/job/59772379269"
+    ]
+  },
+  {
+    "centroid_error": "Whisper decode throughput dropped from 310.0 to 263.82 tokens/s (15% regression). The performance check failed with: decode_t/s (263.821049955577) is lower than expected 310.0",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20672033300/job/59354719594",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20689282284/job/59395114652",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20705013321/job/59434096998",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20733443952/job/59526368177",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20805318092/job/59758754522"
+    ]
+  },
+  {
+    "centroid_error": "Compile-time error in SDPA reader kernel: 'Index out of range' when accessing compile-time arg 27 (only 27 args available, indices 0-26). The kernel was updated to expect 22 compile-time args before TensorAccessorArgs, but ring_distributed_sdpa_program_factory still provides only 21, causing a mismatch.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20688579878/job/59393475202",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20688579878/job/59393475205",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20688579878/job/59393475235",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20688579878/job/59393475270",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20688579878/job/59393475332"
+    ]
+  },
+  {
+    "centroid_error": "FAIL Inference Time (sec): 0.0085 > 0.0082 (3.7% worse than expected - performance regression)",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20665709946/job/59337967999",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20722982150/job/59491996266",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20744935153/job/59560883058",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20799417671/job/59742981912"
+    ]
+  },
+  {
+    "centroid_error": "C++ exception with description \"Device is incorrectly initialized. If this is a harvested Wormhole machine, it is likely that NOC Translation Tables are not enabled on device. These need to be enabled for the silicon driver to run.\" thrown in the test body.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20653757747/job/59303024130",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20845484131/job/59888419184",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20875386455/job/59984008436"
+    ]
+  },
+  {
+    "centroid_error": "2026-01-12 01:06:43.182 | warning  |             UMD | Waiting for lock 'NON_MMIO_3_PCIe' which is currently held by thread TID: 13822, PID: 13822 (robust_mutex.cpp:405)\n(repeating many times, eventually leading to:)\n##[error]The action 't3k_n300_mesh_llama3.2-vision_tests' has timed out after 20 minutes.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20836187978/job/59861618967",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20904128596/job/60054847591",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20912035444/job/60077161916"
+    ]
+  },
+  {
+    "centroid_error": "error: /opt/weka/data/client/container/resources.json.stable: No such file or directory\nmnt-MLPerf.mount: Mount process exited, code=exited, status=1/FAILURE\nFailed to mount Mount Weka filesystem MLPerf.\nMLPerf mount service found. Command returned with exit code 3.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20868186492/job/59964867370",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20868186492/job/59964867393",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20868186492/job/59964867399"
+    ]
+  },
+  {
+    "centroid_error": "ERROR collecting tests/scale_out/test_ccl_fabric_manager.py\ntests/scale_out/test_ccl_fabric_manager.py:24: in <module>\n    @pytest.mark.parametrize(\nE   NameError: name 'pytest' is not defined",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20849110910/job/59900142816",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20855970159/job/59923216553",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20858501631/job/59932240840"
+    ]
+  },
+  {
+    "centroid_error": "RuntimeError: TT_FATAL @ /project/tt_metal/distributed/mesh_trace.cpp:167: mesh_cq.device()->get_trace_buffers_size() <= trace_region_size\ninfo:\nCreating trace buffers of size 532480B on MeshDevice 2, but only 529408B is allocated for trace region.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20933305742/job/60149987048",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20933305742/job/60149987051",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20933305742/job/60149987053"
+    ]
+  },
+  {
+    "centroid_error": "The action 'CCL APC test tests' has timed out after 10 minutes.\nDifferent underlying failures across runs:\n- Run 1: Whisper perf assertion\n- Run 2: System health test - Chip 3 has 1 connections to Chip 0, expected 2\n- Run 3: Timeout only (no specific test failure)",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20907992418/job/60065519420",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20918722194/job/60099205288"
+    ]
+  },
+  {
+    "centroid_error": "TT_FATAL @ /work/tt_metal/tt_metal.cpp:507: host_buffer_size_bytes <= buffer.size()\ninfo:\nBounds-Error -- Attempting to write 4096 bytes to a 2048 byte buffer",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20873922685/job/59980495188",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20873922685/job/59980495198",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20873922685/job/59980495202",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20873922685/job/59980495205"
+    ]
+  },
+  {
+    "centroid_error": "Test hung during execution and timed out after 20 minutes. Last output: dump_fast_dispatch.py dispatch table at 19:23:29. Error: Metal timeout detected (metal_context.cpp:1727). The action 'Run quick tests' has timed out after 20 minutes.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20664875780/job/59335281693",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20920322502/job/60104489921"
+    ]
+  },
+  {
+    "centroid_error": "OpenSSL SSL_read: OpenSSL/3.5.4: error:0A000126:SSL routines::unexpected eof while reading, errno 0\nFailed receiving HTTP2 data: 56(Failure when receiving data from the peer)\nFAILED: boost-populate-prefix/src/boost-populate-stamp/boost-populate-download\nCMake Error at FetchContent.cmake:1928 (message): Build step for boost failed: 1",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20879477516/job/59993664291",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20912127705/job/60077009645"
+    ]
+  },
+  {
+    "centroid_error": "ERROR: Could not install packages due to an OSError: [Errno 28] No space left on device\n\n##[error]Process completed with exit code 1.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20894785957/job/60031797936",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20894785957/job/60032807329"
+    ]
+  },
+  {
+    "centroid_error": "AssertionError: Expected inference time: 0.0338 Actual inference time: 0.03411126136779785",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20675782356/job/59363384394",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20859481914/job/59935702871"
+    ]
+  },
+  {
+    "centroid_error": "E: Invalid archive member header\nE: Could not read meta data from /work/pkgs/tt-nn_0.0~alpha0+1.88661ade0d+m~ubuntu22.04~asancoverage_amd64.deb\nE: The package lists or status file could not be parsed or opened.\nProcess completed with exit code 100.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20838375551/job/59868115302",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20838375551/job/59868608477"
+    ]
+  },
+  {
+    "centroid_error": "AttributeError: type object 'TTDevice' has no attribute 'use_noc1' at /opt/venv/lib/python3.10/site-packages/ttexalens/tt_exalens_ifc.py:78",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20820322197/job/59807563658",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20820322197/job/59811494194"
+    ]
+  },
+  {
+    "centroid_error": "2026-01-08 06:28:33.887 | error    |           Metal | Timeout detected (metal_context.cpp:1729)",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20648028663/job/59288472740",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20807406571/job/59764730184"
+    ]
+  },
+  {
+    "centroid_error": "Statically allocated circular buffers on core range [(x=0,y=0) - (x=6,y=7)] grow to 1574080 B which is beyond max L1 size of 1572864 B",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20770374695/job/59645537162",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20773552277/job/59654648584"
+    ]
+  },
+  {
+    "centroid_error": "RuntimeError: TT_THROW @ /project/tt_metal/impl/program/program.cpp:159: tt::exception - Failed to generate binaries for reader_interleaved - static assertion failed: Index out of range (27 < 27)",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20688579878/job/59393475192",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20688579878/job/59393475240"
+    ]
+  },
+  {
+    "centroid_error": "AssertionError: At least one of Perplexity 12.793345178975759, Top1-Acc 0.47314453125, or Top5-Acc 0.7171630859375 is worse (higher for perplexity or lower for acc) than {'ppl': 12.74, 'top1_acc': 0.47, 'top5_acc': 0.71}",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20677071957/job/59366316121",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20677071957/job/59366316136"
+    ]
+  },
+  {
+    "centroid_error": "Performance regression: ttnn_resnet50_2cqs_batch_size128 measured 0.0153s vs expected 0.0150s (2.0% worse), ttnn_resnet50_batch_size128 measured 0.0167s vs expected 0.0157s (6.4% worse)",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20904523420/job/60055967699"
+    ]
+  },
+  {
+    "centroid_error": "Failed: Performance targets not met:\n[vae_sdxl_hs] Performance target not met: 25.175 us >= 24.720 us (target 24 us + 3.0%)\nAssertionError: Some performance metrics are outside of expected range, see above for details.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20915464202/job/60088389366"
+    ]
+  },
+  {
+    "centroid_error": "TT_FATAL @ /work/tt_metal/llrt/tt_cluster.cpp:502: false\ninfo:\nPhysical chip id not found for eth coord",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20896406189/job/60035872201"
+    ]
+  },
+  {
+    "centroid_error": "The self-hosted runner lost communication with the server. Verify the machine is running and has a healthy network connection. Anything in your workflow that terminates the runner process, starves it for CPU/Memory, or blocks its network access can cause this error.\nsubprocess.CalledProcessError: Command '[\"python3 -m tracy -p -r -o /work/generated/profiler/ttt-device-perf-prefill --check-exit-code   --op-support-count 1333  -t 5000 -m 'pytest models/tt_transformers/demo/simple_text_demo.py -k performance-device-perf --num_layers 2 --data_parallel 1 --max_seq_len 131072 --max_generated_tokens 2 --paged_attention 1  --batch_size 1 --mode prefill'\"]' returned non-zero exit status 4.\nProcess completed with exit code 134.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20886674768/job/60011103714"
+    ]
+  },
+  {
+    "centroid_error": "CMake Error at build/CMakeFiles/fc-stamp/sfpi/download-sfpi.cmake:163 (message):\n  Each download failed!\n    error: downloading '' failed\n  OpenSSL SSL_read: OpenSSL/3.0.2: error:0A000126:SSL routines::unexpected\n  Failed receiving HTTP2 data: 56(Failure when receiving data from the peer)",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20885789961/job/60008766996"
+    ]
+  },
+  {
+    "centroid_error": "Performance regression: Torus topology bandwidth test failed golden validation (0.982830 geomean speedup vs 1.000417 baseline, 1.7% regression). Test error: 'Some tests failed golden comparison validation. See summary above.'",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20867825842/job/59963999404"
+    ]
+  },
+  {
+    "centroid_error": "Number of test results (4) does not match number of golden entries (252)",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20864042659/job/59951480371"
+    ]
+  },
+  {
+    "centroid_error": "subprocess.TimeoutExpired: Command '['wget', '-r', '-nH', '-x', '--cut-dirs=5', '-np', '--progress=dot:giga', '-R', 'index.html*', '-P', '/tmp/ttnn_model_cache/model_weights', '']' timed out after 899.99997885 seconds",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20861140416/job/59941355202"
+    ]
+  },
+  {
+    "centroid_error": "Physical Discovery found 4 missing channel connections and 2 missing port/cable connections between tray 1 and tray 3. Connection mismatch detected. Check console output for details.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20857733685/job/59929447565"
+    ]
+  },
+  {
+    "centroid_error": "DRAM read throughput (511.5 GB/s) exceeds expected upper bound (380.0 GB/s) for Blackhole. This is a performance improvement causing test bounds to be violated.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20838103058/job/59867139960"
+    ]
+  },
+  {
+    "centroid_error": "docker: Error response from daemon: pull access denied for 373b6f, repository does not exist or may require 'docker login': denied: requested access to the resource is denied\nUnable to find image '373b6f:93334a260217498ba46cd9477e57f72b' locally\nRun 'docker run --help' for more information",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20845382394/job/59888050553"
+    ]
+  },
+  {
+    "centroid_error": "cannot bind packed field 'pkt_hdr_forward->tt::tt_fabric::LowLatencyPacketHeaderT<0>::' to 'volatile long unsigned int&' in std::swap call at worker_writer.cpp:147",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20836797105/job/59863389854"
+    ]
+  },
+  {
+    "centroid_error": "vLLM server initialization timeout after 35 minutes (2100s). Server args: --model meta-llama/Llama-3.3-70B-Instruct --num_scheduler_steps 1 --override-tt-config {\"dispatch_core_axis\": \"col\", \"sample_on_device_mode\": \"all\", \"fabric_config\": \"FABRIC_1D_RING\", \"worker_l1_size\": 1344544, \"trace_region_size\": 184915840}. Error: ❌ Server did not become ready in time (2100s).",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20836576482/job/59862745127"
+    ]
+  },
+  {
+    "centroid_error": "RuntimeError: [/pytorch/third_party/gloo/gloo/transport/tcp/unbound_buffer.cc:81] Timed out waiting 1800000ms for recv operation to complete\nRuntimeError: [/pytorch/third_party/gloo/gloo/transport/tcp/unbound_buffer.cc:133] Timed out waiting 1800000ms for send operation to complete\nEngineCore encountered a fatal error during distributed communication",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20836576482/job/59862745152"
+    ]
+  },
+  {
     "centroid_error": "Chip 6 has 1 connections to Chip 3, expected 2. Multiple ethernet links reported as DOWN/unconnected on LoudBox test machine. This is a physical hardware connectivity issue, not a code issue.",
     "failing_runs": [
       "https://github.com/tenstorrent/tt-metal/actions/runs/20836653848/job/59862964083"
@@ -9,14 +422,6 @@
     "centroid_error": "RuntimeError: TT_FATAL @ /project/tt_metal/impl/context/metal_context.cpp:704: this->fabric_config_ == fabric_config\ninfo:\nTried to override previous value of fabric config: FabricConfig::FABRIC_1D, with: FabricConfig::FABRIC_1D_RING",
     "failing_runs": [
       "https://github.com/tenstorrent/tt-metal/actions/runs/20836653848/job/59862964106"
-    ]
-  },
-  {
-    "centroid_error": "2026-01-12 01:06:43.182 | warning  |             UMD | Waiting for lock 'NON_MMIO_3_PCIe' which is currently held by thread TID: 13822, PID: 13822 (robust_mutex.cpp:405)\n(repeating many times, eventually leading to:)\n##[error]The action 't3k_n300_mesh_llama3.2-vision_tests' has timed out after 20 minutes.",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20836187978/job/59861618967",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20904128596/job/60054847591",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20912035444/job/60077161916"
     ]
   },
   {
@@ -74,6 +479,13 @@
     ]
   },
   {
+    "centroid_error": "TIMEOUT: device timeout, potential hang detected, the device is unrecoverable",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20629389070/job/59245169856",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20774776711/job/59658352884"
+    ]
+  },
+  {
     "centroid_error": "##[error]The action 'Build and Run Metal Examples' has timed out after 3 minutes.\nttsim-integration-tests / TTSim Integration - blackhole\nBuilding hello_world_datamovement_kernel example (blackhole)",
     "failing_runs": [
       "https://github.com/tenstorrent/tt-metal/actions/runs/20762584218/job/59624807524"
@@ -89,6 +501,12 @@
     "centroid_error": "TT_FATAL: Fast dispatch read from control buffer requires mesh device support (assert.hpp:103)",
     "failing_runs": [
       "https://github.com/tenstorrent/tt-metal/actions/runs/20736096968/job/59533863972"
+    ]
+  },
+  {
+    "centroid_error": "UMD mutex deadlock on 'NON_MMIO_3_PCIe' causing 10-minute timeout during device initialization. Lock held by thread TID:2397 was never released, blocking subsequent device access.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20733084213/job/59525233246"
     ]
   },
   {
@@ -134,13 +552,6 @@
     ]
   },
   {
-    "centroid_error": "Test hung during execution and timed out after 20 minutes. Last output: dump_fast_dispatch.py dispatch table at 19:23:29. Error: Metal timeout detected (metal_context.cpp:1727). The action 'Run quick tests' has timed out after 20 minutes.",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20664875780/job/59335281693",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20920322502/job/60104489921"
-    ]
-  },
-  {
     "centroid_error": "Segmentation fault (exit code 139) during TestCluster.SocDescriptorSerialize in ./build/test/umd/api/api_tests",
     "failing_runs": [
       "https://github.com/tenstorrent/tt-metal/actions/runs/20652917550/job/59300854278"
@@ -153,467 +564,21 @@
     ]
   },
   {
-    "centroid_error": "AssertionError: Prefill or decode perf is either lower or higher than {'prefill_time_to_token': 0.06, 'decode_t/s/u': 310.0, 'decode_t/s': 310.0}. See earlier warnings for more details.\n\nWARNING: decode_t/s (301.5055494853068) is lower than expected 310.0\nWARNING: decode_t/s/u (301.5055494853068) is lower than expected 310.0",
+    "centroid_error": "FAIL Inference Time (sec): 0.0603 > 0.0590 (2.2% worse than expected - performance regression). Falcon7b decode inference slowed by 10.8% (0.0544s → 0.0603s) after fabric packet header size change from 80B to 96B for 2D mesh routing.",
     "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20634423995/job/59257454853",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20705856515/job/59436607240",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20737763947/job/59538807437",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20737763947/job/59538807449",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20760511961/job/59614441543",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20773552277/job/59654648572",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20904382099/job/60055517473"
-    ]
-  },
-  {
-    "centroid_error": "The self-hosted runner lost communication with the server. Verify the machine is running and has a healthy network connection.\nProcess completed with exit code 134.",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20834876389/job/59857934126",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20836653848/job/59862964031",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20836653848/job/59862964053",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20836653848/job/59862964126",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20841935244/job/59878197361",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20865564286/job/59956448031",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20868800240/job/59966728139",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20869505614/job/59968693515",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20873309913/job/59979403570",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20873309913/job/59979403830",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20878847537/job/59992321511",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20880866594/job/59997132301",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20891932789/job/60024482598",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20898006650/job/60039717753",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20898006650/job/60039717861",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20898006650/job/60039717863",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20903396232/job/60052976893",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20904407564/job/60055578655",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20904407564/job/60055578661",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20904407564/job/60055578782",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20908382761/job/60068381769",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20908382761/job/60068382874",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20909645961/job/60070211539",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20920852386/job/60106306201"
-    ]
-  },
-  {
-    "centroid_error": "AVG DEVICE KERNEL SAMPLES/S 1628.8510237583191 is outside of expected range (1631.8, 1648.1999999999998)",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20668500120/job/59345609911",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20673954809/job/59359212213",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20819648964/job/59805030963",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20830225208/job/59842978293",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20839436027/job/59870896185",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20859558128/job/59936003629",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20864183388/job/59951820695",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20883710601/job/60003959681",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20901130687/job/60047361398",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20910987964/job/60074133384"
-    ]
-  },
-  {
-    "centroid_error": "AssertionError: 0.9758728235188486 - PCC value below threshold of 0.976",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20680260367/job/59373673343",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20684193955/job/59382544817",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20711914249/job/59454675112",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20714831199/job/59463855926",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20810036168/job/59772379269"
-    ]
-  },
-  {
-    "centroid_error": "Whisper decode throughput dropped from 310.0 to 263.82 tokens/s (15% regression). The performance check failed with: decode_t/s (263.821049955577) is lower than expected 310.0",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20672033300/job/59354719594",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20689282284/job/59395114652",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20705013321/job/59434096998",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20733443952/job/59526368177",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20805318092/job/59758754522"
-    ]
-  },
-  {
-    "centroid_error": "Compile-time error in SDPA reader kernel: 'Index out of range' when accessing compile-time arg 27 (only 27 args available, indices 0-26). The kernel was updated to expect 22 compile-time args before TensorAccessorArgs, but ring_distributed_sdpa_program_factory still provides only 21, causing a mismatch.",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20688579878/job/59393475202",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20688579878/job/59393475205",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20688579878/job/59393475235",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20688579878/job/59393475270",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20688579878/job/59393475332"
-    ]
-  },
-  {
-    "centroid_error": "TT_THROW: Fabric Router Sync: Timeout after 10000 ms. Device 0: Expected status 0xa2b2c2d2, got 0x00000000",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20629807087/job/59246163918",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20742155986/job/59551408430",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20809957759/job/59772091478",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20836653848/job/59862964145",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20869453009/job/59968481067",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20880866594/job/59997132340",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20904407564/job/60055578770"
-    ]
-  },
-  {
-    "centroid_error": "FAIL Inference Time (sec): 0.0085 > 0.0082 (3.7% worse than expected - performance regression)",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20665709946/job/59337967999",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20722982150/job/59491996266",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20744935153/job/59560883058",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20799417671/job/59742981912"
-    ]
-  },
-  {
-    "centroid_error": "2026-01-11 18:47:06.315 | error    |            Test |   - TorusAllToAllMulticast [FAIL] (test_tt_fabric.cpp:316)\n2026-01-11 18:47:06.315 | critical |          Always | TT_THROW: Some tests failed golden comparison validation. See summary above. (assert.hpp:104)",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20674663438/job/59360819200",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20751451456/job/59582315160",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20855970159/job/59923216560",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20876424724/job/59986747683",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20899886130/job/60044324497"
-    ]
-  },
-  {
-    "centroid_error": "ERROR collecting tests/scale_out/test_ccl_fabric_manager.py\ntests/scale_out/test_ccl_fabric_manager.py:24: in <module>\n    @pytest.mark.parametrize(\nE   NameError: name 'pytest' is not defined",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20849110910/job/59900142816",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20855970159/job/59923216553",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20858501631/job/59932240840"
-    ]
-  },
-  {
-    "centroid_error": "Device is incorrectly initialized. If this is a harvested Wormhole machine, it is likely that NOC Translation Tables are not enabled on device. These need to be enabled for the silicon driver to run.",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20653757747/job/59303024130",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20845484131/job/59888419184",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20875386455/job/59984008436"
-    ]
-  },
-  {
-    "centroid_error": "E: Invalid archive member header\nE: Could not read meta data from /work/pkgs/tt-nn_0.0~alpha0+1.88661ade0d+m~ubuntu22.04~asancoverage_amd64.deb\nE: The package lists or status file could not be parsed or opened.\nProcess completed with exit code 100.",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20838375551/job/59868115302",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20838375551/job/59868608477"
-    ]
-  },
-  {
-    "centroid_error": "AttributeError: type object 'TTDevice' has no attribute 'use_noc1' at /opt/venv/lib/python3.10/site-packages/ttexalens/tt_exalens_ifc.py:78",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20820322197/job/59807563658",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20820322197/job/59811494194"
-    ]
-  },
-  {
-    "centroid_error": "2026-01-08 06:28:33.887 | error    |           Metal | Timeout detected (metal_context.cpp:1729)",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20648028663/job/59288472740",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20807406571/job/59764730184"
-    ]
-  },
-  {
-    "centroid_error": "TIMEOUT: device timeout, potential hang detected, the device is unrecoverable",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20629389070/job/59245169856",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20774776711/job/59658352884"
-    ]
-  },
-  {
-    "centroid_error": "Statically allocated circular buffers on core range [(x=0,y=0) - (x=6,y=7)] grow to 1574080 B which is beyond max L1 size of 1572864 B",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20770374695/job/59645537162",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20773552277/job/59654648584"
-    ]
-  },
-  {
-    "centroid_error": "RuntimeError: TT_THROW @ /project/tt_metal/impl/program/program.cpp:159: tt::exception - Failed to generate binaries for reader_interleaved - static assertion failed: Index out of range (27 < 27)",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20688579878/job/59393475192",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20688579878/job/59393475240"
-    ]
-  },
-  {
-    "centroid_error": "AssertionError: At least one of Perplexity 12.793345178975759, Top1-Acc 0.47314453125, or Top5-Acc 0.7171630859375 is worse (higher for perplexity or lower for acc) than {'ppl': 12.74, 'top1_acc': 0.47, 'top5_acc': 0.71}",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20677071957/job/59366316121",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20677071957/job/59366316136"
-    ]
-  },
-  {
-    "centroid_error": "AssertionError: Expected inference time: 0.0338 Actual inference time: 0.04073667526245117",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20631390163/job/59249965552",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20675782356/job/59363384394",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20859481914/job/59935702871"
-    ]
-  },
-  {
-    "centroid_error": "DRAM read throughput (511.5 GB/s) exceeds expected upper bound (380.0 GB/s) for Blackhole. This is a performance improvement causing test bounds to be violated.",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20838103058/job/59867139960"
-    ]
-  },
-  {
-    "centroid_error": "docker: Error response from daemon: pull access denied for 373b6f, repository does not exist or may require 'docker login': denied: requested access to the resource is denied\nUnable to find image '373b6f:93334a260217498ba46cd9477e57f72b' locally\nRun 'docker run --help' for more information",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20845382394/job/59888050553"
-    ]
-  },
-  {
-    "centroid_error": "cannot bind packed field 'pkt_hdr_forward->tt::tt_fabric::LowLatencyPacketHeaderT<0>::' to 'volatile long unsigned int&' in std::swap call at worker_writer.cpp:147",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20836797105/job/59863389854"
-    ]
-  },
-  {
-    "centroid_error": "RuntimeError: [/pytorch/third_party/gloo/gloo/transport/tcp/unbound_buffer.cc:81] Timed out waiting 1800000ms for recv operation to complete\nRuntimeError: [/pytorch/third_party/gloo/gloo/transport/tcp/unbound_buffer.cc:133] Timed out waiting 1800000ms for send operation to complete\nEngineCore encountered a fatal error during distributed communication",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20836576482/job/59862745152"
-    ]
-  },
-  {
-    "centroid_error": "vLLM server initialization timeout after 35 minutes (2100s). Server args: --model meta-llama/Llama-3.3-70B-Instruct --num_scheduler_steps 1 --override-tt-config {\"dispatch_core_axis\": \"col\", \"sample_on_device_mode\": \"all\", \"fabric_config\": \"FABRIC_1D_RING\", \"worker_l1_size\": 1344544, \"trace_region_size\": 184915840}. Error: ❌ Server did not become ready in time (2100s).",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20836576482/job/59862745127"
-    ]
-  },
-  {
-    "centroid_error": "RuntimeError: TT_THROW @ /project/tt_metal/impl/dispatch/system_memory_manager.cpp:513: tt::exception\ninfo:\nTIMEOUT: device timeout, potential hang detected, the device is unrecoverable\nbacktrace:\n --- tt::tt_metal::buffer_dispatch::copy_completion_queue_data_into_user_space(...)\n --- tt::tt_metal::distributed::FDMeshCommandQueue::read_completion_queue()",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20633617762/job/59255642942",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20634423995/job/59257458946",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20634423995/job/59257458952",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20635061292/job/59258915207",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20652045009/job/59298622798",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20652917550/job/59300857453",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20669219799/job/59347313199",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20669505418/job/59348117250",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20669505418/job/59348117252",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20674503801/job/59360440323",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20674535056/job/59360519400",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20679646279/job/59372235200",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20689282284/job/59395116444",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20689282284/job/59395116445",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20689282284/job/59395116451",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20707910887/job/59442299189",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20733412188/job/59526240269",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20739692946/job/59544309041",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20740984321/job/59547928377",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20740984321/job/59547935648",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20744975704/job/59560872408",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20765985903/job/59632468189",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20772263358/job/59650974391",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20773552277/job/59654654196",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20774708186/job/59658310590",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20774708186/job/59658310593",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20799501356/job/59743067489",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20801102207/job/59747591542",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20807275243/job/59764299458",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20807275243/job/59764299488",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20807275243/job/59764299514",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20808671911/job/59768250385",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20808671911/job/59768250393",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20816222524/job/59792967295",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20816222524/job/59792980247",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20823133899/job/59817714569",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20823304803/job/59818250062",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20823341930/job/59818494481",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20823341930/job/59818494512",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20836576482/job/59862745182",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20836614781/job/59862888727",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20836653848/job/59862964093",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20836653848/job/59862964148",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20842886423/job/59880873752",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20842886423/job/59880873755",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20857682362/job/59929315944",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20891242288/job/60022818593",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20909645961/job/60070211461",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20909645961/job/60070211594"
-    ]
-  },
-  {
-    "centroid_error": "/work/tests/tt_metal/tt_fabric/system_health/test_system_health.cpp:550\nExpected equality of these values:\n  count\n    Which is: 1\n  num_connections_per_side\n    Which is: 2\nChip 6 has 1 connections to Chip 3, expected 2",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20799501356/job/59743067518",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20836432948/job/59862354445",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20836653848/job/59862964064",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20836653848/job/59862964065",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20836653848/job/59862964069",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20836653848/job/59862964094",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20836653848/job/59862964118",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20836653848/job/59862964122",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20845339675/job/59887907841"
-    ]
-  },
-  {
-    "centroid_error": "Performance regression: ttnn_resnet50_2cqs_batch_size128 measured 0.0153s vs expected 0.0150s (2.0% worse), ttnn_resnet50_batch_size128 measured 0.0167s vs expected 0.0157s (6.4% worse)",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20904523420/job/60055967699"
-    ]
-  },
-  {
-    "centroid_error": "The action 'CCL APC test tests' has timed out after 10 minutes.\nDifferent underlying failures across runs:\n- Run 1: Whisper perf assertion\n- Run 2: System health test - Chip 3 has 1 connections to Chip 0, expected 2\n- Run 3: Timeout only (no specific test failure)",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20907992418/job/60065519420",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20918722194/job/60099205288"
-    ]
-  },
-  {
-    "centroid_error": "Failed: Performance targets not met:\n[vae_sdxl_hs] Performance target not met: 25.175 us >= 24.720 us (target 24 us + 3.0%)\nAssertionError: Some performance metrics are outside of expected range, see above for details.",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20915464202/job/60088389366"
-    ]
-  },
-  {
-    "centroid_error": "TT_FATAL @ /work/tt_metal/tt_metal.cpp:507: host_buffer_size_bytes <= buffer.size()\ninfo:\nBounds-Error -- Attempting to write 4096 bytes to a 2048 byte buffer",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20873922685/job/59980495188",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20873922685/job/59980495198",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20873922685/job/59980495202",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20873922685/job/59980495205"
-    ]
-  },
-  {
-    "centroid_error": "OpenSSL SSL_read: OpenSSL/3.0.2: error:0A000126:SSL routines::unexpected eof while reading\nFailed receiving HTTP2 data: 56(Failure when receiving data from the peer)\nFAILED: boost-populate-prefix/src/boost-populate-stamp/boost-populate-download\nCMake Error: Build step for boost failed: 1",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20879477516/job/59993664291",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20912127705/job/60077009645"
-    ]
-  },
-  {
-    "centroid_error": "ERROR | models.perf.device_perf_utils:check_device_perf:171 - AVG DEVICE KERNEL SAMPLES/S 19492.512438659498 is outside of expected range (19649.122807017542, 20451.12781954887)\nAssertionError: Some performance metrics are outside of expected range, see above for details.\nTest: test_mamba_perf_device[32-1.596]\nExpected: 20050.125313283206 samples/sec (1.596 ms per layer)\nActual: 19492.512438659498 samples/sec",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20876716344/job/59987367796",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20883710601/job/60003959680",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20891267512/job/60022869739",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20898788442/job/60041676931"
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20918932424/job/60099853763"
     ]
   },
   {
     "centroid_error": "Waiting for lock 'NON_MMIO_1_PCIe' which is currently held by thread TID: 4572, PID: 4572 (robust_mutex.cpp:405)\nTest execution hung/deadlocked during test_falcon_mlp.py::test_FalconMLP_inference\nAction timed out after 20 minutes",
     "failing_runs": [
       "https://github.com/tenstorrent/tt-metal/actions/runs/20897963092/job/60039633091"
-    ]
-  },
-  {
-    "centroid_error": "TT_FATAL @ /work/tt_metal/llrt/tt_cluster.cpp:502: false\ninfo:\nPhysical chip id not found for eth coord",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20896406189/job/60035872201"
-    ]
-  },
-  {
-    "centroid_error": "ERROR: Could not install packages due to an OSError: [Errno 28] No space left on device\n\n##[error]Process completed with exit code 1.",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20894785957/job/60031797936",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20894785957/job/60032807329"
-    ]
-  },
-  {
-    "centroid_error": "The self-hosted runner lost communication with the server. Verify the machine is running and has a healthy network connection. Anything in your workflow that terminates the runner process, starves it for CPU/Memory, or blocks its network access can cause this error.\nsubprocess.CalledProcessError: Command '[\"python3 -m tracy -p -r -o /work/generated/profiler/ttt-device-perf-prefill --check-exit-code   --op-support-count 1333  -t 5000 -m 'pytest models/tt_transformers/demo/simple_text_demo.py -k performance-device-perf --num_layers 2 --data_parallel 1 --max_seq_len 131072 --max_generated_tokens 2 --paged_attention 1  --batch_size 1 --mode prefill'\"]' returned non-zero exit status 4.\nProcess completed with exit code 134.",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20886674768/job/60011103714"
-    ]
-  },
-  {
-    "centroid_error": "CMake Error at build/CMakeFiles/fc-stamp/sfpi/download-sfpi.cmake:163 (message):\n  Each download failed!\n    error: downloading '' failed\n  OpenSSL SSL_read: OpenSSL/3.0.2: error:0A000126:SSL routines::unexpected\n  Failed receiving HTTP2 data: 56(Failure when receiving data from the peer)",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20885789961/job/60008766996"
-    ]
-  },
-  {
-    "centroid_error": "Error:Test BM_pgm_dispatch/10000_kernel_all_cores_all_processors_32_cbs_trace/512/manual_time expected value 11.54us but got 84.17us (629.59% worse)",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20679621383/job/59372175461",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20721282208/job/59486030765",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20770453547/job/59645783453",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20780964208/job/59678626430",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20809932275/job/59772021033",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20830104340/job/59842710158",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20845382394/job/59888050571",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20878034740/job/59990429895",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20883669580/job/60003868664"
-    ]
-  },
-  {
-    "centroid_error": "Jan 09 23:27:42 tt-metal-ci-vm-164 weka-agent[24844]: ERROR:  main.d:136               <5> error: /opt/weka/data/client/container/resources.json.stable: No such file or directory\nJan 09 23:27:42 tt-metal-ci-vm-164 systemd[1]: mnt-MLPerf.mount: Mount process exited, code=exited, status=1/FAILURE\nJan 09 23:27:42 tt-metal-ci-vm-164 systemd[1]: mnt-MLPerf.mount: Failed with result 'exit-code'.\nJan 09 23:27:42 tt-metal-ci-vm-164 systemd[1]: Failed to mount Mount Weka filesystem MLPerf.",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20868186492/job/59964867370",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20868186492/job/59964867393"
-    ]
-  },
-  {
-    "centroid_error": "Setting up MLPerf mount...\nWeka mount failure: Got response code 502\nSleeping 500 ms and trying again\nMLPerf mount service found. Command returned with exit code 3. Restarting it so we can ensure MLPerf mount is available\nJob failed. See \"journalctl -xe\" for details.",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20868186492/job/59964867399"
-    ]
-  },
-  {
-    "centroid_error": "Performance regression: Torus topology bandwidth test failed golden validation (0.982830 geomean speedup vs 1.000417 baseline, 1.7% regression). Test error: 'Some tests failed golden comparison validation. See summary above.'",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20867825842/job/59963999404"
-    ]
-  },
-  {
-    "centroid_error": "Error accessing board at PCI index 4! Use -ls to see all devices available to reset\nPost-reset actions did not complete successfully for device at PCI index 3.\nUnable to reset board successfully.\nThis runner will now shutdown and refuse to run further jobs.\nThe self-hosted runner lost communication with the server.",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20857829898/job/59947539572",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20857829898/job/59947539595"
-    ]
-  },
-  {
-    "centroid_error": "Number of test results (4) does not match number of golden entries (252)",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20864042659/job/59951480371"
-    ]
-  },
-  {
-    "centroid_error": "subprocess.TimeoutExpired: Command '['wget', '-r', '-nH', '-x', '--cut-dirs=5', '-np', '--progress=dot:giga', '-R', 'index.html*', '-P', '/tmp/ttnn_model_cache/model_weights', '']' timed out after 899.99997885 seconds",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20861140416/job/59941355202"
-    ]
-  },
-  {
-    "centroid_error": "Physical Discovery found 4 missing channel connections and 2 missing port/cable connections between tray 1 and tray 3. Connection mismatch detected. Check console output for details.",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20857733685/job/59929447565"
-    ]
-  },
-  {
-    "centroid_error": "UMD mutex deadlock on 'NON_MMIO_3_PCIe' causing 10-minute timeout during device initialization. Lock held by thread TID:2397 was never released, blocking subsequent device access.",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20733084213/job/59525233246"
-    ]
-  },
-  {
-    "centroid_error": "RuntimeError: TT_FATAL @ /project/tt_metal/distributed/mesh_trace.cpp:167: mesh_cq.device()->get_trace_buffers_size() <= trace_region_size\ninfo:\nCreating trace buffers of size 532480B on MeshDevice 2, but only 529408B is allocated for trace region.",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20933305742/job/60149987048",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20933305742/job/60149987051",
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20933305742/job/60149987053"
     ],
     "run_metadata": {
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20933305742/job/60149987053": {
-        "job_name": "models-perf / cnn_javelin N300 WH B0",
-        "workflow_name": "perf-models",
-        "is_nd": false
-      },
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20933305742/job/60149987048": {
-        "job_name": "models-perf / other_magic_env N300 WH B0",
-        "workflow_name": "perf-models",
-        "is_nd": false
-      },
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20933305742/job/60149987051": {
-        "job_name": "models-perf / cnn_javelin P150 BH",
-        "workflow_name": "perf-models",
-        "is_nd": false
-      }
-    }
-  },
-  {
-    "centroid_error": "FAIL Inference Time (sec): 0.0603 > 0.0590 (2.2% worse than expected - performance regression). Falcon7b decode inference slowed by 10.8% (0.0544s → 0.0603s) after fabric packet header size change from 80B to 96B for 2D mesh routing.",
-    "failing_runs": [
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20918932424/job/60099853763"
-    ],
-    "run_metadata": {
-      "https://github.com/tenstorrent/tt-metal/actions/runs/20918932424/job/60099853763": {
-        "job_name": "t3000-perf-tests / t3k_LLM_falcon7b_model_perf_tests",
-        "workflow_name": "t3000-perf-tests",
-        "is_nd": false
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20897963092/job/60039633091": {
+        "job_name": "t3000-integration-tests / t3k_falcon40b_tests",
+        "workflow_name": "t3000-integration-tests",
+        "is_nd": true
       }
     }
   }
