@@ -453,7 +453,20 @@ def format_issue_body(group_data: Dict[str, Any], group_name: str) -> str:
         centroid_label = "Centroid Run"
         if centroid.get("timestamp"):
             centroid_label += f" ({centroid['timestamp']})"
-        body_parts.append(f"**{centroid_label}:** [{centroid['url']}]({centroid['url']})")
+        # Add ND marker if applicable
+        if centroid.get("is_nd", False):
+            centroid_label += " (marked as ND)"
+        job_name = centroid.get("job_name", "")
+        workflow_name = centroid.get("workflow_name", "")
+        job_workflow_suffix = ""
+        if job_name or workflow_name:
+            parts = []
+            if workflow_name:
+                parts.append(workflow_name)
+            if job_name:
+                parts.append(job_name)
+            job_workflow_suffix = f" - {' / '.join(parts)}"
+        body_parts.append(f"**{centroid_label}:** [{centroid['url']}]({centroid['url']}){job_workflow_suffix}")
         body_parts.append("")
     
     # Add all run URLs (sorted chronologically)
@@ -472,6 +485,9 @@ def format_issue_body(group_data: Dict[str, Any], group_name: str) -> str:
     for error in all_errors:
         url = error.get("url", "")
         timestamp = error.get("timestamp", "")
+        job_name = error.get("job_name", "")
+        workflow_name = error.get("workflow_name", "")
+        is_nd = error.get("is_nd", False)
         
         # Skip if no URL or already seen (avoid duplicates)
         if not url or url in seen_urls:
@@ -485,17 +501,31 @@ def format_issue_body(group_data: Dict[str, Any], group_name: str) -> str:
         if is_centroid:
             label = f"Centroid ({label})" if timestamp else "Centroid"
         
+        # Add ND marker if applicable
+        if is_nd:
+            label += " (marked as ND)"
+        
+        # Build job/workflow suffix
+        job_workflow_suffix = ""
+        if job_name or workflow_name:
+            parts = []
+            if workflow_name:
+                parts.append(workflow_name)
+            if job_name:
+                parts.append(job_name)
+            job_workflow_suffix = f" - {' / '.join(parts)}"
+        
         # Use timestamp for sorting (empty string for items without timestamps)
         sort_key = timestamp if timestamp else ""
-        url_list.append((sort_key, label, url))
+        url_list.append((sort_key, label, url, job_workflow_suffix))
     
     # Sort by timestamp string (alphabetically - this works for "January Xth, time" format)
     # Items without timestamps go to the end
     url_list.sort(key=lambda x: (x[0] == "", x[0]), reverse=True)  # Timestamps first, then no timestamps
     
     # Format the list
-    for idx, (sort_key, label, url) in enumerate(url_list, 1):
-        body_parts.append(f"{idx}. [{label}]({url})")
+    for idx, (sort_key, label, url, job_workflow_suffix) in enumerate(url_list, 1):
+        body_parts.append(f"{idx}. [{label}]({url}){job_workflow_suffix}")
     
     return "\n".join(body_parts)
 
@@ -671,12 +701,14 @@ def process_group(group_name: str, group_data: Dict[str, Any], group_num: int, t
         return bulk_mode
 
 def delete_all_issues():
-    """Delete all issues in the repository (for testing purposes)."""
+    """Remove all issues from the project board and close them (for testing purposes)."""
     import requests
     
     print(f"\n{'='*80}")
-    print("WARNING: Deleting all issues in the repository...")
+    print("WARNING: Removing all issues from project and closing them...")
     print(f"Repository: {GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}")
+    if PROJECT_OWNER and PROJECT_NUMBER:
+        print(f"Project: {PROJECT_OWNER}/{PROJECT_NUMBER}")
     print(f"{'='*80}\n")
     
     url = f"https://api.github.com/repos/{GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}/issues"
@@ -702,14 +734,110 @@ def delete_all_issues():
             print("No issues to delete.")
             return
         
-        print(f"Found {len(actual_issues)} issue(s) to delete.")
-        response = input("Delete all issues? (yes/no): ").strip().lower()
+        print(f"Found {len(actual_issues)} issue(s) to remove.")
+        response = input("Remove all issues from project and close them? (yes/no): ").strip().lower()
         if response != "yes":
             print("Skipping deletion.")
             return
         
-        # Delete each issue
-        deleted_count = 0
+        # Get project node ID if project is configured
+        project_node_id = None
+        if PROJECT_OWNER and PROJECT_NUMBER:
+            try:
+                project_node_id = get_project_node_id(PROJECT_NUMBER)
+            except Exception as e:
+                print(f"⚠ Warning: Could not get project node ID: {e}")
+                print("  Will only close issues, not remove from project.")
+        
+        removed_count = 0
+        closed_count = 0
+        
+        # First, remove from project if project is configured
+        if project_node_id:
+            print(f"\nRemoving issues from project...")
+            graphql_url = "https://api.github.com/graphql"
+            graphql_headers = {
+                "Authorization": f"Bearer {GITHUB_TOKEN}",
+                "Content-Type": "application/json"
+            }
+            
+            for issue in actual_issues:
+                issue_number = issue["number"]
+                try:
+                    # Get issue node ID
+                    issue_node_id = get_issue_node_id(str(issue_number))
+                    
+                    # Find project item ID for this issue
+                    # Query project items to find the one matching this issue
+                    query_items = """
+                    query($projectId: ID!) {
+                      node(id: $projectId) {
+                        ... on ProjectV2 {
+                          items(first: 100) {
+                            nodes {
+                              id
+                              content {
+                                ... on Issue {
+                                  number
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                    """
+                    
+                    items_response = requests.post(
+                        graphql_url,
+                        json={"query": query_items, "variables": {"projectId": project_node_id}},
+                        headers=graphql_headers
+                    )
+                    items_response.raise_for_status()
+                    items_result = items_response.json()
+                    
+                    if "errors" not in items_result:
+                        items = items_result["data"]["node"]["items"]["nodes"]
+                        project_item_id = None
+                        for item in items:
+                            if item.get("content", {}).get("number") == issue_number:
+                                project_item_id = item["id"]
+                                break
+                        
+                        if project_item_id:
+                            # Remove from project
+                            delete_query = """
+                            mutation($itemId: ID!) {
+                              deleteProjectV2Item(input: {itemId: $itemId}) {
+                                deletedItemId
+                              }
+                            }
+                            """
+                            
+                            delete_response = requests.post(
+                                graphql_url,
+                                json={"query": delete_query, "variables": {"itemId": project_item_id}},
+                                headers=graphql_headers
+                            )
+                            delete_response.raise_for_status()
+                            delete_result = delete_response.json()
+                            
+                            if "errors" not in delete_result:
+                                removed_count += 1
+                                print(f"  ✓ Removed issue #{issue_number} from project")
+                            else:
+                                print(f"  ⚠ Warning: Could not remove issue #{issue_number} from project: {delete_result['errors']}")
+                        else:
+                            print(f"  - Issue #{issue_number} not found in project")
+                    else:
+                        print(f"  ⚠ Warning: Could not query project items: {items_result['errors']}")
+                    
+                    time.sleep(0.2)  # Rate limiting
+                except Exception as e:
+                    print(f"  ⚠ Warning: Error processing issue #{issue_number} for project removal: {e}")
+        
+        # Now close all issues
+        print(f"\nClosing issues...")
         for issue in actual_issues:
             issue_number = issue["number"]
             delete_url = f"https://api.github.com/repos/{GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}/issues/{issue_number}"
@@ -724,12 +852,13 @@ def delete_all_issues():
             try:
                 delete_response = requests.patch(delete_url, json=delete_data, headers=delete_headers)
                 delete_response.raise_for_status()
-                deleted_count += 1
+                closed_count += 1
                 print(f"  ✓ Closed issue #{issue_number}: {issue['title'][:50]}...")
             except Exception as e:
                 print(f"  ✗ Failed to close issue #{issue_number}: {e}")
         
-        print(f"\n✓ Closed {deleted_count}/{len(actual_issues)} issue(s)")
+        print(f"\n✓ Removed {removed_count}/{len(actual_issues)} issue(s) from project")
+        print(f"✓ Closed {closed_count}/{len(actual_issues)} issue(s)")
         print("Note: GitHub API only allows closing issues, not true deletion.")
         print("Closed issues can be manually deleted from the web interface if needed.")
         

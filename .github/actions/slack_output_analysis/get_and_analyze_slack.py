@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Combined script to fetch Slack messages, extract ND failures, and analyze them.
-Fetches messages from Slack, filters to only ND failure replies, saves simplified JSON,
+Fetches messages from Slack, saves simplified JSON,
 and outputs analysis to debug.log.
 """
 
@@ -501,16 +501,12 @@ def download_and_extract_messages():
     client = WebClient(token=SLACK_TOKEN)
     # Use newest existing timestamp + 1 second as oldest if doing incremental update
     # Otherwise use the configured start date
-    # For incremental updates, also fetch parent messages from the last 30 days to catch new replies to existing threads
     if newest_existing_timestamp:
-        # Fetch parent messages from 30 days ago to catch new replies to existing threads
-        # But only process replies newer than newest_existing_timestamp
-        thirty_days_ago = time.time() - (30 * 24 * 60 * 60)
-        oldest_timestamp = min(thirty_days_ago, newest_existing_timestamp + 1)
-        print(f"Incremental update: fetching parent messages from last 30 days to catch new replies")
-        print(
-            f"Will only process replies newer than {datetime.fromtimestamp(newest_existing_timestamp).strftime('%Y-%m-%d %H:%M:%S')}"
-        )
+        # Only fetch parent messages sent AFTER the latest timestamp
+        # This is more efficient - we'll only get new threads, not check old threads for new replies
+        oldest_timestamp = newest_existing_timestamp + 1
+        print(f"Incremental update: fetching parent messages sent after {datetime.fromtimestamp(newest_existing_timestamp).strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Will only process replies newer than {datetime.fromtimestamp(newest_existing_timestamp).strftime('%Y-%m-%d %H:%M:%S')}")
     else:
         oldest_timestamp = get_unix_timestamp(START_DATE_STR)
 

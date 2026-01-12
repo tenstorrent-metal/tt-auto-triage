@@ -12,6 +12,10 @@ When EXTRACT_ALL_ERRORS is True:
 
 All errors are extracted from the "FAILURE MESSAGE:" field as-is, without any truncation or cleanup.
 Entries without "FAILURE MESSAGE:" are skipped.
+
+Output format: [error_message, failing_run_url, formatted_timestamp, job_name, workflow_name, is_nd]
+All fields except error_message can be None if not available.
+is_nd is a boolean indicating if the error is marked as non-deterministic (ND).
 """
 
 import json
@@ -68,6 +72,39 @@ def extract_failing_run_url(entry):
         return url
 
     return None
+
+
+def extract_workflow_and_job_from_full_text(entry):
+    """Extract workflow and job names from full_text array when failing_workflow/failing_job are empty.
+    
+    For ND/cancelled issues, the workflow and job info is in full_text like:
+    "Workflow: blackhole-post-commit"
+    "Job: blackhole-multi-card-post-commit-tests (P300-viommu) / blackhole P300-viommu CCL APC test"
+    
+    Returns:
+        Tuple of (workflow_name, job_name) - both can be None if not found
+    """
+    full_text = entry.get("full_text", [])
+    if not full_text:
+        return None, None
+    
+    workflow_name = None
+    job_name = None
+    
+    for line in full_text:
+        if isinstance(line, str):
+            # Look for "Workflow: ..." pattern
+            if line.startswith("Workflow:"):
+                workflow_name = line.replace("Workflow:", "", 1).strip()
+                if not workflow_name:
+                    workflow_name = None
+            # Look for "Job: ..." pattern
+            elif line.startswith("Job:"):
+                job_name = line.replace("Job:", "", 1).strip()
+                if not job_name:
+                    job_name = None
+    
+    return workflow_name, job_name
 
 
 def format_timestamp(timestamp_str):
@@ -135,9 +172,22 @@ def main():
             # Extract and format timestamp
             timestamp_str = entry.get("timestamp", "")
             formatted_timestamp = format_timestamp(timestamp_str) if timestamp_str else None
-            # Save as list: [error_message, failing_run_url, formatted_timestamp]
-            # Use None if URL or timestamp not found
-            errors.append([error_msg, failing_run_url, formatted_timestamp])
+            # Extract job and workflow names
+            # First try the direct fields
+            job_name = entry.get("failing_job", "") or None
+            workflow_name = entry.get("failing_workflow", "") or None
+            # If they're empty (common for ND/cancelled issues), try parsing from full_text
+            if not job_name and not workflow_name:
+                parsed_workflow, parsed_job = extract_workflow_and_job_from_full_text(entry)
+                if parsed_workflow:
+                    workflow_name = parsed_workflow
+                if parsed_job:
+                    job_name = parsed_job
+            # Determine if this is an ND error
+            is_nd = is_non_deterministic(entry)
+            # Save as list: [error_message, failing_run_url, formatted_timestamp, job_name, workflow_name, is_nd]
+            # Use None if URL, timestamp, job, or workflow not found
+            errors.append([error_msg, failing_run_url, formatted_timestamp, job_name, workflow_name, is_nd])
         else:
             skipped += 1
 
