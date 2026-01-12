@@ -1,0 +1,103 @@
+ND Failure Analysis
+Total ND failure records: 206
+Found 125 unique jobs with ND failures
+
+================================================================================
+TOP 5 JOBS WITH MOST NON-DETERMINISTIC FAILURES
+================================================================================
+
+1. P150 BH device perf
+   Total ND Failures: 6
+   Unique Failure Reasons: 5
+
+   Failure Reasons Breakdown:
+      • (2x) Unknown reason
+        Dates: January 11th, 2026, January 8th, 2026
+      • (1x) Performance test failed due to kernel running 0.007% faster than minimum threshold (normal hardware variation). All commits in window are unrelated to deeplab model. This is a flaky test, not a code regression.
+        Dates: January 9th, 2026
+      • (1x) the failure is clearly non-deterministic/infra noise: self-hosted runner lost communication with server during job setup
+        Dates: January 5th, 2026
+      • (1x) the failure is clearly non-deterministic/infra noise: runner lost communication with server (known pattern). Both success and failure runs are on the same commit 4f92b074e, confirming infrastructure flakiness rather than code regression
+        Dates: January 3rd, 2026
+      • (1x) Performance test failed by 4ns (0.00002%) - this is measurement noise, not a code regression. All commits in window are either CI-only or internal bookkeeping changes that cannot affect device execution. Recommend re-running test or adjusting thresholds.
+        Dates: January 2nd, 2026
+--------------------------------------------------------------------------------
+2. t3k ttmetal tests
+   Total ND Failures: 6
+   Unique Failure Reasons: 4
+
+   Failure Reasons Breakdown:
+      • (3x) Unknown reason
+        Dates: January 8th, 2026, January 8th, 2026, January 6th, 2026
+      • (1x) the failure is clearly non-deterministic/infra noise and would inevitably become Case 3
+        Dates: January 6th, 2026
+      • (1x) the failure is clearly non-deterministic/infra noise and would inevitably become Case 3: same commit (6223e8c20a04e771b5c44616a406aecd39d9f1fd) succeeded then failed, error 'Timeout waiting for Ethernet core service remote IO request flush' is a known non-deterministic pattern
+        Dates: January 1st, 2026
+      • (1x) the failure is clearly non-deterministic/infra noise and would inevitably become Case 3. Error 'Timeout waiting for Ethernet core service remote IO request flush' is documented as non-deterministic, and both success and failure occurred on the same commit (297f4f46cb88564fe6ac216ed2b3e78b4a906949)
+        Dates: January 1st, 2026
+--------------------------------------------------------------------------------
+3. t3k falcon40b tests
+   Total ND Failures: 6
+   Unique Failure Reasons: 6
+
+   Failure Reasons Breakdown:
+      • (1x) Unknown reason
+        Dates: January 7th, 2026
+      • (1x) the failure is clearly non-deterministic/infra noise (runner lost communication with server - known infrastructure issue)
+        Dates: January 5th, 2026
+      • (1x) the failure is clearly non-deterministic/infra noise: same commit (049089602df73c8d3cd8387240e1f7b7c3974930) passed earlier but failed later with device/arc core timeout errors unrelated to code changes
+        Dates: January 4th, 2026
+      • (1x) the failure is clearly non-deterministic/infra noise: UMD lock contention ('Waiting for lock NON_MMIO_1_PCIe' repeatedly), device timeout/hang, and test action timeouts indicate hardware/infrastructure issues rather than deterministic code failures
+        Dates: January 3rd, 2026
+      • (1x) the failure is clearly non-deterministic/infra noise: same commit (6223e8c20a04e771b5c44616a406aecd39d9f1fd) produced both success (run_number 0, completed 2026-01-01T22:18:33Z) and failure (run_number 1, completed 2026-01-02T01:15:19Z). The failure is a UMD lock contention deadlock (Waiting for lock 'NON_MMIO_2_PCIe' held by thread TID: 8859) that persisted for 20+ minutes until timeout. 3 tests passed before the hang. This is infrastructure/concurrency noise, not a code issue
+        Dates: January 1st, 2026
+      • (1x) the failure is clearly non-deterministic/infra noise: same commit (297f4f46cb88564fe6ac216ed2b3e78b4a906949) passed in run 0 but timed out after 30 minutes in run 1 with no error message, just a test hang during Falcon seq128 execution
+        Dates: January 1st, 2026
+--------------------------------------------------------------------------------
+4. Run sweeps in parallel (wormhole-n150-sweeps, eltwise.binary.atan2.atan2,eltwise.binary.atan2.atan2_sharded,eltwise.binary.bcast.bcast)
+   Total ND Failures: 5
+   Unique Failure Reasons: 3
+
+   Failure Reasons Breakdown:
+      • (3x) Unknown reason
+        Dates: January 12th, 2026, January 10th, 2026, January 8th, 2026
+      • (1x) the failure is clearly non-deterministic/infra noise (runner lost communication - known pattern in non-deterministic-error-examples.json) and would inevitably become Case 3
+        Dates: January 3rd, 2026
+      • (1x) the failure is clearly non-deterministic/infra noise: all 6 failing runs show 'runner lost communication' during sweep execution, which is a known infrastructure pattern unrelated to tt-metal code changes
+        Dates: January 1st, 2026
+--------------------------------------------------------------------------------
+5. quick-wh-glx-health
+   Total ND Failures: 5
+   Unique Failure Reasons: 5
+
+   Failure Reasons Breakdown:
+      • (1x) TorusAllToAllMulticast fabric performance test failed with 1.2% degradation vs. golden baseline. The commit in the window only touches llama70b matmul code with zero connection to fabric tests. This appears to be hardware/environmental variance rather than a code issue.
+        Dates: January 11th, 2026
+      • (1x) TorusAllToAllMulticast test failed golden comparison, but evidence shows this is performance/infrastructure variation rather than a code issue. Previous run with identical test structure (4 results vs 252 golden entries) passed. The intervening commit only made cosmetic clang-tidy parameter fixes that cannot affect runtime. Suggest re-run to verify.
+        Dates: January 10th, 2026
+      • (1x) Test configuration mismatch: quick mode produces 4 summary results but validates against golden file with 252 entries. Only change was documentation update (cannot affect test). Likely test infrastructure issue.
+        Dates: January 9th, 2026
+      • (1x) TorusAllToAllMulticast golden comparison failure appears unrelated to tt-metal changes. Only commit in window refactors matmul kernel includes (no overlap with routing test). Test generated only 4/252 expected results, suggesting infrastructure or test configuration issue. Performance tests are known to be flaky.
+        Dates: January 9th, 2026
+      • (1x) the failure is clearly non-deterministic/infra noise: Docker image not found (<http://ghcr.io|ghcr.io> image pull failed with 'not found' error). This is purely infrastructure setup failure unrelated to tt-metal code changes
+        Dates: January 3rd, 2026
+--------------------------------------------------------------------------------
+
+================================================================================
+SUMMARY STATISTICS
+================================================================================
+Total unique jobs with ND failures: 125
+Total ND failure occurrences: 206
+Average failures per job: 1.65
+
+Most common failure reasons across all jobs:
+  • (86x) Unknown reason
+  • (4x) the failure is clearly non-deterministic/infra noise and would inevitably become Case 3
+  • (2x) the failure is clearly non-deterministic/infra noise (runner lost communication - known pattern in non-deterministic-error-examples.json) and would inevitably become Case 3
+  • (2x) the failure is clearly non-deterministic/infra noise (self-hosted runner lost communication - known pattern) and would inevitably become Case 3
+  • (2x) the failure is clearly non-deterministic/infra noise: runner lost communication with server
+  • (1x) the failure is clearly non-deterministic/infra noise (runner lost communication - matches known pattern in non-deterministic-error-examples.json line 11) and would inevitably become Case 3
+  • (1x) the failure is clearly non-deterministic/infra noise: all 6 failing runs show 'runner lost communication' during sweep execution, which is a known infrastructure pattern unrelated to tt-metal code changes
+  • (1x) Device performance tests failing with 0.14% margin miss across multiple models (MNIST, UNet). The commit in window contains only cosmetic parameter cleanup with no logic changes. Evidence points to hardware variance/thermal conditions rather than code regression. Consider re-running tests and reviewing performance thresholds.
+  • (1x) BH-LoudBox fabric test detects missing ethernet link: Chip 6→Chip 3 has only 1 connection instead of 2. This is a physical hardware/cabling issue, not caused by code changes. Infra team should inspect QSFP cables and port health on the LoudBox system.
+  • (1x) Whisper prefill time 3% slower (206ms vs 200ms) but no tt-metal commit in the window plausibly explains it. All 5 commits touch unrelated code (atan ops, static analyzer fix, unary_bcast for formats Whisper doesn't use, CI config, llama-specific fixes). Decode perf passed. Likely infra variation or test sensitivity. Please investigate Galaxy cluster health and consider adding tolerance to strict perf check.
