@@ -529,11 +529,12 @@ def format_issue_body(group_data: Dict[str, Any], group_name: str) -> str:
     
     return "\n".join(body_parts)
 
-def create_title_from_group_name(group_name: str, count: int) -> str:
-    """Create a title from the group name with occurrence count prefix.
+def create_title_from_group_name(group_name: str, count: int, error_message: str = "") -> str:
+    """Create a title from the group name with occurrence count prefix and truncated error message.
     
-    Format: [00045] Group 1
-    This allows alphabetical sorting to also sort by occurrence count.
+    Format: [00045] Group 1: Error message...
+    This allows alphabetical sorting to also sort by occurrence count while being descriptive.
+    Truncates error message to fit within GitHub's 256 character limit.
     """
     # Format count as 5-digit zero-padded number (00000 to 10000)
     count_str = f"{count:05d}"
@@ -544,8 +545,26 @@ def create_title_from_group_name(group_name: str, count: int) -> str:
         group_label = f"Group {group_num}"
     else:
         group_label = group_name
+        group_num = None
     
-    return f"[{count_str}] {group_label}"
+    # Calculate available space for error message
+    # Reserve space for: "[00045] " (9 chars) + "Group X: " (~10 chars) + "..." (3 chars)
+    prefix_len = len(f"[{count_str}] {group_label}: ")
+    max_error_len = 256 - prefix_len - 3  # 3 for "..."
+    
+    # Truncate error message if needed
+    if error_message and len(error_message) > max_error_len:
+        # Try to truncate at a word boundary
+        truncated = error_message[:max_error_len].rsplit(' ', 1)[0]
+        if len(truncated) < max_error_len - 20:  # If truncation removed too much, just cut at max
+            truncated = error_message[:max_error_len]
+        truncated += "..."
+    elif error_message:
+        truncated = error_message
+    else:
+        return f"[{count_str}] {group_label}"
+    
+    return f"[{count_str}] {group_label}: {truncated}"
 
 def process_group(group_name: str, group_data: Dict[str, Any], group_num: int, total_groups: int, bulk_mode: bool = False) -> bool:
     """Process a single group: create issue and update project field.
@@ -591,8 +610,9 @@ def process_group(group_name: str, group_data: Dict[str, Any], group_num: int, t
         print(f"Creating issue for {group_name}...")
     
     try:
-        # Create issue title (with occurrence count prefix for sorting)
-        title = create_title_from_group_name(group_name, group_data["count"])
+        # Create issue title (with occurrence count prefix for sorting and error message)
+        centroid_error = group_data["centroid"]["error"]
+        title = create_title_from_group_name(group_name, group_data["count"], centroid_error)
         
         # Create issue body
         body = format_issue_body(group_data, group_name)

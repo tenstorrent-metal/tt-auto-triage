@@ -613,17 +613,37 @@ def format_issue_body(centroid_error: str, failing_runs: List[str], timestamps: 
     
     return "\n".join(body_parts)
 
-def create_title_from_count(count: int, group_num: Optional[int] = None) -> str:
-    """Create a title with occurrence count prefix.
+def create_title_from_count(count: int, error_message: str = "", group_num: Optional[int] = None) -> str:
+    """Create a title with occurrence count prefix and truncated error message.
     
-    Format: [00045] Group X (if group_num provided) or [00045] Error
+    Format: [00045] Group X: Error message... (if group_num provided) or [00045] Error message...
+    Truncates error message to fit within GitHub's 256 character limit.
     """
     count_str = f"{count:05d}"
     
+    # Calculate available space for error message
+    # Reserve space for: "[00045] " (9 chars) + "Group X: " (if group_num, ~10 chars) + "..." (3 chars)
+    prefix_len = len(f"[{count_str}] ")
     if group_num is not None:
-        return f"[{count_str}] Group {group_num}"
+        prefix_len += len(f"Group {group_num}: ")
+    max_error_len = 256 - prefix_len - 3  # 3 for "..."
+    
+    # Truncate error message if needed
+    if error_message and len(error_message) > max_error_len:
+        # Try to truncate at a word boundary
+        truncated = error_message[:max_error_len].rsplit(' ', 1)[0]
+        if len(truncated) < max_error_len - 20:  # If truncation removed too much, just cut at max
+            truncated = error_message[:max_error_len]
+        truncated += "..."
+    elif error_message:
+        truncated = error_message
     else:
-        return f"[{count_str}] Error"
+        truncated = "Error"
+    
+    if group_num is not None:
+        return f"[{count_str}] Group {group_num}: {truncated}"
+    else:
+        return f"[{count_str}] {truncated}"
 
 def extract_group_num_from_title(title: str) -> Optional[int]:
     """Extract group number from an existing issue title.
@@ -741,7 +761,7 @@ def process_new_error(error_entry: List, issue_dump: List[Dict[str, Any]], centr
                 group_num = None
                 if existing_title:
                     group_num = extract_group_num_from_title(existing_title)
-                title = create_title_from_count(count, group_num)
+                title = create_title_from_count(count, entry["centroid_error"], group_num)
                 run_metadata = entry.get("run_metadata", {})
                 body = format_issue_body(entry["centroid_error"], entry["failing_runs"], all_timestamps, run_metadata)
                 
@@ -792,7 +812,7 @@ def process_new_error(error_entry: List, issue_dump: List[Dict[str, Any]], centr
         # Create GitHub issue
         try:
             count = 1
-            title = create_title_from_count(count)
+            title = create_title_from_count(count, error_message)
             body = format_issue_body(error_message, [url], all_timestamps, run_metadata)
             
             print(f"  Creating new issue...")
@@ -957,7 +977,7 @@ def cleanup_old_runs(issue_dump: List[Dict[str, Any]], all_timestamps: Dict[str,
                         group_num = None
                         if existing_title:
                             group_num = extract_group_num_from_title(existing_title)
-                        title = create_title_from_count(count, group_num)
+                        title = create_title_from_count(count, centroid_error, group_num)
                         body = format_issue_body(centroid_error, remaining_runs, all_timestamps, remaining_metadata)
                         
                         print(f"    Updating issue #{issue_number}...")
