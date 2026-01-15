@@ -58,6 +58,18 @@ def get_centroid_to_issue_mapping(issue_dump: List[Dict[str, Any]]) -> Dict[str,
         print("⚠ Warning: github_token not found, cannot fetch issue URLs")
         return {}
     
+    # Build a set of centroids for faster lookup (normalized for case-insensitive matching)
+    centroid_lookup = {}
+    for entry in issue_dump:
+        centroid_error = entry.get("centroid_error", "")
+        if centroid_error:
+            centroid_lookup[centroid_error.strip()] = centroid_error
+            centroid_lookup[centroid_error.strip().lower()] = centroid_error
+    
+    if not centroid_lookup:
+        print("  No centroids found in issue_dump, skipping issue mapping")
+        return {}
+    
     # Fetch GitHub issues
     url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/issues"
     headers = {
@@ -66,14 +78,18 @@ def get_centroid_to_issue_mapping(issue_dump: List[Dict[str, Any]]) -> Dict[str,
     }
     
     centroid_to_issue = {}
+    found_count = 0
+    
+    print(f"Fetching GitHub issues to map {len(issue_dump)} centroid(s) to issue URLs...")
+    
+    # Only fetch open issues (closed issues shouldn't be in the active issue dump)
     page = 1
     per_page = 100
     
-    print("Fetching GitHub issues to map centroids to issue URLs...")
     while True:
         try:
             params = {
-                "state": "all",
+                "state": "open",
                 "per_page": per_page,
                 "page": page
             }
@@ -92,19 +108,24 @@ def get_centroid_to_issue_mapping(issue_dump: List[Dict[str, Any]]) -> Dict[str,
                 match = re.search(pattern, issue_body, re.DOTALL)
                 if match:
                     centroid_from_issue = match.group(1).strip()
-                    # Try to match with centroids in issue_dump
-                    for entry in issue_dump:
-                        centroid_error = entry.get("centroid_error", "")
-                        if not centroid_error:
-                            continue
-                        # Try exact match
-                        if centroid_error.strip() == centroid_from_issue.strip():
-                            centroid_to_issue[centroid_error] = issue["number"]
-                            break
-                        # Try case-insensitive match
-                        if centroid_error.strip().lower() == centroid_from_issue.strip().lower():
-                            centroid_to_issue[centroid_error] = issue["number"]
-                            break
+                    centroid_normalized = centroid_from_issue.strip()
+                    centroid_lower = centroid_normalized.lower()
+                    
+                    # Fast lookup using pre-built dictionary
+                    matched_centroid = None
+                    if centroid_normalized in centroid_lookup:
+                        matched_centroid = centroid_lookup[centroid_normalized]
+                    elif centroid_lower in centroid_lookup:
+                        matched_centroid = centroid_lookup[centroid_lower]
+                    
+                    if matched_centroid and matched_centroid not in centroid_to_issue:
+                        centroid_to_issue[matched_centroid] = issue["number"]
+                        found_count += 1
+            
+            # Early exit if we've found all centroids
+            if found_count >= len(issue_dump):
+                print(f"  Found all {found_count} centroid(s), stopping fetch")
+                break
             
             if len(issues) < per_page:
                 break
@@ -167,6 +188,7 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
         
         # Find matching centroid
         centroid_issue_url = None
+        centroid_error_message = None
         if centroids:
             best_idx, best_scores = find_best_matching_centroid(
                 error_message,
@@ -178,6 +200,7 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
             if best_idx is not None:
                 matched_count += 1
                 centroid_error = centroids[best_idx]
+                centroid_error_message = centroid_error
                 issue_number = centroid_to_issue.get(centroid_error)
                 if issue_number:
                     centroid_issue_url = get_github_issue_url(issue_number, repo_owner, repo_name)
@@ -190,7 +213,8 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
             "job_url": job_url,
             "error_message": error_message,
             "is_nd": is_nd,
-            "centroid_issue_url": centroid_issue_url
+            "centroid_issue_url": centroid_issue_url,
+            "centroid_error_message": centroid_error_message
         }
         report_entries.append(report_entry)
     
@@ -235,12 +259,17 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
         job_link = f"[Job URL]({entry['job_url']})" if entry["job_url"] else "*No job URL*"
         
         error_preview = entry["error_message"][:100].replace("\n", " ") + "..." if len(entry["error_message"]) > 100 else entry["error_message"]
+        centroid_preview = ""
+        if entry.get("centroid_error_message"):
+            centroid_msg = entry["centroid_error_message"]
+            centroid_preview = centroid_msg[:100].replace("\n", " ") + "..." if len(centroid_msg) > 100 else centroid_msg
+            centroid_preview = f"\n- **Centroid Error Message**: `{centroid_preview}`"
         
         markdown += f"""### Error {i} {nd_badge}
 
 - **Job**: {job_link}
 - **Centroid Issue**: {centroid_link}
-- **Error Message**: `{error_preview}`
+- **Error Message**: `{error_preview}`{centroid_preview}
 
 """
     

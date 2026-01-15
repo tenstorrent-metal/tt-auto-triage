@@ -809,6 +809,11 @@ def process_new_error(error_entry: List, issue_dump: List[Dict[str, Any]], centr
         failing_runs = entry.get("failing_runs", [])
         run_metadata = entry.get("run_metadata", {})
         
+        # Check if URL already exists in this issue
+        if url in failing_runs:
+            print(f"  ⚠ URL already exists in this issue, skipping duplicate")
+            return False, issue_dump, False
+        
         # Add new URL
         failing_runs.append(url)
         if timestamp:
@@ -1040,46 +1045,65 @@ def main():
     print(f"  Skipped (already exists): {skipped_existing}")
     print(f"  New errors to process: {len(new_errors)}")
     
-    if not new_errors:
-        print(f"\n{'='*80}")
-        print("Summary:")
-        print(f"  New issues created: 0")
-        print(f"  Existing issues updated: 0")
-        print(f"  Errors skipped (no URL): {skipped_no_url}")
-        print(f"  Errors skipped (already exists): {skipped_existing}")
-        print(f"  Total issues in dump: {len(issue_dump)}")
-        print(f"{'='*80}")
-        return
-    
-    # Process each new error
-    print(f"\n{'='*80}")
-    print("Processing new errors...")
-    print(f"{'='*80}")
-    
+    # Process new errors if any
     new_count = 0
     updated_count = 0
     
-    for idx, error_entry in enumerate(new_errors, 1):
-        error_message = error_entry[0]
-        url = error_entry[1]
+    if new_errors:
+        # Process each new error
+        print(f"\n{'='*80}")
+        print("Processing new errors...")
+        print(f"{'='*80}")
         
-        print(f"\n[{idx}/{len(new_errors)}] Processing error...")
-        print(f"  URL: {url}")
-        
-        # Process the error
-        updated, issue_dump, is_new_issue = process_new_error(error_entry, issue_dump, centroid_to_issue, all_timestamps)
-        
-        if updated:
-            if is_new_issue:
-                new_count += 1
-            else:
-                updated_count += 1
+        for idx, error_entry in enumerate(new_errors, 1):
+            error_message = error_entry[0]
+            url = error_entry[1]
             
-            # Update existing_urls set to avoid reprocessing in same run
-            existing_urls.add(url)
+            print(f"\n[{idx}/{len(new_errors)}] Processing error...")
+            print(f"  URL: {url}")
+            
+            # Process the error
+            updated, issue_dump, is_new_issue = process_new_error(error_entry, issue_dump, centroid_to_issue, all_timestamps)
+            
+            if updated:
+                if is_new_issue:
+                    new_count += 1
+                else:
+                    updated_count += 1
+                
+                # Update existing_urls set to avoid reprocessing in same run
+                existing_urls.add(url)
+    else:
+        print(f"\nNo new errors to process.")
+    
+    # Clean up old runs (older than 1 month) - always run this automatically
+    print(f"\n{'='*80}")
+    print("Cleaning up old runs (older than 1 month)...")
+    print(f"{'='*80}")
+    
+    # Build all_metadata from issue_dump for cleanup function
+    all_metadata = {}
+    for entry in issue_dump:
+        run_metadata = entry.get("run_metadata", {})
+        for url, meta in run_metadata.items():
+            all_metadata[url] = meta
+    
+    # Import and call cleanup function
+    cleanup_updated = 0
+    cleanup_closed = 0
+    try:
+        import maintain_issues
+        issue_dump, cleanup_updated, cleanup_closed = maintain_issues.cleanup_old_runs(
+            issue_dump, all_timestamps, centroid_to_issue, all_metadata
+        )
+        print(f"\n✓ Cleanup completed: {cleanup_updated} issue(s) updated, {cleanup_closed} issue(s) closed")
+    except Exception as e:
+        print(f"\n⚠ Warning: Failed to cleanup old runs: {e}")
+        import traceback
+        traceback.print_exc()
     
     # Save updated issue dump
-    if new_count > 0 or updated_count > 0:
+    if new_count > 0 or updated_count > 0 or cleanup_updated > 0 or cleanup_closed > 0:
         print(f"\n{'='*80}")
         print("Saving updated issue dump...")
         print(f"{'='*80}")
@@ -1094,6 +1118,7 @@ def main():
     print("Summary:")
     print(f"  New issues created: {new_count}")
     print(f"  Existing issues updated: {updated_count}")
+    print(f"  Old runs cleaned up: {cleanup_updated} issue(s) updated, {cleanup_closed} issue(s) closed")
     print(f"  Errors skipped (no URL): {skipped_no_url}")
     print(f"  Errors skipped (already exists): {skipped_existing}")
     print(f"  Total issues in dump: {len(issue_dump)}")
