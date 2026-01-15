@@ -45,16 +45,16 @@ runs:
         {
           "github_token": "${{ inputs.github_token }}",
           "github_repo_owner": "ebanerjeeTT",
-          "github_repo_name": "tt-auto-triage",
+          "github_repo_name": "issue_dump",
           "slack_token": "${{ inputs.slack_token }}",
           "channel_id": "${{ inputs.channel_id }}",
-          "project_owner": "",
-          "project_name": "",
+          "project_owner": "ebanerjeeTT",
+          "project_name": "issue dump test",
           "project_number": "",
           "project_field_id": ""
         }
         EOF
-        echo "Created secrets.json with repo: ebanerjeeTT/tt-auto-triage"
+        echo "Created secrets.json with repo: ebanerjeeTT/issue_dump and project: issue dump test"
       working-directory: ${{ github.action_path }}
 
     - name: Delete existing build_slack_export_with_threads.json if it exists
@@ -136,6 +136,10 @@ runs:
         set -euo pipefail
         cd "${{ github.action_path }}"
         python3 generate_error_report.py
+        # Copy to workspace root for artifact upload (artifact paths must be relative to workspace)
+        if [ -f error_report.json ]; then
+          cp error_report.json "${{ github.workspace }}/error_report.json"
+        fi
       env:
         PYTHONUNBUFFERED: 1
         GITHUB_TOKEN: ${{ inputs.github_token }}
@@ -145,5 +149,5 @@ runs:
       if: always()
       with:
         name: error-report
-        path: ${{ github.action_path }}/error_report.json
+        path: error_report.json
         retention-days: 30
