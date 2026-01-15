@@ -295,7 +295,6 @@ Contact Guidance (All Cases)
 - Provide both the best-known real name (if visible) and the GitHub handle, plus a hyperlink `https://github.com/<handle>`.
 - **Never include Slack IDs in explanation.md** - this is a security concern. Slack IDs should only exist in `slack_message.json`.
 - Include this section in `explanation.md` for every case.
-- If you have determined that an issue is deterministic, you should figure out what change in testing could have allowed this error to be caught sooner (ideally even before merging the commit to main). If the issue required better testing at the level of the test (for example, a model that didn't properly utilize some ttnn ops) then you should suggest that a unit test should be made to prevent that issue, or if that unit test already exists, explain that it needed to be run before merging and it wasn't. If the issue has to do with a bug escape (like a fundamental issue with a ttnn op breaking a model test that didn't do anything wrong) then you should mention that there needs to be new tests written at a lower level. In either case you should outline what should be done, in both the slack message and in the report.
 
 Auto Fix Framework
 ------------------
@@ -324,3 +323,7 @@ Final Reminders
 - Case 1 and Case 4 are mutually exclusive: if you can defend one culprit, emit the Case 1 Slack payload (single commit entry). If multiple suspects remain, emit the Case 4 payload (multi-commit array) and never force a single guess.
 - When evidence points to multiple risky commits, explicitly say so (Case 4) instead of forcing a guess.
 - If there are **no failing runs** after reading `boundaries_summary.json`, write `./output/explanation.md` stating that the triage run was invoked in error (pipeline currently passing) and exit without further analysis.
+
+Extra notes
+--------------
+- If you have determined that an issue is deterministic, you should figure out what change in testing could have allowed this error to be caught sooner (ideally even before merging the commit to main). If the issue required better testing at the level of the test (for example, a model that didn't properly utilize some ttnn ops) then you should suggest that a unit test should be made to prevent that issue, or if that unit test already exists, explain that it needed to be run before merging and it wasn't. If the issue has to do with a bug escape (like a fundamental issue with a ttnn op breaking a model test that didn't do anything wrong) then you should mention that there needs to be new tests written at a lower level. In either case you should outline what should be done, in both the slack message and in the report.
