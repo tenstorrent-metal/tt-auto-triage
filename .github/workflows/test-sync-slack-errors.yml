@@ -28,6 +28,11 @@ on:
         required: false
         default: false
         type: boolean
+      start_date:
+        description: 'Start date for fetching Slack messages (format: January 1, 2026)'
+        required: false
+        default: 'January 1, 2026'
+        type: string
 
 jobs:
   sync-slack-errors:
@@ -44,3 +49,4 @@ jobs:
           channel_id: ${{ inputs.channel_id }}
           update_mode: ${{ inputs.update_mode || 'update' }}
           run_maintenance: ${{ inputs.run_maintenance || 'false' }}
+          start_date: ${{ inputs.start_date || 'January 1, 2026' }}

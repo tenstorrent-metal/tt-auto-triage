@@ -21,7 +21,8 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # --- CONFIGURATION ---
 SECRETS_FILE = os.path.join(SCRIPT_DIR, "secrets.json")
-START_DATE_STR = "January 1, 2026"
+# Allow START_DATE_STR to be overridden via environment variable
+START_DATE_STR = os.environ.get("SLACK_START_DATE", "January 1, 2026")
 OUTPUT_FILE = os.path.join(SCRIPT_DIR, "build_slack_export_with_threads.json")
 DEBUG_LOG = os.path.join(SCRIPT_DIR, "debug.log")
 

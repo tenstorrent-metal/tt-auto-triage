@@ -18,6 +18,10 @@ inputs:
     description: "Whether to run maintenance (cleanup old runs, ensure sorting)"
     required: false
     default: "false"
+  start_date:
+    description: "Start date for fetching Slack messages (format: 'January 1, 2026'). Only used if no existing export file exists."
+    required: false
+    default: "January 1, 2026"
 runs:
   using: composite
   steps:
@@ -73,6 +77,7 @@ runs:
         python3 get_and_analyze_slack.py
       env:
         PYTHONUNBUFFERED: 1
+        SLACK_START_DATE: ${{ inputs.start_date || 'January 1, 2026' }}
 
     - name: Extract errors from Slack export
       shell: bash
@@ -124,3 +129,21 @@ runs:
       env:
         PYTHONUNBUFFERED: 1
         GITHUB_TOKEN: ${{ inputs.github_token }}
+
+    - name: Generate error report
+      shell: bash
+      run: |
+        set -euo pipefail
+        cd "${{ github.action_path }}"
+        python3 generate_error_report.py
+      env:
+        PYTHONUNBUFFERED: 1
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+
+    - name: Upload error report as artifact
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: error-report
+        path: ${{ github.action_path }}/error_report.json
+        retention-days: 30

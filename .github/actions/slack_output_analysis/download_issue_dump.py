@@ -463,30 +463,21 @@ def parse_issue(issue: Dict[str, Any]) -> Dict[str, Any]:
 def main():
     """Main function."""
     print("="*80)
-    print(f"Downloading issues from project '{PROJECT_NAME}'")
+    print("Downloading issues from GitHub project")
     print("="*80)
     
     if not GITHUB_TOKEN:
         print("ERROR: GITHUB_TOKEN not found in secrets.json")
         sys.exit(1)
     
-    if not PROJECT_OWNER:
-        print("ERROR: project_owner not found in secrets.json")
-        sys.exit(1)
+    if not PROJECT_OWNER or not PROJECT_NAME:
+        print("⚠ Warning: project_owner or project_name not found in secrets.json")
+        print("  Skipping project download. Issue dump will not be refreshed from project.")
+        print("  This is OK if you're running without a GitHub project configured.")
+        print("  The sync will use the existing issue_dump.json file if it exists.")
+        return
     
-    if not PROJECT_NAME:
-        print("ERROR: project_name not found in secrets.json")
-        print("\nPlease add 'project_name' to your secrets.json file.")
-        print("Example:")
-        print('  "project_name": "issue dump test"')
-        print("\nRequired fields in secrets.json:")
-        print("  - github_token")
-        print("  - project_owner (organization or user name)")
-        print("  - project_name (name of the GitHub project)")
-        print("\nOptional fields:")
-        print("  - github_repo_owner (if project is in a repository)")
-        print("  - github_repo_name (if project is in a repository)")
-        sys.exit(1)
+    print(f"Downloading issues from project '{PROJECT_NAME}'")
     
     # Find the project
     print(f"\nFinding project '{PROJECT_NAME}' in organization '{PROJECT_OWNER}'...")

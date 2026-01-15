@@ -881,7 +881,13 @@ def main():
         # Import and run download_issue_dump to refresh issue_dump.json
         import download_issue_dump
         download_issue_dump.main()
-        print(f"\n✓ Issue dump refreshed successfully")
+        # Check if download_issue_dump actually ran (it returns early if project not configured)
+        # The function will print a warning if project fields are missing
+        print(f"\n✓ Issue dump refresh completed (may have been skipped if project not configured)")
+    except SystemExit as e:
+        # download_issue_dump may exit if critical errors occur
+        print(f"\n⚠ Warning: Issue dump refresh exited: {e}")
+        print("  Continuing with existing issue_dump.json if it exists...")
     except Exception as e:
         print(f"\n⚠ Warning: Failed to refresh issue dump: {e}")
         print("  Continuing with existing issue_dump.json if it exists...")
