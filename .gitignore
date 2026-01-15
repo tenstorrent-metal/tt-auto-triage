@@ -2,3 +2,6 @@
 .github/actions/auto-triage/auto_triage/slack_groups.json
 
 python_env/
+secrets.json
+*.pyc
+*.log

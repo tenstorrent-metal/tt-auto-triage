@@ -1,0 +1,103 @@
+ND Failure Analysis
+Total ND failure records: 232
+Found 140 unique jobs with ND failures
+
+================================================================================
+TOP 5 JOBS WITH MOST NON-DETERMINISTIC FAILURES
+================================================================================
+
+1. Run sweeps in parallel (wormhole-n150-sweeps, eltwise.binary.atan2.atan2,eltwise.binary.atan2.atan2_sharded,eltwise.binary.bcast.bcast)
+   Total ND Failures: 6
+   Unique Failure Reasons: 3
+
+   Failure Reasons Breakdown:
+      • (4x) Unknown reason
+        Dates: January 13th, 2026, January 12th, 2026, January 10th, 2026, January 8th, 2026
+      • (1x) the failure is clearly non-deterministic/infra noise (runner lost communication - known pattern in non-deterministic-error-examples.json) and would inevitably become Case 3
+        Dates: January 3rd, 2026
+      • (1x) the failure is clearly non-deterministic/infra noise: all 6 failing runs show 'runner lost communication' during sweep execution, which is a known infrastructure pattern unrelated to tt-metal code changes
+        Dates: January 1st, 2026
+--------------------------------------------------------------------------------
+2. WH N300 pgm dispatch nightly
+   Total ND Failures: 6
+   Unique Failure Reasons: 5
+
+   Failure Reasons Breakdown:
+      • (2x) Unknown reason
+        Dates: January 10th, 2026, January 9th, 2026
+      • (1x) Dispatch benchmark regression (612% slower) traced to trace infrastructure changes predating the analyzed commits. Window contains only docs and UNET config changes that cannot affect dispatch performance. Likely timing-dependent or infrastructure-related issue.
+        Dates: January 13th, 2026
+      • (1x) Dispatch performance benchmark failure appears to be infrastructure-related flakiness rather than code regression. Only intervening commit contains syntactic clang-tidy fixes that cannot affect runtime. Recommend re-running benchmark and checking system health during failure window.
+        Dates: January 10th, 2026
+      • (1x) the failure is clearly non-deterministic/infra noise: both runs on same commit (0490896), failure is Docker registry access denied error, unrelated to tt-metal code
+        Dates: January 5th, 2026
+      • (1x) Dispatch benchmark regression (6.5us → 46.1us) appears to be runner-related rather than code-related. The only commit in window adds Python sweep features that cannot affect C++ benchmarks. Recommend rerun to verify.
+        Dates: January 3rd, 2026
+--------------------------------------------------------------------------------
+3. P150 BH device perf
+   Total ND Failures: 6
+   Unique Failure Reasons: 5
+
+   Failure Reasons Breakdown:
+      • (2x) Unknown reason
+        Dates: January 11th, 2026, January 8th, 2026
+      • (1x) Performance test failed due to kernel running 0.007% faster than minimum threshold (normal hardware variation). All commits in window are unrelated to deeplab model. This is a flaky test, not a code regression.
+        Dates: January 9th, 2026
+      • (1x) the failure is clearly non-deterministic/infra noise: self-hosted runner lost communication with server during job setup
+        Dates: January 5th, 2026
+      • (1x) the failure is clearly non-deterministic/infra noise: runner lost communication with server (known pattern). Both success and failure runs are on the same commit 4f92b074e, confirming infrastructure flakiness rather than code regression
+        Dates: January 3rd, 2026
+      • (1x) Performance test failed by 4ns (0.00002%) - this is measurement noise, not a code regression. All commits in window are either CI-only or internal bookkeeping changes that cannot affect device execution. Recommend re-running test or adjusting thresholds.
+        Dates: January 2nd, 2026
+--------------------------------------------------------------------------------
+4. t3k ttmetal tests
+   Total ND Failures: 6
+   Unique Failure Reasons: 4
+
+   Failure Reasons Breakdown:
+      • (3x) Unknown reason
+        Dates: January 8th, 2026, January 8th, 2026, January 6th, 2026
+      • (1x) the failure is clearly non-deterministic/infra noise and would inevitably become Case 3
+        Dates: January 6th, 2026
+      • (1x) the failure is clearly non-deterministic/infra noise and would inevitably become Case 3: same commit (6223e8c20a04e771b5c44616a406aecd39d9f1fd) succeeded then failed, error 'Timeout waiting for Ethernet core service remote IO request flush' is a known non-deterministic pattern
+        Dates: January 1st, 2026
+      • (1x) the failure is clearly non-deterministic/infra noise and would inevitably become Case 3. Error 'Timeout waiting for Ethernet core service remote IO request flush' is documented as non-deterministic, and both success and failure occurred on the same commit (297f4f46cb88564fe6ac216ed2b3e78b4a906949)
+        Dates: January 1st, 2026
+--------------------------------------------------------------------------------
+5. t3k falcon40b tests
+   Total ND Failures: 6
+   Unique Failure Reasons: 6
+
+   Failure Reasons Breakdown:
+      • (1x) Unknown reason
+        Dates: January 7th, 2026
+      • (1x) the failure is clearly non-deterministic/infra noise (runner lost communication with server - known infrastructure issue)
+        Dates: January 5th, 2026
+      • (1x) the failure is clearly non-deterministic/infra noise: same commit (049089602df73c8d3cd8387240e1f7b7c3974930) passed earlier but failed later with device/arc core timeout errors unrelated to code changes
+        Dates: January 4th, 2026
+      • (1x) the failure is clearly non-deterministic/infra noise: UMD lock contention ('Waiting for lock NON_MMIO_1_PCIe' repeatedly), device timeout/hang, and test action timeouts indicate hardware/infrastructure issues rather than deterministic code failures
+        Dates: January 3rd, 2026
+      • (1x) the failure is clearly non-deterministic/infra noise: same commit (6223e8c20a04e771b5c44616a406aecd39d9f1fd) produced both success (run_number 0, completed 2026-01-01T22:18:33Z) and failure (run_number 1, completed 2026-01-02T01:15:19Z). The failure is a UMD lock contention deadlock (Waiting for lock 'NON_MMIO_2_PCIe' held by thread TID: 8859) that persisted for 20+ minutes until timeout. 3 tests passed before the hang. This is infrastructure/concurrency noise, not a code issue
+        Dates: January 1st, 2026
+      • (1x) the failure is clearly non-deterministic/infra noise: same commit (297f4f46cb88564fe6ac216ed2b3e78b4a906949) passed in run 0 but timed out after 30 minutes in run 1 with no error message, just a test hang during Falcon seq128 execution
+        Dates: January 1st, 2026
+--------------------------------------------------------------------------------
+
+================================================================================
+SUMMARY STATISTICS
+================================================================================
+Total unique jobs with ND failures: 140
+Total ND failure occurrences: 232
+Average failures per job: 1.66
+
+Most common failure reasons across all jobs:
+  • (103x) Unknown reason
+  • (4x) the failure is clearly non-deterministic/infra noise and would inevitably become Case 3
+  • (2x) the failure is clearly non-deterministic/infra noise (runner lost communication - known pattern in non-deterministic-error-examples.json) and would inevitably become Case 3
+  • (2x) the failure is clearly non-deterministic/infra noise (self-hosted runner lost communication - known pattern) and would inevitably become Case 3
+  • (2x) the failure is clearly non-deterministic/infra noise: runner lost communication with server
+  • (1x) the failure is clearly non-deterministic/infra noise (GitHub download failure for CPM.cmake dependency during build setup)
+  • (1x) Job failure is not attributable to commits in the window. Same qwen25_vl test failures existed in both 'success' and 'failure' runs; the newer run simply timed out after 15 minutes. Neither commit touches relevant code (one is tt-train tests, the other is CI workflow YAML). This appears to be a pre-existing test issue with timing/infrastructure variability.
+  • (1x) T3K mesh initialization failed—DFS found only 1 device when expecting 4 in a [1,4] topology. Previous run saw 8 devices. No tt-metal code changes touch mesh/device logic. Likely hardware connectivity or fabric issue on the runner.
+  • (1x) Non-deterministic failure in siglip test due to device availability mismatch (enumeration reported 4 devices, but only 1 usable). No tt-metal code changes related to device discovery or mesh setup. Please check T3000 runner health and device state.
+  • (1x) T3K mesh device initialization fails due to physical connectivity issue. Topology shows all 4 devices isolated (degree 0). No tt-metal code changes touch distributed/fabric systems. Likely hardware issue requiring runner health check or Ethernet cable verification.
