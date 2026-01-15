@@ -93,33 +93,96 @@ def check_repository_access():
     
     # Check repository info
     repo_url = f"https://api.github.com/repos/{GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}"
-    headers = {
-        "Authorization": f"token {GITHUB_TOKEN}",
-        "Accept": "application/vnd.github.v3+json"
-    }
     
-    try:
-        response = requests.get(repo_url, headers=headers)
-        response.raise_for_status()
-        repo_info = response.json()
-        print(f"✓ Repository found: {repo_info.get('full_name', 'unknown')}")
-        print(f"  Private: {repo_info.get('private', False)}")
-        print(f"  Archived: {repo_info.get('archived', False)}")
-        print(f"  Disabled: {repo_info.get('disabled', False)}")
+    # Try with "Bearer" first (for fine-grained PATs), then fall back to "token"
+    auth_methods = [
+        ("Bearer", f"Bearer {GITHUB_TOKEN}"),
+        ("token", f"token {GITHUB_TOKEN}")
+    ]
+    
+    repo_info = None
+    last_error = None
+    working_headers = None
+    
+    for method_name, auth_header in auth_methods:
+        headers = {
+            "Authorization": auth_header,
+            "Accept": "application/vnd.github.v3+json"
+        }
         
-        # Check if issues are enabled
-        has_issues = repo_info.get('has_issues', True)
-        print(f"  Issues enabled: {has_issues}")
-        if not has_issues:
-            print("  ⚠ WARNING: Issues are disabled for this repository!")
-        
-    except requests.exceptions.HTTPError as e:
-        print(f"✗ Cannot access repository: HTTP {e.response.status_code}")
-        print(f"  Response: {e.response.text}")
+        try:
+            response = requests.get(repo_url, headers=headers)
+            if response.status_code == 200:
+                repo_info = response.json()
+                working_headers = headers  # Save working headers for later use
+                break
+            elif response.status_code == 404:
+                print(f"✗ Repository not found (404): {GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}")
+                print(f"  Response: {response.text}")
+                print("\n  Please verify:")
+                print(f"  1. The repository exists at https://github.com/{GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}")
+                print("  2. The repository name is spelled correctly")
+                print("  3. The GitHub token has access to this repository")
+                print("  4. If this is a private repository, ensure the token has access")
+                return False
+            elif response.status_code == 403:
+                # Try next auth method
+                last_error = response
+                continue
+            else:
+                response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            last_error = e
+            if e.response.status_code == 403:
+                # Try next auth method
+                continue
+            elif e.response.status_code == 404:
+                print(f"✗ Repository not found (404): {GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}")
+                print(f"  Response: {e.response.text}")
+                print("\n  Please verify:")
+                print(f"  1. The repository exists at https://github.com/{GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}")
+                print("  2. The repository name is spelled correctly")
+                print("  3. The GitHub token has access to this repository")
+                return False
+            else:
+                print(f"✗ Cannot access repository: HTTP {e.response.status_code}")
+                print(f"  Response: {e.response.text}")
+                print("\n  Possible issues:")
+                print("    - Token doesn't have access to this repository")
+                print("    - Repository doesn't exist or is private")
+                print("    - Organization policy blocking PAT access")
+                return False
+        except Exception as e:
+            last_error = e
+            if method_name == "token":  # Last method
+                print(f"✗ Error checking repository access: {e}")
+                return False
+            continue
+    
+    if not repo_info:
+        if last_error:
+            if hasattr(last_error, 'response'):
+                print(f"✗ Cannot access repository: HTTP {last_error.response.status_code}")
+                print(f"  Response: {last_error.response.text}")
+            else:
+                print(f"✗ Error checking repository access: {last_error}")
         print("\n  Possible issues:")
         print("    - Token doesn't have access to this repository")
         print("    - Repository doesn't exist or is private")
         print("    - Organization policy blocking PAT access")
+        return False
+    
+    print(f"✓ Repository found: {repo_info.get('full_name', 'unknown')}")
+    print(f"  Private: {repo_info.get('private', False)}")
+    print(f"  Archived: {repo_info.get('archived', False)}")
+    print(f"  Disabled: {repo_info.get('disabled', False)}")
+    
+    # Check if issues are enabled
+    has_issues = repo_info.get('has_issues', True)
+    print(f"  Issues enabled: {has_issues}")
+    if not has_issues:
+        print("  ⚠ WARNING: Issues are disabled for this repository!")
+        print("  Enable issues in repository settings to create issues.")
         return False
     
     # Check if we can read issues
@@ -129,8 +192,15 @@ def check_repository_access():
         "per_page": 1
     }
     
+    if not working_headers:
+        # Fallback to token auth if we didn't get working headers
+        working_headers = {
+            "Authorization": f"token {GITHUB_TOKEN}",
+            "Accept": "application/vnd.github.v3+json"
+        }
+    
     try:
-        response = requests.get(issues_url, headers=headers, params=params)
+        response = requests.get(issues_url, headers=working_headers, params=params)
         response.raise_for_status()
         print(f"✓ Can READ issues")
     except requests.exceptions.HTTPError as e:
@@ -193,6 +263,56 @@ def list_existing_issues():
         print(f"ERROR: Failed to connect to repository: {e}")
         sys.exit(1)
 
+def verify_repository_access() -> bool:
+    """Verify that the repository exists and is accessible."""
+    import requests
+    
+    url = f"https://api.github.com/repos/{GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}"
+    
+    auth_methods = [
+        ("Bearer", f"Bearer {GITHUB_TOKEN}"),
+        ("token", f"token {GITHUB_TOKEN}")
+    ]
+    
+    for method_name, auth_header in auth_methods:
+        headers = {
+            "Authorization": auth_header,
+            "Accept": "application/vnd.github.v3+json"
+        }
+        
+        try:
+            response = requests.get(url, headers=headers)
+            if response.status_code == 200:
+                repo_data = response.json()
+                has_issues = repo_data.get("has_issues", True)
+                if not has_issues:
+                    print(f"\n⚠ Warning: Issues are disabled for repository {GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}")
+                    print("  Enable issues in repository settings to create issues.")
+                    return False
+                return True
+            elif response.status_code == 404:
+                print(f"\n✗ ERROR: Repository {GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME} not found (404)")
+                print("  Please verify:")
+                print(f"  1. The repository exists at https://github.com/{GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}")
+                print("  2. The repository name is spelled correctly")
+                print("  3. The GitHub token has access to this repository")
+                return False
+            elif response.status_code == 403:
+                # Try next auth method
+                continue
+            else:
+                print(f"\n✗ ERROR: Failed to verify repository access (HTTP {response.status_code})")
+                print(f"  Response: {response.text}")
+                return False
+        except Exception as e:
+            if method_name == "token":  # Last method
+                print(f"\n✗ ERROR: Failed to verify repository: {e}")
+                return False
+            continue
+    
+    print(f"\n✗ ERROR: Failed to verify repository access with any authentication method")
+    return False
+
 def create_issue(title: str, body: str) -> Dict[str, Any]:
     """Create a GitHub issue and return the issue data."""
     import requests
@@ -226,6 +346,17 @@ def create_issue(title: str, body: str) -> Dict[str, Any]:
             if e.response.status_code == 403:
                 # Try next auth method
                 continue
+            elif e.response.status_code == 404:
+                print(f"\n✗ ERROR: HTTP 404 - Repository or endpoint not found")
+                print(f"  URL: {url}")
+                print(f"  Repository: {GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}")
+                print(f"  Response: {e.response.text}")
+                print("\n  Possible causes:")
+                print("  1. Repository does not exist")
+                print("  2. Issues are disabled for this repository")
+                print("  3. GitHub token does not have access to this repository")
+                print(f"  4. Repository URL is incorrect (check: https://github.com/{GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME})")
+                raise
             else:
                 # For other errors, show details and fail
                 print(f"\nERROR: HTTP {e.response.status_code}")

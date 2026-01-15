@@ -219,6 +219,56 @@ def update_issue(issue_number: int, title: str, body: str) -> Dict[str, Any]:
         raise last_error
     raise Exception("Failed to update issue")
 
+def verify_repository_access() -> bool:
+    """Verify that the repository exists and is accessible."""
+    import requests
+    
+    url = f"https://api.github.com/repos/{GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}"
+    
+    auth_methods = [
+        ("Bearer", f"Bearer {GITHUB_TOKEN}"),
+        ("token", f"token {GITHUB_TOKEN}")
+    ]
+    
+    for method_name, auth_header in auth_methods:
+        headers = {
+            "Authorization": auth_header,
+            "Accept": "application/vnd.github.v3+json"
+        }
+        
+        try:
+            response = requests.get(url, headers=headers)
+            if response.status_code == 200:
+                repo_data = response.json()
+                has_issues = repo_data.get("has_issues", True)
+                if not has_issues:
+                    print(f"\n⚠ Warning: Issues are disabled for repository {GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}")
+                    print("  Enable issues in repository settings to create issues.")
+                    return False
+                return True
+            elif response.status_code == 404:
+                print(f"\n✗ ERROR: Repository {GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME} not found (404)")
+                print("  Please verify:")
+                print(f"  1. The repository exists at https://github.com/{GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}")
+                print("  2. The repository name is spelled correctly")
+                print("  3. The GitHub token has access to this repository")
+                return False
+            elif response.status_code == 403:
+                # Try next auth method
+                continue
+            else:
+                print(f"\n✗ ERROR: Failed to verify repository access (HTTP {response.status_code})")
+                print(f"  Response: {response.text}")
+                return False
+        except Exception as e:
+            if method_name == "token":  # Last method
+                print(f"\n✗ ERROR: Failed to verify repository: {e}")
+                return False
+            continue
+    
+    print(f"\n✗ ERROR: Failed to verify repository access with any authentication method")
+    return False
+
 def create_issue(title: str, body: str) -> Dict[str, Any]:
     """Create a new GitHub issue."""
     import requests
@@ -252,6 +302,17 @@ def create_issue(title: str, body: str) -> Dict[str, Any]:
             if e.response.status_code == 403:
                 # Try next auth method
                 continue
+            elif e.response.status_code == 404:
+                print(f"\n✗ ERROR: HTTP 404 - Repository or endpoint not found")
+                print(f"  URL: {url}")
+                print(f"  Repository: {GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}")
+                print(f"  Response: {e.response.text}")
+                print("\n  Possible causes:")
+                print("  1. Repository does not exist")
+                print("  2. Issues are disabled for this repository")
+                print("  3. GitHub token does not have access to this repository")
+                print(f"  4. Repository URL is incorrect (check: https://github.com/{GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME})")
+                raise
             else:
                 print(f"\nERROR: HTTP {e.response.status_code}")
                 print(f"Response: {e.response.text}")
@@ -922,6 +983,13 @@ def main():
         sys.exit(1)
     
     print(f"Found {len(issue_dump)} existing issue(s)")
+    
+    # Verify repository access before proceeding
+    print(f"\nVerifying repository access...")
+    if not verify_repository_access():
+        print("\n✗ Cannot proceed without repository access. Exiting.")
+        sys.exit(1)
+    print(f"✓ Repository {GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME} is accessible")
     
     # Get all GitHub issues and map to centroids
     print(f"\nFetching GitHub issues to map centroids...")
