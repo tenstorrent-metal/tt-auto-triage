@@ -191,6 +191,16 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
     centroids = [entry["centroid_error"] for entry in issue_dump]
     print(f"  ✓ Found {len(centroids)} centroid(s) to match against (open issues only)")
     
+    # Build reverse lookup: URL -> issue entry (much faster than similarity matching)
+    print(f"\nBuilding URL to issue mapping...")
+    url_to_entry = {}
+    for entry in issue_dump:
+        failing_runs = entry.get("failing_runs", [])
+        for url in failing_runs:
+            if url:
+                url_to_entry[url] = entry
+    print(f"  ✓ Mapped {len(url_to_entry)} URL(s) to issue entries")
+    
     # Generate report entries
     print(f"\nGenerating report entries for {len(all_errors)} error(s)...")
     report_entries = []
@@ -204,32 +214,24 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
         job_url = error_entry[1] if len(error_entry) > 1 else None
         is_nd = error_entry[5] if len(error_entry) > 5 else False
         
-        if not error_message:
+        if not error_message or not job_url:
+            if not job_url:
+                unmatched_count += 1
             continue
         
-        # Find matching centroid
+        # Look up URL directly in issue_dump (no similarity matching needed)
         centroid_issue_url = None
         centroid_error_message = None
-        if centroids:
-            best_idx, best_scores = find_best_matching_centroid(
-                error_message,
-                centroids,
-                rapidfuzz_threshold=RAPIDFUZZ_THRESHOLD,
-                semantic_threshold=SEMANTIC_THRESHOLD
-            )
+        
+        if job_url in url_to_entry:
+            matched_count += 1
+            entry = url_to_entry[job_url]
+            centroid_error_message = entry.get("centroid_error", "")
             
-            if best_idx is not None:
-                matched_count += 1
-                centroid_error = centroids[best_idx]
-                centroid_error_message = centroid_error
-                issue_number = centroid_to_issue.get(centroid_error)
-                if issue_number:
-                    centroid_issue_url = get_github_issue_url(issue_number, repo_owner, repo_name)
-                else:
-                    if idx % 100 == 0:  # Log occasionally for unmatched centroids
-                        print(f"    Warning: Centroid matched but no issue URL found (centroid #{best_idx + 1})")
-            else:
-                unmatched_count += 1
+            # Get issue URL from centroid mapping
+            if centroid_error_message in centroid_to_issue:
+                issue_number = centroid_to_issue[centroid_error_message]
+                centroid_issue_url = get_github_issue_url(issue_number, repo_owner, repo_name)
         else:
             unmatched_count += 1
         
