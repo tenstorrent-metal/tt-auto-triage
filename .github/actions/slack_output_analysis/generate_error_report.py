@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Generate error report JSON and markdown summary.
-Creates a report with job URL, error message, ND flag, and centroid issue URL.
+Creates a report with job URL, error message, ND flag, and centroid run URL.
+The report is GitHub-independent and suitable for SQL database storage.
 """
 
 import json
@@ -21,10 +22,6 @@ from error_similarity import find_best_matching_centroid
 # Similarity thresholds (same as sync_new_errors.py)
 RAPIDFUZZ_THRESHOLD = 50.0
 SEMANTIC_THRESHOLD = 70.0
-
-def get_github_issue_url(issue_number: int, repo_owner: str, repo_name: str) -> str:
-    """Generate GitHub issue URL from issue number."""
-    return f"https://github.com/{repo_owner}/{repo_name}/issues/{issue_number}"
 
 def load_secrets():
     """Load configuration from secrets.json file."""
@@ -167,29 +164,30 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
         print(f"⚠ Warning: {ISSUE_DUMP_FILE} not found, centroid URLs will be missing")
         issue_dump = []
     
-    # Get centroid to issue mapping (only open issues)
-    print("\nMapping centroids to GitHub issue URLs...")
-    centroid_to_issue = get_centroid_to_issue_mapping(issue_dump)
+    # Filter issue_dump to only include entries from open issues
+    # We need to check GitHub to see which issues are open
+    print("\nFiltering issue_dump to exclude closed issues...")
     secrets = load_secrets()
     repo_owner = secrets["GITHUB_REPO_OWNER"]
     repo_name = secrets["GITHUB_REPO_NAME"]
+    github_token = secrets.get("GITHUB_TOKEN", "")
     
-    # Filter issue_dump to only include entries from open issues
-    # Closed issues are completely ignored - remove their centroids from issue_dump
-    print("Filtering issue_dump to exclude closed issues...")
-    original_count = len(issue_dump)
-    issue_dump = [
-        entry for entry in issue_dump
-        if entry.get("centroid_error", "") in centroid_to_issue
-    ]
-    filtered_count = original_count - len(issue_dump)
-    if filtered_count > 0:
-        print(f"  Removed {filtered_count} entry/entries from closed issues")
-    print(f"  {len(issue_dump)} open issue(s) remaining")
+    if github_token:
+        # Get mapping to check which centroids belong to open issues
+        centroid_to_issue = get_centroid_to_issue_mapping(issue_dump)
+        original_count = len(issue_dump)
+        issue_dump = [
+            entry for entry in issue_dump
+            if entry.get("centroid_error", "") in centroid_to_issue
+        ]
+        filtered_count = original_count - len(issue_dump)
+        if filtered_count > 0:
+            print(f"  Removed {filtered_count} entry/entries from closed issues")
+        print(f"  {len(issue_dump)} open issue(s) remaining")
+    else:
+        print("  ⚠ Warning: No GitHub token - cannot filter closed issues")
     
-    # Get centroids for matching (now only from open issues)
-    centroids = [entry["centroid_error"] for entry in issue_dump]
-    print(f"  ✓ Found {len(centroids)} centroid(s) to match against (open issues only)")
+    print(f"  ✓ Found {len(issue_dump)} issue group(s) to match against")
     
     # Build reverse lookup: URL -> issue entry (much faster than similarity matching)
     print(f"\nBuilding URL to issue mapping...")
@@ -220,7 +218,7 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
             continue
         
         # Look up URL directly in issue_dump (no similarity matching needed)
-        centroid_issue_url = None
+        centroid_run_url = None
         centroid_error_message = None
         
         if job_url in url_to_entry:
@@ -228,10 +226,11 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
             entry = url_to_entry[job_url]
             centroid_error_message = entry.get("centroid_error", "")
             
-            # Get issue URL from centroid mapping
-            if centroid_error_message in centroid_to_issue:
-                issue_number = centroid_to_issue[centroid_error_message]
-                centroid_issue_url = get_github_issue_url(issue_number, repo_owner, repo_name)
+            # Get centroid run URL (first URL in failing_runs list)
+            failing_runs = entry.get("failing_runs", [])
+            if failing_runs:
+                # Use the first URL as the centroid run URL
+                centroid_run_url = failing_runs[0]
         else:
             unmatched_count += 1
         
@@ -239,7 +238,7 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
             "job_url": job_url,
             "error_message": error_message,
             "is_nd": is_nd,
-            "centroid_issue_url": centroid_issue_url,
+            "centroid_run_url": centroid_run_url,
             "centroid_error_message": centroid_error_message
         }
         report_entries.append(report_entry)
@@ -247,13 +246,13 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
     print(f"\n  ✓ Generated {len(report_entries)} report entries")
     print(f"    - Matched to centroids: {matched_count}")
     print(f"    - Unmatched: {unmatched_count}")
-    print(f"    - With issue URLs: {sum(1 for e in report_entries if e['centroid_issue_url'])}")
+    print(f"    - With centroid run URLs: {sum(1 for e in report_entries if e['centroid_run_url'])}")
     
     # Generate markdown summary
     print("\nGenerating markdown summary...")
     total_errors = len(report_entries)
     nd_errors = sum(1 for entry in report_entries if entry["is_nd"])
-    errors_with_centroid = sum(1 for entry in report_entries if entry["centroid_issue_url"])
+    errors_with_centroid = sum(1 for entry in report_entries if entry["centroid_run_url"])
     
     nd_percentage = (nd_errors/total_errors*100) if total_errors > 0 else 0
     centroid_percentage = (errors_with_centroid/total_errors*100) if total_errors > 0 else 0
@@ -264,7 +263,7 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
 
 - **Total Errors**: {total_errors}
 - **ND (Non-Deterministic) Errors**: {nd_errors} ({nd_percentage:.1f}% of total)
-- **Errors with Centroid Issues**: {errors_with_centroid} ({centroid_percentage:.1f}% of total)
+- **Errors with Centroid Runs**: {errors_with_centroid} ({centroid_percentage:.1f}% of total)
 - **Matched to Centroids**: {matched_count}
 - **Unmatched Errors**: {unmatched_count}
 
@@ -272,13 +271,13 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
 
 ### ND Errors by Status
 
-- **ND Errors with Centroid Issues**: {sum(1 for e in report_entries if e['is_nd'] and e['centroid_issue_url'])}
-- **ND Errors without Centroid Issues**: {sum(1 for e in report_entries if e['is_nd'] and not e['centroid_issue_url'])}
+- **ND Errors with Centroid Runs**: {sum(1 for e in report_entries if e['is_nd'] and e['centroid_run_url'])}
+- **ND Errors without Centroid Runs**: {sum(1 for e in report_entries if e['is_nd'] and not e['centroid_run_url'])}
 
 ### Non-ND Errors by Status
 
-- **Non-ND Errors with Centroid Issues**: {sum(1 for e in report_entries if not e['is_nd'] and e['centroid_issue_url'])}
-- **Non-ND Errors without Centroid Issues**: {sum(1 for e in report_entries if not e['is_nd'] and not e['centroid_issue_url'])}
+- **Non-ND Errors with Centroid Runs**: {sum(1 for e in report_entries if not e['is_nd'] and e['centroid_run_url'])}
+- **Non-ND Errors without Centroid Runs**: {sum(1 for e in report_entries if not e['is_nd'] and not e['centroid_run_url'])}
 
 ## Sample Errors
 
@@ -287,7 +286,7 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
     # Add sample entries (first 10)
     for i, entry in enumerate(report_entries[:10], 1):
         nd_badge = "🟡 ND" if entry["is_nd"] else "⚪"
-        centroid_link = f"[View Issue]({entry['centroid_issue_url']})" if entry["centroid_issue_url"] else "*No centroid issue*"
+        centroid_link = f"[Centroid Run]({entry['centroid_run_url']})" if entry["centroid_run_url"] else "*No centroid run*"
         job_link = f"[Job URL]({entry['job_url']})" if entry["job_url"] else "*No job URL*"
         
         error_preview = entry["error_message"][:100].replace("\n", " ") + "..." if len(entry["error_message"]) > 100 else entry["error_message"]
@@ -300,7 +299,7 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
         markdown += f"""### Error {i} {nd_badge}
 
 - **Job**: {job_link}
-- **Centroid Issue**: {centroid_link}
+- **Centroid Run**: {centroid_link}
 - **Error Message**: `{error_preview}`{centroid_preview}
 
 """
