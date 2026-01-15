@@ -89,6 +89,7 @@ runs:
         PYTHONUNBUFFERED: 1
 
     - name: Group similar errors
+      if: inputs.update_mode == 'rebuild'
       shell: bash
       run: |
         set -euo pipefail
