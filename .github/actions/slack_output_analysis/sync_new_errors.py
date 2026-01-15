@@ -3,6 +3,8 @@
 Sync new errors from all_errors.json to existing GitHub issues or create new ones.
 Compares new errors to existing centroids and either adds them to existing issues
 or creates new issues if no match is found.
+
+Assumes issues are already sorted and formatted properly.
 """
 
 import json
@@ -12,14 +14,6 @@ import sys
 import time
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional, Tuple
-
-# ============================================================================
-# CONFIGURATION FLAGS
-# ============================================================================
-
-# Set to True to ensure all issues have runs sorted chronologically
-# Set to False to skip sorting (faster, but runs may not be in chronological order)
-ENSURE_ISSUES_SORTED = False
 
 # ============================================================================
 # File paths
@@ -96,7 +90,7 @@ def get_all_issues(open_only: bool = False) -> List[Dict[str, Any]]:
     
     while True:
         params = {
-            "state": "open" if open_only else "all",  # Get open only or both open and closed
+            "state": "open" if open_only else "all",
             "per_page": per_page,
             "page": page
         }
@@ -224,50 +218,6 @@ def update_issue(issue_number: int, title: str, body: str) -> Dict[str, Any]:
     if last_error:
         raise last_error
     raise Exception("Failed to update issue")
-
-def close_issue(issue_number: int) -> Dict[str, Any]:
-    """Close an existing GitHub issue."""
-    import requests
-    
-    url = f"https://api.github.com/repos/{GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}/issues/{issue_number}"
-    
-    # Try with "Bearer" first (for fine-grained PATs), then fall back to "token"
-    auth_methods = [
-        ("Bearer", f"Bearer {GITHUB_TOKEN}"),
-        ("token", f"token {GITHUB_TOKEN}")
-    ]
-    
-    data = {
-        "state": "closed"
-    }
-    
-    last_error = None
-    for method_name, auth_header in auth_methods:
-        headers = {
-            "Authorization": auth_header,
-            "Accept": "application/vnd.github.v3+json"
-        }
-        
-        try:
-            response = requests.patch(url, json=data, headers=headers)
-            response.raise_for_status()
-            return response.json()
-        except requests.exceptions.HTTPError as e:
-            last_error = e
-            if e.response.status_code == 403:
-                # Try next auth method
-                continue
-            else:
-                print(f"\nERROR: HTTP {e.response.status_code}")
-                print(f"Response: {e.response.text}")
-                raise
-        except Exception as e:
-            last_error = e
-            continue
-    
-    if last_error:
-        raise last_error
-    raise Exception("Failed to close issue")
 
 def create_issue(title: str, body: str) -> Dict[str, Any]:
     """Create a new GitHub issue."""
@@ -644,10 +594,6 @@ def format_issue_body(centroid_error: str, failing_runs: List[str], timestamps: 
         url_list.append((dt, label, url, job_workflow_suffix))
     
     # Sort chronologically (newest first), items without timestamps go to the end
-    # Key: (has_timestamp, datetime) 
-    # - Items with timestamps: (True, dt) - we want newer dt first
-    # - Items without timestamps: (False, max) - we want these last
-    # With reverse=True: (True, newer) > (True, older) > (False, max) ✓
     url_list.sort(key=lambda x: (x[0] is not None, x[0] if x[0] is not None else datetime.max), reverse=True)
     
     # Format the list
@@ -665,7 +611,6 @@ def create_title_from_count(count: int, error_message: str = "", group_num: Opti
     count_str = f"{count:05d}"
     
     # Calculate available space for error message
-    # Reserve space for: "[00045] " (9 chars) + "Group X: " (if group_num, ~10 chars) + "..." (3 chars)
     prefix_len = len(f"[{count_str}] ")
     if group_num is not None:
         prefix_len += len(f"Group {group_num}: ")
@@ -721,6 +666,48 @@ def get_issue_title(issue_number: int) -> Optional[str]:
         print(f"  ⚠ Warning: Could not fetch issue title: {e}")
         return None
 
+def parse_timestamp(timestamp_str: str) -> Optional[datetime]:
+    """Parse timestamp string to datetime object.
+    
+    Handles formats like "January 9th, 8:59am, 58.95 seconds"
+    """
+    if not timestamp_str:
+        return None
+    
+    try:
+        # Try to parse the format: "January 9th, 8:59am, 58.95 seconds"
+        parts = timestamp_str.split(", ")
+        if len(parts) >= 2:
+            date_part = parts[0]  # "January 9th"
+            time_part = parts[1]  # "8:59am"
+            
+            # Remove ordinal suffix (st, nd, rd, th)
+            date_part_clean = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', date_part)
+            
+            # Parse date and time
+            try:
+                dt = datetime.strptime(f"{date_part_clean}, {time_part}", "%B %d, %I:%M%p")
+                # Determine the correct year
+                current_year = datetime.now().year
+                dt = dt.replace(year=current_year)
+                now = datetime.now()
+                
+                # If the date is more than 6 months in the future, assume it's from last year
+                if dt > now + timedelta(days=180):
+                    dt = dt.replace(year=current_year - 1)
+                elif dt < now - timedelta(days=180):
+                    # Only adjust if we're in January and the date is December (likely from previous year)
+                    if now.month == 1 and dt.month == 12:
+                        dt = dt.replace(year=current_year - 1)
+                
+                return dt
+            except ValueError:
+                pass
+    except Exception:
+        pass
+    
+    return None
+
 def process_new_error(error_entry: List, issue_dump: List[Dict[str, Any]], centroid_to_issue: Dict[str, int], all_timestamps: Dict[str, str]) -> Tuple[bool, List[Dict[str, Any]], bool]:
     """
     Process a new error entry and either add it to an existing issue or create a new one.
@@ -743,8 +730,6 @@ def process_new_error(error_entry: List, issue_dump: List[Dict[str, Any]], centr
     job_name = error_entry[3] if len(error_entry) > 3 and error_entry[3] else ""
     workflow_name = error_entry[4] if len(error_entry) > 4 and error_entry[4] else ""
     is_nd = error_entry[5] if len(error_entry) > 5 and error_entry[5] is not None else False
-    
-    # Note: URL existence check is done before calling this function for performance
     
     # Find best matching centroid
     centroids = [entry["centroid_error"] for entry in issue_dump]
@@ -776,8 +761,6 @@ def process_new_error(error_entry: List, issue_dump: List[Dict[str, Any]], centr
         }
         
         # Recalculate centroid
-        # Since we only have the centroid stored, we'll recalculate with the centroid and new error
-        # This is reasonable since the new error matched the centroid (similarity thresholds met)
         old_centroid = entry["centroid_error"]
         centroid_idx, new_centroid = recalculate_centroid([old_centroid, error_message])
         if new_centroid is None:
@@ -814,7 +797,6 @@ def process_new_error(error_entry: List, issue_dump: List[Dict[str, Any]], centr
                 
                 # Update project field if configured
                 if PROJECT_FIELD_ID:
-                    # Try to get existing project item ID, or add if not in project
                     project_item_id = get_project_item_id_for_issue(issue_number)
                     if not project_item_id:
                         project_item_id = add_issue_to_project(issue_number)
@@ -881,424 +863,6 @@ def process_new_error(error_entry: List, issue_dump: List[Dict[str, Any]], centr
         
         return True, issue_dump, True  # Created new issue
 
-def parse_timestamp(timestamp_str: str) -> Optional[datetime]:
-    """Parse timestamp string to datetime object.
-    
-    Handles formats like "January 9th, 8:59am, 58.95 seconds"
-    """
-    if not timestamp_str:
-        return None
-    
-    try:
-        # Try to parse the format: "January 9th, 8:59am, 58.95 seconds"
-        # Remove the seconds part for parsing
-        parts = timestamp_str.split(", ")
-        if len(parts) >= 2:
-            date_part = parts[0]  # "January 9th"
-            time_part = parts[1]  # "8:59am"
-            
-            # Remove ordinal suffix (st, nd, rd, th)
-            date_part_clean = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', date_part)
-            
-            # Parse date and time
-            # Format: "January 9" and "8:59am"
-            try:
-                dt = datetime.strptime(f"{date_part_clean}, {time_part}", "%B %d, %I:%M%p")
-                # Determine the correct year
-                current_year = datetime.now().year
-                dt = dt.replace(year=current_year)
-                now = datetime.now()
-                
-                # If the date is more than 6 months in the future, assume it's from last year
-                if dt > now + timedelta(days=180):
-                    dt = dt.replace(year=current_year - 1)
-                # If the date is more than 6 months in the past, assume it's from this year (shouldn't happen for recent data)
-                # But handle edge case: if we're in early January and date is late December, it might be from last year
-                elif dt < now - timedelta(days=180):
-                    # Only adjust if we're in January and the date is December (likely from previous year)
-                    if now.month == 1 and dt.month == 12:
-                        dt = dt.replace(year=current_year - 1)
-                
-                return dt
-            except ValueError:
-                pass
-    except Exception:
-        pass
-    
-    return None
-
-def is_older_than_one_month(timestamp_str: str) -> bool:
-    """Check if a timestamp string represents a date older than 1 month."""
-    dt = parse_timestamp(timestamp_str)
-    if dt is None:
-        # If we can't parse the timestamp, assume it's not old (conservative)
-        return False
-    
-    one_month_ago = datetime.now() - timedelta(days=30)
-    return dt < one_month_ago
-
-def cleanup_old_runs(issue_dump: List[Dict[str, Any]], all_timestamps: Dict[str, str], centroid_to_issue: Dict[str, int], all_metadata: Optional[Dict[str, Dict[str, Any]]] = None) -> Tuple[List[Dict[str, Any]], int, int]:
-    """
-    Remove run entries older than 1 month from issues.
-    
-    Returns:
-        Tuple of (updated_issue_dump, issues_updated_count, issues_closed_count)
-    """
-    print(f"\n{'='*80}")
-    print("Cleaning up old runs (older than 1 month)...")
-    print(f"{'='*80}")
-    
-    issues_updated = 0
-    issues_closed = 0
-    entries_to_remove = []
-    
-    for idx, entry in enumerate(issue_dump):
-        failing_runs = entry.get("failing_runs", [])
-        run_metadata = entry.get("run_metadata", {})
-        centroid_error = entry.get("centroid_error", "")
-        
-        if not failing_runs:
-            continue
-        
-        # Filter out old runs
-        old_runs = []
-        remaining_runs = []
-        remaining_metadata = {}
-        
-        for url in failing_runs:
-            timestamp = all_timestamps.get(url, "")
-            if is_older_than_one_month(timestamp):
-                old_runs.append(url)
-            else:
-                remaining_runs.append(url)
-                if url in run_metadata:
-                    remaining_metadata[url] = run_metadata[url]
-        
-        # If we removed any runs, update the entry
-        if old_runs:
-            print(f"\n  Issue entry {idx + 1}: Removing {len(old_runs)} old run(s), {len(remaining_runs)} remaining")
-            
-            if not remaining_runs:
-                # All runs removed - mark for closure
-                print(f"    → All runs removed, will close issue")
-                entries_to_remove.append(idx)
-                issues_closed += 1
-                
-                # Close the issue on GitHub
-                issue_number = None
-                for centroid, issue_num in centroid_to_issue.items():
-                    if centroid.strip() == centroid_error.strip():
-                        issue_number = issue_num
-                        break
-                
-                if issue_number:
-                    try:
-                        print(f"    Closing issue #{issue_number}...")
-                        close_issue(issue_number)
-                        print(f"    ✓ Closed issue #{issue_number}")
-                        # Remove from mapping
-                        if centroid_error in centroid_to_issue:
-                            del centroid_to_issue[centroid_error]
-                        time.sleep(0.5)  # Rate limiting
-                    except Exception as e:
-                        print(f"    ✗ Error closing issue #{issue_number}: {e}")
-            else:
-                # Some runs remain - update the entry
-                issues_updated += 1
-                
-                # Recalculate centroid from remaining runs
-                # We need error messages for remaining runs - get them from all_errors if possible
-                # For now, keep the existing centroid (it should still be representative)
-                # In a more sophisticated implementation, we could recalculate from all remaining errors
-                
-                entry["failing_runs"] = sorted(list(set(remaining_runs)))  # Remove duplicates and sort
-                entry["run_metadata"] = remaining_metadata
-                
-                # Update GitHub issue
-                issue_number = None
-                for centroid, issue_num in centroid_to_issue.items():
-                    if centroid.strip() == centroid_error.strip():
-                        issue_number = issue_num
-                        break
-                
-                if issue_number:
-                    try:
-                        count = len(remaining_runs)
-                        # Fetch existing title to preserve group number
-                        existing_title = get_issue_title(issue_number)
-                        group_num = None
-                        if existing_title:
-                            group_num = extract_group_num_from_title(existing_title)
-                        title = create_title_from_count(count, centroid_error, group_num)
-                        body = format_issue_body(centroid_error, remaining_runs, all_timestamps, remaining_metadata)
-                        
-                        print(f"    Updating issue #{issue_number}...")
-                        update_issue(issue_number, title, body)
-                        print(f"    ✓ Updated issue #{issue_number}")
-                        
-                        # Update project field if configured
-                        if PROJECT_FIELD_ID:
-                            project_item_id = get_project_item_id_for_issue(issue_number)
-                            if project_item_id:
-                                update_project_field(project_item_id, count)
-                        
-                        time.sleep(0.5)  # Rate limiting
-                    except Exception as e:
-                        print(f"    ✗ Error updating issue #{issue_number}: {e}")
-    
-    # Remove entries that were closed (all runs removed)
-    # Remove in reverse order to maintain indices
-    for idx in reversed(entries_to_remove):
-        issue_dump.pop(idx)
-    
-    print(f"\n  Summary:")
-    print(f"    Issues updated: {issues_updated}")
-    print(f"    Issues closed: {issues_closed}")
-    
-    return issue_dump, issues_updated, issues_closed
-
-def ensure_all_issues_sorted(issue_dump: List[Dict[str, Any]], all_timestamps: Dict[str, str], centroid_to_issue: Dict[str, int], all_metadata: Optional[Dict[str, Dict[str, Any]]] = None, open_issues_only: bool = True) -> int:
-    """
-    Ensure all issues have their runs sorted chronologically.
-    Updates GitHub issues even if nothing else changed.
-    
-    Args:
-        issue_dump: List of issue entries
-        all_timestamps: Dictionary mapping URLs to timestamps
-        centroid_to_issue: Dictionary mapping centroids to issue numbers
-        all_metadata: Optional dictionary mapping URLs to metadata (for rebuilding missing metadata)
-        open_issues_only: If True, only update open issues. If False, update all issues.
-    
-    Returns:
-        Number of issues updated
-    """
-    # Rebuild metadata for any missing entries
-    if all_metadata:
-        for entry in issue_dump:
-            run_metadata = entry.get("run_metadata", {})
-            failing_runs = entry.get("failing_runs", [])
-            
-            for url in failing_runs:
-                # If URL doesn't have metadata or has empty metadata, try to get it from all_metadata
-                if url not in run_metadata or (not run_metadata[url].get("job_name") and not run_metadata[url].get("workflow_name")):
-                    if url in all_metadata:
-                        run_metadata[url] = all_metadata[url]
-            
-            entry["run_metadata"] = run_metadata
-    
-    print(f"\n{'='*80}")
-    print("Ensuring all issues have runs sorted chronologically...")
-    if open_issues_only:
-        print("(Only updating open issues)")
-    print(f"{'='*80}")
-    
-    # Get open issues - we'll iterate through these directly for better matching
-    if open_issues_only:
-        print("Fetching open issues...")
-        open_issues = get_all_issues(open_only=True)
-        print(f"Found {len(open_issues)} open issue(s)")
-    else:
-        open_issues = get_all_issues(open_only=False)
-    
-    # Build mapping from centroid to issue_dump entry for fast lookup
-    centroid_to_entry = {}
-    for idx, entry in enumerate(issue_dump):
-        centroid_error = entry.get("centroid_error", "")
-        if centroid_error:
-            centroid_to_entry[centroid_error.strip().lower()] = (idx, entry)
-    
-    issues_updated = 0
-    skipped_no_match = 0
-    matched_entries = set()  # Track which issue_dump entries we've matched
-    
-    # Iterate through open issues and match them to issue_dump entries
-    for issue in open_issues:
-        issue_number = issue["number"]
-        issue_body = issue.get("body", "")
-        centroid_from_issue = extract_centroid_from_issue_body(issue_body)
-        
-        if not centroid_from_issue:
-            continue
-        
-        # Find matching entry in issue_dump
-        entry = None
-        entry_idx = None
-        
-        # Try exact match (case-insensitive)
-        centroid_key = centroid_from_issue.strip().lower()
-        if centroid_key in centroid_to_entry:
-            entry_idx, entry = centroid_to_entry[centroid_key]
-            matched_entries.add(entry_idx)
-        else:
-            # Try fuzzy match with existing centroids
-            for centroid, issue_num in centroid_to_issue.items():
-                if centroid.strip().lower() == centroid_key:
-                    # Found a match via centroid_to_issue, now find the entry
-                    for idx, e in enumerate(issue_dump):
-                        if e.get("centroid_error", "").strip().lower() == centroid_key:
-                            entry_idx, entry = idx, e
-                            matched_entries.add(entry_idx)
-                            break
-                    break
-        
-        if not entry:
-            skipped_no_match += 1
-            # Always show issue #274 if it's being skipped, or show first 10 issues
-            if issue_number == 274 or skipped_no_match <= 10:
-                print(f"  ⚠ Skipping issue #{issue_number}: No matching entry found for centroid (first 100 chars): {centroid_from_issue[:100] if len(centroid_from_issue) > 100 else centroid_from_issue}...")
-            continue
-        
-        failing_runs = entry.get("failing_runs", [])
-        run_metadata = entry.get("run_metadata", {})
-        centroid_error = entry.get("centroid_error", "")
-        
-        if not failing_runs:
-            continue
-        
-        try:
-            count = len(failing_runs)
-            # Fetch existing title to preserve group number
-            existing_title = get_issue_title(issue_number)
-            group_num = None
-            if existing_title:
-                group_num = extract_group_num_from_title(existing_title)
-            
-            # Format body - this will sort the runs chronologically
-            body = format_issue_body(centroid_error, failing_runs, all_timestamps, run_metadata)
-            title = create_title_from_count(count, centroid_error, group_num)
-            
-            # Always update to ensure sorting is correct
-            print(f"  Updating issue #{issue_number} to ensure proper sorting...")
-            update_issue(issue_number, title, body)
-            print(f"  ✓ Updated issue #{issue_number}")
-            
-            # Update project field if configured
-            if PROJECT_FIELD_ID:
-                project_item_id = get_project_item_id_for_issue(issue_number)
-                if project_item_id:
-                    update_project_field(project_item_id, count)
-            
-            issues_updated += 1
-            time.sleep(0.5)  # Rate limiting
-        except Exception as e:
-            print(f"  ✗ Error updating issue #{issue_number}: {e}")
-            # Always show full error for issue #274
-            if issue_number == 274:
-                import traceback
-                print(f"  Full traceback for issue #274:")
-                traceback.print_exc()
-    
-    # Report on entries in issue_dump that weren't matched to any open issue
-    unmatched_entries = len(issue_dump) - len(matched_entries)
-    
-    print(f"\n  Summary:")
-    print(f"    Issues updated for sorting: {issues_updated}")
-    if skipped_no_match > 0:
-        print(f"    Open issues skipped (no matching entry): {skipped_no_match}")
-    if unmatched_entries > 0:
-        print(f"    Issue dump entries not matched to open issues: {unmatched_entries}")
-    
-    return issues_updated
-
-def update_all_issues_with_metadata(issue_dump: List[Dict[str, Any]], all_timestamps: Dict[str, str], centroid_to_issue: Dict[str, int], open_issues_only: bool = True) -> int:
-    """
-    Update all GitHub issues with rebuilt metadata from issue_dump.
-    This ensures that metadata restored from all_errors.json is reflected in GitHub issues.
-    
-    Args:
-        issue_dump: List of issue entries (with rebuilt metadata)
-        all_timestamps: Dictionary mapping URLs to timestamps
-        centroid_to_issue: Dictionary mapping centroids to issue numbers
-        open_issues_only: If True, only update open issues. If False, update all issues.
-    
-    Returns:
-        Number of issues updated
-    """
-    print(f"\n{'='*80}")
-    print("Updating GitHub issues with rebuilt metadata...")
-    if open_issues_only:
-        print("(Only updating open issues)")
-    print(f"{'='*80}")
-    
-    # Get open issues
-    if open_issues_only:
-        print("Fetching open issues...")
-        open_issues = get_all_issues(open_only=True)
-        print(f"Found {len(open_issues)} open issue(s)")
-    else:
-        open_issues = get_all_issues(open_only=False)
-    
-    # Build mapping from centroid to issue_dump entry
-    centroid_to_entry = {}
-    for idx, entry in enumerate(issue_dump):
-        centroid_error = entry.get("centroid_error", "")
-        if centroid_error:
-            centroid_to_entry[centroid_error.strip().lower()] = (idx, entry)
-    
-    issues_updated = 0
-    skipped_no_match = 0
-    
-    # Iterate through open issues and update them
-    for issue in open_issues:
-        issue_number = issue["number"]
-        issue_body = issue.get("body", "")
-        centroid_from_issue = extract_centroid_from_issue_body(issue_body)
-        
-        if not centroid_from_issue:
-            continue
-        
-        # Find matching entry in issue_dump
-        entry = None
-        centroid_key = centroid_from_issue.strip().lower()
-        if centroid_key in centroid_to_entry:
-            _, entry = centroid_to_entry[centroid_key]
-        else:
-            skipped_no_match += 1
-            if skipped_no_match <= 10:
-                print(f"  ⚠ Skipping issue #{issue_number}: No matching entry found for centroid")
-            continue
-        
-        failing_runs = entry.get("failing_runs", [])
-        run_metadata = entry.get("run_metadata", {})
-        centroid_error = entry.get("centroid_error", "")
-        
-        if not failing_runs:
-            continue
-        
-        try:
-            count = len(failing_runs)
-            # Fetch existing title to preserve group number
-            existing_title = get_issue_title(issue_number)
-            group_num = None
-            if existing_title:
-                group_num = extract_group_num_from_title(existing_title)
-            
-            # Format body with rebuilt metadata
-            body = format_issue_body(centroid_error, failing_runs, all_timestamps, run_metadata)
-            title = create_title_from_count(count, centroid_error, group_num)
-            
-            print(f"  Updating issue #{issue_number} with rebuilt metadata...")
-            update_issue(issue_number, title, body)
-            print(f"  ✓ Updated issue #{issue_number}")
-            
-            # Update project field if configured
-            if PROJECT_FIELD_ID:
-                project_item_id = get_project_item_id_for_issue(issue_number)
-                if project_item_id:
-                    update_project_field(project_item_id, count)
-            
-            issues_updated += 1
-            time.sleep(0.5)  # Rate limiting
-        except Exception as e:
-            print(f"  ✗ Error updating issue #{issue_number}: {e}")
-    
-    print(f"\n  Summary:")
-    print(f"    Issues updated: {issues_updated}")
-    if skipped_no_match > 0:
-        print(f"    Issues skipped (no matching entry): {skipped_no_match}")
-    
-    return issues_updated
-
 # ============================================================================
 # Main Function
 # ============================================================================
@@ -1361,59 +925,13 @@ def main():
     centroid_to_issue = map_issues_to_centroids(issues, issue_dump)
     print(f"Mapped {len(centroid_to_issue)} centroid(s) to issue numbers")
     
-    # Build timestamp map and metadata map from all_errors (needed for cleanup and metadata restoration)
+    # Build timestamp map from all_errors
     all_timestamps = {}
-    all_metadata = {}  # Map URL to metadata dict
     for error_entry in all_errors:
         if len(error_entry) > 1 and error_entry[1]:
             url = error_entry[1]
             if len(error_entry) > 2:
                 all_timestamps[url] = error_entry[2]
-            # Extract metadata
-            job_name = error_entry[3] if len(error_entry) > 3 and error_entry[3] else ""
-            workflow_name = error_entry[4] if len(error_entry) > 4 and error_entry[4] else ""
-            is_nd = error_entry[5] if len(error_entry) > 5 and error_entry[5] is not None else False
-            all_metadata[url] = {
-                "job_name": job_name,
-                "workflow_name": workflow_name,
-                "is_nd": is_nd
-            }
-    
-    # Rebuild run_metadata from all_errors.json for any missing entries
-    print(f"\nRebuilding metadata from all_errors.json for missing entries...")
-    metadata_rebuilt = 0
-    for entry in issue_dump:
-        run_metadata = entry.get("run_metadata", {})
-        failing_runs = entry.get("failing_runs", [])
-        
-        for url in failing_runs:
-            # If URL doesn't have metadata or has empty metadata, try to get it from all_errors
-            if url not in run_metadata or (not run_metadata[url].get("job_name") and not run_metadata[url].get("workflow_name")):
-                if url in all_metadata:
-                    run_metadata[url] = all_metadata[url]
-                    metadata_rebuilt += 1
-        
-        entry["run_metadata"] = run_metadata
-    
-    if metadata_rebuilt > 0:
-        print(f"  ✓ Rebuilt metadata for {metadata_rebuilt} run(s)")
-        # Update GitHub issues with rebuilt metadata
-        metadata_updates = update_all_issues_with_metadata(issue_dump, all_timestamps, centroid_to_issue, open_issues_only=True)
-        print(f"  ✓ Updated {metadata_updates} GitHub issue(s) with rebuilt metadata")
-    else:
-        print(f"  ✓ All runs already have metadata")
-    
-    # Clean up old runs (older than 1 month)
-    issue_dump, cleanup_updated, cleanup_closed = cleanup_old_runs(issue_dump, all_timestamps, centroid_to_issue, all_metadata)
-    
-    # Ensure all issues have runs sorted chronologically (only if flag is enabled)
-    sorting_updated = 0
-    if ENSURE_ISSUES_SORTED:
-        sorting_updated = ensure_all_issues_sorted(issue_dump, all_timestamps, centroid_to_issue, all_metadata, open_issues_only=True)
-    else:
-        print(f"\n{'='*80}")
-        print("Skipping issue sorting (ENSURE_ISSUES_SORTED = False)")
-        print(f"{'='*80}")
     
     # Build set of all existing URLs from issue_dump (for fast lookup)
     print(f"\nBuilding set of existing URLs...")
@@ -1474,7 +992,7 @@ def main():
         print(f"\n[{idx}/{len(new_errors)}] Processing error...")
         print(f"  URL: {url}")
         
-        # Process the error (no need to check existence again - already filtered)
+        # Process the error
         updated, issue_dump, is_new_issue = process_new_error(error_entry, issue_dump, centroid_to_issue, all_timestamps)
         
         if updated:
@@ -1502,9 +1020,6 @@ def main():
     print("Summary:")
     print(f"  New issues created: {new_count}")
     print(f"  Existing issues updated: {updated_count}")
-    print(f"  Issues cleaned up (old runs removed): {cleanup_updated}")
-    print(f"  Issues closed (all runs expired): {cleanup_closed}")
-    print(f"  Issues updated for sorting: {sorting_updated}")
     print(f"  Errors skipped (no URL): {skipped_no_url}")
     print(f"  Errors skipped (already exists): {skipped_existing}")
     print(f"  Total issues in dump: {len(issue_dump)}")
