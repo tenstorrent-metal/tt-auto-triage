@@ -148,10 +148,12 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
     Returns:
         Tuple of (report_data, markdown_summary)
     """
+    print("Loading data files...")
     # Load all errors
     try:
         with open(ALL_ERRORS_FILE, 'r', encoding='utf-8') as f:
             all_errors = json.load(f)
+        print(f"  ✓ Loaded {len(all_errors)} error(s) from {ALL_ERRORS_FILE}")
     except FileNotFoundError:
         print(f"ERROR: {ALL_ERRORS_FILE} not found")
         sys.exit(1)
@@ -160,25 +162,44 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
     try:
         with open(ISSUE_DUMP_FILE, 'r', encoding='utf-8') as f:
             issue_dump = json.load(f)
+        print(f"  ✓ Loaded {len(issue_dump)} issue(s) from {ISSUE_DUMP_FILE}")
     except FileNotFoundError:
         print(f"⚠ Warning: {ISSUE_DUMP_FILE} not found, centroid URLs will be missing")
         issue_dump = []
     
-    # Get centroid to issue mapping
+    # Get centroid to issue mapping (only open issues)
+    print("\nMapping centroids to GitHub issue URLs...")
     centroid_to_issue = get_centroid_to_issue_mapping(issue_dump)
     secrets = load_secrets()
     repo_owner = secrets["GITHUB_REPO_OWNER"]
     repo_name = secrets["GITHUB_REPO_NAME"]
     
-    # Get centroids for matching
+    # Filter issue_dump to only include entries from open issues
+    # Closed issues are completely ignored - remove their centroids from issue_dump
+    print("Filtering issue_dump to exclude closed issues...")
+    original_count = len(issue_dump)
+    issue_dump = [
+        entry for entry in issue_dump
+        if entry.get("centroid_error", "") in centroid_to_issue
+    ]
+    filtered_count = original_count - len(issue_dump)
+    if filtered_count > 0:
+        print(f"  Removed {filtered_count} entry/entries from closed issues")
+    print(f"  {len(issue_dump)} open issue(s) remaining")
+    
+    # Get centroids for matching (now only from open issues)
     centroids = [entry["centroid_error"] for entry in issue_dump]
+    print(f"  ✓ Found {len(centroids)} centroid(s) to match against (open issues only)")
     
     # Generate report entries
+    print(f"\nGenerating report entries for {len(all_errors)} error(s)...")
     report_entries = []
     matched_count = 0
     unmatched_count = 0
     
-    for error_entry in all_errors:
+    for idx, error_entry in enumerate(all_errors, 1):
+        if idx % 50 == 0 or idx == len(all_errors):
+            print(f"  Processing error {idx}/{len(all_errors)}...")
         error_message = error_entry[0] if len(error_entry) > 0 else ""
         job_url = error_entry[1] if len(error_entry) > 1 else None
         is_nd = error_entry[5] if len(error_entry) > 5 else False
@@ -204,6 +225,9 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
                 issue_number = centroid_to_issue.get(centroid_error)
                 if issue_number:
                     centroid_issue_url = get_github_issue_url(issue_number, repo_owner, repo_name)
+                else:
+                    if idx % 100 == 0:  # Log occasionally for unmatched centroids
+                        print(f"    Warning: Centroid matched but no issue URL found (centroid #{best_idx + 1})")
             else:
                 unmatched_count += 1
         else:
@@ -218,7 +242,13 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
         }
         report_entries.append(report_entry)
     
+    print(f"\n  ✓ Generated {len(report_entries)} report entries")
+    print(f"    - Matched to centroids: {matched_count}")
+    print(f"    - Unmatched: {unmatched_count}")
+    print(f"    - With issue URLs: {sum(1 for e in report_entries if e['centroid_issue_url'])}")
+    
     # Generate markdown summary
+    print("\nGenerating markdown summary...")
     total_errors = len(report_entries)
     nd_errors = sum(1 for entry in report_entries if entry["is_nd"])
     errors_with_centroid = sum(1 for entry in report_entries if entry["centroid_issue_url"])

@@ -497,10 +497,19 @@ def main():
     # Parse each issue
     print(f"\nParsing issues...")
     parsed_issues = []
+    total_urls_extracted = 0
     for idx, issue in enumerate(issues, 1):
-        print(f"  Processing issue {idx}/{len(issues)}: #{issue.get('number', 'unknown')}")
+        issue_num = issue.get('number', 'unknown')
+        issue_state = issue.get('state', 'unknown')
+        print(f"  Processing issue {idx}/{len(issues)}: #{issue_num} ({issue_state})")
         parsed = parse_issue(issue)
+        urls_count = len(parsed.get("failing_runs", []))
+        total_urls_extracted += urls_count
+        if urls_count > 0:
+            print(f"    → Extracted {urls_count} URL(s)")
         parsed_issues.append(parsed)
+    
+    print(f"\n  Total URLs extracted from all issues: {total_urls_extracted}")
     
     # Create output structure - simplified format: list of entries
     # Each entry has centroid_error, failing_runs, and run_metadata

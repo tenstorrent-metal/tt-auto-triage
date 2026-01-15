@@ -130,15 +130,23 @@ def extract_centroid_from_issue_body(issue_body: str) -> str:
 def map_issues_to_centroids(issues: List[Dict[str, Any]], issue_dump: List[Dict[str, Any]]) -> Dict[str, int]:
     """
     Map centroid errors to issue numbers by comparing issue bodies to centroids.
+    Only maps OPEN issues - closed issues are ignored entirely.
     
     Returns:
-        Dictionary mapping centroid_error string to issue_number
+        Dictionary mapping centroid_error string to issue_number (only for open issues)
     """
     centroid_to_issue = {}
     issues_without_centroids = 0
     centroids_not_found = 0
+    closed_issues_skipped = 0
     
     for issue in issues:
+        # Skip closed issues entirely - they don't exist for our purposes
+        issue_state = issue.get("state", "open")
+        if issue_state == "closed":
+            closed_issues_skipped += 1
+            continue
+        
         issue_body = issue.get("body", "")
         centroid_from_issue = extract_centroid_from_issue_body(issue_body)
         
@@ -167,6 +175,8 @@ def map_issues_to_centroids(issues: List[Dict[str, Any]], issue_dump: List[Dict[
         if not matched:
             centroids_not_found += 1
     
+    if closed_issues_skipped > 0:
+        print(f"  Note: Skipped {closed_issues_skipped} closed issue(s) - they are ignored")
     if issues_without_centroids > 0:
         print(f"  Note: {issues_without_centroids} issue(s) had no extractable centroid")
     if centroids_not_found > 0:
@@ -727,6 +737,25 @@ def get_issue_title(issue_number: int) -> Optional[str]:
         print(f"  ⚠ Warning: Could not fetch issue title: {e}")
         return None
 
+def get_issue_state(issue_number: int) -> Optional[str]:
+    """Get the state (open/closed) of an issue by its number."""
+    import requests
+    
+    url = f"https://api.github.com/repos/{GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}/issues/{issue_number}"
+    headers = {
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+    
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        issue = response.json()
+        return issue.get("state")  # Returns "open" or "closed"
+    except Exception as e:
+        print(f"  ⚠ Warning: Could not fetch issue #{issue_number} state: {e}")
+        return None
+
 def parse_timestamp(timestamp_str: str) -> Optional[datetime]:
     """Parse timestamp string to datetime object.
     
@@ -802,9 +831,29 @@ def process_new_error(error_entry: List, issue_dump: List[Dict[str, Any]], centr
     )
     
     if best_idx is not None:
-        # Add to existing issue
-        print(f"\n  Matching existing issue (RapidFuzz: {best_scores['rapidfuzz']:.1f}, Semantic: {best_scores['semantic']:.1f})")
+        # Check if this centroid belongs to a closed issue
+        entry = issue_dump[best_idx]
+        old_centroid = entry["centroid_error"]
+        issue_number = centroid_to_issue.get(old_centroid)
         
+        # If no issue number in mapping, or issue is closed, treat as no match
+        if issue_number:
+            issue_state = get_issue_state(issue_number)
+            if issue_state == "closed":
+                print(f"\n  Matched centroid belongs to closed issue #{issue_number}")
+                print(f"  Closed issues are ignored - treating as no match, will create new issue")
+                # Fall through to create new issue logic
+                best_idx = None
+            else:
+                # Issue is open - proceed with update
+                print(f"\n  Matching existing OPEN issue #{issue_number} (RapidFuzz: {best_scores['rapidfuzz']:.1f}, Semantic: {best_scores['semantic']:.1f})")
+        else:
+            # No issue number found - this centroid isn't mapped to an open issue
+            print(f"\n  Matched centroid but no open issue found - will create new issue")
+            best_idx = None
+    
+    if best_idx is not None:
+        # Add to existing OPEN issue
         entry = issue_dump[best_idx]
         failing_runs = entry.get("failing_runs", [])
         run_metadata = entry.get("run_metadata", {})
@@ -845,6 +894,7 @@ def process_new_error(error_entry: List, issue_dump: List[Dict[str, Any]], centr
             centroid_to_issue[new_centroid] = issue_number
             if old_centroid in centroid_to_issue:
                 del centroid_to_issue[old_centroid]
+        
         if issue_number:
             try:
                 count = len(entry["failing_runs"])
@@ -873,61 +923,61 @@ def process_new_error(error_entry: List, issue_dump: List[Dict[str, Any]], centr
             except Exception as e:
                 print(f"  ✗ Error updating issue: {e}")
                 return False, issue_dump, False
-        
-        return True, issue_dump, False  # Updated existing issue
+            
+            return True, issue_dump, False  # Updated existing issue
     
-    else:
-        # Create new issue
-        print(f"\n  No match found - creating new issue")
+    # If we get here, either no match was found OR the matched issue was closed
+    # In either case, create a new issue
+    print(f"\n  No match found (or matched issue was closed) - creating new issue")
+    
+    # Create new entry
+    new_entry = {
+        "centroid_error": error_message,
+        "failing_runs": [url],
+        "run_metadata": {}
+    }
+    
+    issue_dump.append(new_entry)
+    if timestamp:
+        all_timestamps[url] = timestamp
+    
+    # Store job/workflow metadata and ND flag
+    run_metadata = {}
+    run_metadata[url] = {
+        "job_name": job_name,
+        "workflow_name": workflow_name,
+        "is_nd": is_nd
+    }
+    new_entry["run_metadata"] = run_metadata
+    
+    # Create GitHub issue
+    try:
+        count = 1
+        title = create_title_from_count(count, error_message)
+        body = format_issue_body(error_message, [url], all_timestamps, run_metadata)
         
-        # Create new entry
-        new_entry = {
-            "centroid_error": error_message,
-            "failing_runs": [url],
-            "run_metadata": {}
-        }
+        print(f"  Creating new issue...")
+        issue = create_issue(title, body)
+        issue_number = issue["number"]
+        print(f"  ✓ Created issue #{issue_number}: {issue['html_url']}")
         
-        issue_dump.append(new_entry)
-        if timestamp:
-            all_timestamps[url] = timestamp
+        # Add to project if configured
+        if PROJECT_OWNER and PROJECT_NUMBER:
+            project_item_id = add_issue_to_project(issue_number)
+            if project_item_id and PROJECT_FIELD_ID:
+                update_project_field(project_item_id, count)
         
-        # Store job/workflow metadata and ND flag
-        run_metadata = {}
-        run_metadata[url] = {
-            "job_name": job_name,
-            "workflow_name": workflow_name,
-            "is_nd": is_nd
-        }
-        new_entry["run_metadata"] = run_metadata
+        # Update mapping for future use
+        centroid_to_issue[error_message] = issue_number
         
-        # Create GitHub issue
-        try:
-            count = 1
-            title = create_title_from_count(count, error_message)
-            body = format_issue_body(error_message, [url], all_timestamps, run_metadata)
-            
-            print(f"  Creating new issue...")
-            issue = create_issue(title, body)
-            issue_number = issue["number"]
-            print(f"  ✓ Created issue #{issue_number}: {issue['html_url']}")
-            
-            # Add to project if configured
-            if PROJECT_OWNER and PROJECT_NUMBER:
-                project_item_id = add_issue_to_project(issue_number)
-                if project_item_id and PROJECT_FIELD_ID:
-                    update_project_field(project_item_id, count)
-            
-            # Update mapping for future use
-            centroid_to_issue[error_message] = issue_number
-            
-            time.sleep(0.5)  # Rate limiting
-        except Exception as e:
-            print(f"  ✗ Error creating issue: {e}")
-            # Remove the entry we just added
-            issue_dump.pop()
-            return False, issue_dump, False
-        
-        return True, issue_dump, True  # Created new issue
+        time.sleep(0.5)  # Rate limiting
+    except Exception as e:
+        print(f"  ✗ Error creating issue: {e}")
+        # Remove the entry we just added
+        issue_dump.pop()
+        return False, issue_dump, False
+    
+    return True, issue_dump, True  # Created new issue
 
 # ============================================================================
 # Main Function
@@ -996,13 +1046,26 @@ def main():
         sys.exit(1)
     print(f"✓ Repository {GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME} is accessible")
     
-    # Get all GitHub issues and map to centroids
+    # Get all GitHub issues and map to centroids (only open issues are mapped)
     print(f"\nFetching GitHub issues to map centroids...")
-    issues = get_all_issues(open_only=False)  # Need all issues for mapping
+    issues = get_all_issues(open_only=False)  # Fetch all to filter out closed ones
     print(f"Found {len(issues)} issue(s) in repository")
     
     centroid_to_issue = map_issues_to_centroids(issues, issue_dump)
-    print(f"Mapped {len(centroid_to_issue)} centroid(s) to issue numbers")
+    print(f"Mapped {len(centroid_to_issue)} centroid(s) to OPEN issue numbers (closed issues ignored)")
+    
+    # Filter issue_dump to only include entries from open issues
+    # Closed issues are completely ignored - remove their centroids from issue_dump
+    print(f"\nFiltering issue_dump to exclude closed issues...")
+    original_count = len(issue_dump)
+    issue_dump = [
+        entry for entry in issue_dump
+        if entry.get("centroid_error", "") in centroid_to_issue
+    ]
+    filtered_count = original_count - len(issue_dump)
+    if filtered_count > 0:
+        print(f"  Removed {filtered_count} entry/entries from closed issues")
+    print(f"  {len(issue_dump)} open issue(s) remaining in issue_dump")
     
     # Build timestamp map from all_errors
     all_timestamps = {}
@@ -1015,11 +1078,15 @@ def main():
     # Build set of all existing URLs from issue_dump (for fast lookup)
     print(f"\nBuilding set of existing URLs...")
     existing_urls = set()
+    total_runs_in_dump = 0
     for entry in issue_dump:
-        for url in entry.get("failing_runs", []):
+        failing_runs = entry.get("failing_runs", [])
+        total_runs_in_dump += len(failing_runs)
+        for url in failing_runs:
             if url:
                 existing_urls.add(url)
-    print(f"Found {len(existing_urls)} existing URL(s) in issue dump")
+    print(f"  Found {len(issue_dump)} issue(s) with {total_runs_in_dump} total run(s)")
+    print(f"  Unique URLs in issue dump: {len(existing_urls)}")
     
     # Filter all_errors to only include entries with URLs not already processed
     print(f"\nFiltering errors to find new ones...")
@@ -1040,10 +1107,13 @@ def main():
         
         new_errors.append(error_entry)
     
-    print(f"  Total errors: {len(all_errors)}")
+    print(f"  Total errors in all_errors.json: {len(all_errors)}")
     print(f"  Skipped (no URL): {skipped_no_url}")
-    print(f"  Skipped (already exists): {skipped_existing}")
+    print(f"  Skipped (already exists in issue_dump): {skipped_existing}")
     print(f"  New errors to process: {len(new_errors)}")
+    
+    if skipped_existing == 0 and len(all_errors) > 0:
+        print(f"  ⚠ Warning: No existing URLs found - issue_dump might be empty or out of sync")
     
     # Process new errors if any
     new_count = 0
