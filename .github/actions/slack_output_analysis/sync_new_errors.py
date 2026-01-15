@@ -937,7 +937,7 @@ def is_older_than_one_month(timestamp_str: str) -> bool:
     one_month_ago = datetime.now() - timedelta(days=30)
     return dt < one_month_ago
 
-def cleanup_old_runs(issue_dump: List[Dict[str, Any]], all_timestamps: Dict[str, str], centroid_to_issue: Dict[str, int]) -> Tuple[List[Dict[str, Any]], int, int]:
+def cleanup_old_runs(issue_dump: List[Dict[str, Any]], all_timestamps: Dict[str, str], centroid_to_issue: Dict[str, int], all_metadata: Optional[Dict[str, Dict[str, Any]]] = None) -> Tuple[List[Dict[str, Any]], int, int]:
     """
     Remove run entries older than 1 month from issues.
     
@@ -1057,7 +1057,7 @@ def cleanup_old_runs(issue_dump: List[Dict[str, Any]], all_timestamps: Dict[str,
     
     return issue_dump, issues_updated, issues_closed
 
-def ensure_all_issues_sorted(issue_dump: List[Dict[str, Any]], all_timestamps: Dict[str, str], centroid_to_issue: Dict[str, int], open_issues_only: bool = True) -> int:
+def ensure_all_issues_sorted(issue_dump: List[Dict[str, Any]], all_timestamps: Dict[str, str], centroid_to_issue: Dict[str, int], all_metadata: Optional[Dict[str, Dict[str, Any]]] = None, open_issues_only: bool = True) -> int:
     """
     Ensure all issues have their runs sorted chronologically.
     Updates GitHub issues even if nothing else changed.
@@ -1066,11 +1066,26 @@ def ensure_all_issues_sorted(issue_dump: List[Dict[str, Any]], all_timestamps: D
         issue_dump: List of issue entries
         all_timestamps: Dictionary mapping URLs to timestamps
         centroid_to_issue: Dictionary mapping centroids to issue numbers
+        all_metadata: Optional dictionary mapping URLs to metadata (for rebuilding missing metadata)
         open_issues_only: If True, only update open issues. If False, update all issues.
     
     Returns:
         Number of issues updated
     """
+    # Rebuild metadata for any missing entries
+    if all_metadata:
+        for entry in issue_dump:
+            run_metadata = entry.get("run_metadata", {})
+            failing_runs = entry.get("failing_runs", [])
+            
+            for url in failing_runs:
+                # If URL doesn't have metadata or has empty metadata, try to get it from all_metadata
+                if url not in run_metadata or (not run_metadata[url].get("job_name") and not run_metadata[url].get("workflow_name")):
+                    if url in all_metadata:
+                        run_metadata[url] = all_metadata[url]
+            
+            entry["run_metadata"] = run_metadata
+    
     print(f"\n{'='*80}")
     print("Ensuring all issues have runs sorted chronologically...")
     if open_issues_only:
@@ -1185,6 +1200,105 @@ def ensure_all_issues_sorted(issue_dump: List[Dict[str, Any]], all_timestamps: D
     
     return issues_updated
 
+def update_all_issues_with_metadata(issue_dump: List[Dict[str, Any]], all_timestamps: Dict[str, str], centroid_to_issue: Dict[str, int], open_issues_only: bool = True) -> int:
+    """
+    Update all GitHub issues with rebuilt metadata from issue_dump.
+    This ensures that metadata restored from all_errors.json is reflected in GitHub issues.
+    
+    Args:
+        issue_dump: List of issue entries (with rebuilt metadata)
+        all_timestamps: Dictionary mapping URLs to timestamps
+        centroid_to_issue: Dictionary mapping centroids to issue numbers
+        open_issues_only: If True, only update open issues. If False, update all issues.
+    
+    Returns:
+        Number of issues updated
+    """
+    print(f"\n{'='*80}")
+    print("Updating GitHub issues with rebuilt metadata...")
+    if open_issues_only:
+        print("(Only updating open issues)")
+    print(f"{'='*80}")
+    
+    # Get open issues
+    if open_issues_only:
+        print("Fetching open issues...")
+        open_issues = get_all_issues(open_only=True)
+        print(f"Found {len(open_issues)} open issue(s)")
+    else:
+        open_issues = get_all_issues(open_only=False)
+    
+    # Build mapping from centroid to issue_dump entry
+    centroid_to_entry = {}
+    for idx, entry in enumerate(issue_dump):
+        centroid_error = entry.get("centroid_error", "")
+        if centroid_error:
+            centroid_to_entry[centroid_error.strip().lower()] = (idx, entry)
+    
+    issues_updated = 0
+    skipped_no_match = 0
+    
+    # Iterate through open issues and update them
+    for issue in open_issues:
+        issue_number = issue["number"]
+        issue_body = issue.get("body", "")
+        centroid_from_issue = extract_centroid_from_issue_body(issue_body)
+        
+        if not centroid_from_issue:
+            continue
+        
+        # Find matching entry in issue_dump
+        entry = None
+        centroid_key = centroid_from_issue.strip().lower()
+        if centroid_key in centroid_to_entry:
+            _, entry = centroid_to_entry[centroid_key]
+        else:
+            skipped_no_match += 1
+            if skipped_no_match <= 10:
+                print(f"  ⚠ Skipping issue #{issue_number}: No matching entry found for centroid")
+            continue
+        
+        failing_runs = entry.get("failing_runs", [])
+        run_metadata = entry.get("run_metadata", {})
+        centroid_error = entry.get("centroid_error", "")
+        
+        if not failing_runs:
+            continue
+        
+        try:
+            count = len(failing_runs)
+            # Fetch existing title to preserve group number
+            existing_title = get_issue_title(issue_number)
+            group_num = None
+            if existing_title:
+                group_num = extract_group_num_from_title(existing_title)
+            
+            # Format body with rebuilt metadata
+            body = format_issue_body(centroid_error, failing_runs, all_timestamps, run_metadata)
+            title = create_title_from_count(count, centroid_error, group_num)
+            
+            print(f"  Updating issue #{issue_number} with rebuilt metadata...")
+            update_issue(issue_number, title, body)
+            print(f"  ✓ Updated issue #{issue_number}")
+            
+            # Update project field if configured
+            if PROJECT_FIELD_ID:
+                project_item_id = get_project_item_id_for_issue(issue_number)
+                if project_item_id:
+                    update_project_field(project_item_id, count)
+            
+            issues_updated += 1
+            time.sleep(0.5)  # Rate limiting
+        except Exception as e:
+            print(f"  ✗ Error updating issue #{issue_number}: {e}")
+    
+    print(f"\n  Summary:")
+    print(f"    Issues updated: {issues_updated}")
+    if skipped_no_match > 0:
+        print(f"    Issues skipped (no matching entry): {skipped_no_match}")
+    
+    return issues_updated
+
 # ============================================================================
 # Main Function
 # ============================================================================
@@ -1247,19 +1361,55 @@ def main():
     centroid_to_issue = map_issues_to_centroids(issues, issue_dump)
     print(f"Mapped {len(centroid_to_issue)} centroid(s) to issue numbers")
     
-    # Build timestamp map from all_errors (needed for cleanup)
+    # Build timestamp map and metadata map from all_errors (needed for cleanup and metadata restoration)
     all_timestamps = {}
+    all_metadata = {}  # Map URL to metadata dict
     for error_entry in all_errors:
-        if len(error_entry) > 2 and error_entry[1]:
-            all_timestamps[error_entry[1]] = error_entry[2]
+        if len(error_entry) > 1 and error_entry[1]:
+            url = error_entry[1]
+            if len(error_entry) > 2:
+                all_timestamps[url] = error_entry[2]
+            # Extract metadata
+            job_name = error_entry[3] if len(error_entry) > 3 and error_entry[3] else ""
+            workflow_name = error_entry[4] if len(error_entry) > 4 and error_entry[4] else ""
+            is_nd = error_entry[5] if len(error_entry) > 5 and error_entry[5] is not None else False
+            all_metadata[url] = {
+                "job_name": job_name,
+                "workflow_name": workflow_name,
+                "is_nd": is_nd
+            }
+    
+    # Rebuild run_metadata from all_errors.json for any missing entries
+    print(f"\nRebuilding metadata from all_errors.json for missing entries...")
+    metadata_rebuilt = 0
+    for entry in issue_dump:
+        run_metadata = entry.get("run_metadata", {})
+        failing_runs = entry.get("failing_runs", [])
+        
+        for url in failing_runs:
+            # If URL doesn't have metadata or has empty metadata, try to get it from all_errors
+            if url not in run_metadata or (not run_metadata[url].get("job_name") and not run_metadata[url].get("workflow_name")):
+                if url in all_metadata:
+                    run_metadata[url] = all_metadata[url]
+                    metadata_rebuilt += 1
+        
+        entry["run_metadata"] = run_metadata
+    
+    if metadata_rebuilt > 0:
+        print(f"  ✓ Rebuilt metadata for {metadata_rebuilt} run(s)")
+        # Update GitHub issues with rebuilt metadata
+        metadata_updates = update_all_issues_with_metadata(issue_dump, all_timestamps, centroid_to_issue, open_issues_only=True)
+        print(f"  ✓ Updated {metadata_updates} GitHub issue(s) with rebuilt metadata")
+    else:
+        print(f"  ✓ All runs already have metadata")
     
     # Clean up old runs (older than 1 month)
-    issue_dump, cleanup_updated, cleanup_closed = cleanup_old_runs(issue_dump, all_timestamps, centroid_to_issue)
+    issue_dump, cleanup_updated, cleanup_closed = cleanup_old_runs(issue_dump, all_timestamps, centroid_to_issue, all_metadata)
     
     # Ensure all issues have runs sorted chronologically (only if flag is enabled)
     sorting_updated = 0
     if ENSURE_ISSUES_SORTED:
-        sorting_updated = ensure_all_issues_sorted(issue_dump, all_timestamps, centroid_to_issue, open_issues_only=True)
+        sorting_updated = ensure_all_issues_sorted(issue_dump, all_timestamps, centroid_to_issue, all_metadata, open_issues_only=True)
     else:
         print(f"\n{'='*80}")
         print("Skipping issue sorting (ENSURE_ISSUES_SORTED = False)")

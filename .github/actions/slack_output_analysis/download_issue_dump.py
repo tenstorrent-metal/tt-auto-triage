@@ -378,8 +378,63 @@ def extract_failing_runs(issue_body: str) -> List[str]:
     
     return sorted(list(urls))
 
+def extract_run_metadata(issue_body: str) -> Dict[str, Dict[str, Any]]:
+    """Extract run metadata (job_name, workflow_name, is_nd) from issue body.
+    
+    Parses the format: [label](url) - workflow / job
+    or: [label (marked as ND)](url) - workflow / job
+    
+    Returns:
+        Dictionary mapping URL to dict with 'job_name', 'workflow_name', and 'is_nd'
+    """
+    run_metadata = {}
+    
+    # Pattern to match lines like: "1. [label](url) - workflow / job"
+    # The format is: {number}. [{label}]({url}){job_workflow_suffix}
+    # where job_workflow_suffix is optional and can be " - workflow / job" or " - workflow" or " - job"
+    # Also handles ND markers: [label (marked as ND)](url)
+    
+    # Match numbered list items in the "All Occurrences" section
+    # Pattern: number. [label](url) - optional suffix
+    line_pattern = r"^\d+\.\s+\[([^\]]+)\]\(([^)]+)\)(?:\s*-\s*([^\n]+))?"
+    
+    # Find all matches (using MULTILINE flag)
+    matches = re.findall(line_pattern, issue_body, re.MULTILINE)
+    
+    for label, url, suffix in matches:
+        # Only process GitHub Actions run URLs
+        if not ("github.com" in url and ("actions/runs" in url or "/job/" in url)):
+            continue
+        
+        # Check if marked as ND
+        is_nd = "(marked as ND)" in label
+        
+        # Parse workflow/job from suffix
+        workflow_name = ""
+        job_name = ""
+        if suffix:
+            suffix = suffix.strip()
+            # Format is typically "workflow / job" or just "workflow" or just "job"
+            if " / " in suffix:
+                parts = suffix.split(" / ", 1)
+                workflow_name = parts[0].strip() if parts[0].strip() else ""
+                job_name = parts[1].strip() if parts[1].strip() else ""
+            else:
+                # Single value - could be workflow or job
+                # We'll store it as workflow_name (safer assumption)
+                workflow_name = suffix.strip()
+        
+        # Always store metadata for each URL (even if empty)
+        run_metadata[url] = {
+            "job_name": job_name,
+            "workflow_name": workflow_name,
+            "is_nd": is_nd
+        }
+    
+    return run_metadata
+
 def parse_issue(issue: Dict[str, Any]) -> Dict[str, Any]:
-    """Parse an issue and extract centroid error and failing runs."""
+    """Parse an issue and extract centroid error, failing runs, and run metadata."""
     issue_body = issue.get("body", "")
     issue_number = issue.get("number", 0)
     issue_title = issue.get("title", "")
@@ -388,6 +443,7 @@ def parse_issue(issue: Dict[str, Any]) -> Dict[str, Any]:
     
     centroid_error = extract_centroid_error(issue_body)
     failing_runs = extract_failing_runs(issue_body)
+    run_metadata = extract_run_metadata(issue_body)
     
     return {
         "issue_number": issue_number,
@@ -396,6 +452,7 @@ def parse_issue(issue: Dict[str, Any]) -> Dict[str, Any]:
         "issue_state": issue_state,
         "centroid_error": centroid_error,
         "failing_runs": failing_runs,
+        "run_metadata": run_metadata,
         "num_occurrences": len(failing_runs)
     }
 
@@ -455,12 +512,13 @@ def main():
         parsed_issues.append(parsed)
     
     # Create output structure - simplified format: list of entries
-    # Each entry has centroid_error and failing_runs
+    # Each entry has centroid_error, failing_runs, and run_metadata
     output = []
     for parsed in parsed_issues:
         output.append({
             "centroid_error": parsed["centroid_error"],
-            "failing_runs": parsed["failing_runs"]
+            "failing_runs": parsed["failing_runs"],
+            "run_metadata": parsed.get("run_metadata", {})
         })
     
     # Save to file

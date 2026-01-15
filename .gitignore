@@ -4,3 +4,4 @@
 python_env/
 secrets.json
 *.pyc
+*.log
