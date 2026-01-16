@@ -8,7 +8,9 @@ The report is GitHub-independent and suitable for SQL database storage.
 import json
 import os
 import sys
-from typing import Dict, List, Any, Optional
+import re
+from datetime import datetime, timedelta, timezone
+from typing import Dict, List, Any, Optional, Tuple
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ALL_ERRORS_FILE = os.path.join(SCRIPT_DIR, "all_errors.json")
@@ -22,6 +24,156 @@ from error_similarity import find_best_matching_centroid
 # Similarity thresholds (same as sync_new_errors.py)
 RAPIDFUZZ_THRESHOLD = 50.0
 SEMANTIC_THRESHOLD = 70.0
+
+def parse_timestamp_to_utc(timestamp_str: str) -> Optional[str]:
+    """Parse formatted timestamp string to UTC ISO format.
+    
+    Handles formats like "January 9th, 8:59am, 58.95 seconds"
+    The original timestamp from extract_errors.py is a Unix timestamp (UTC),
+    but the formatted version is in local time. We need to parse it back.
+    
+    Returns ISO 8601 format in UTC: "2026-01-09T13:59:58.950Z"
+    """
+    if not timestamp_str:
+        return None
+    
+    try:
+        # Try to parse the format: "January 9th, 8:59am, 58.95 seconds"
+        parts = timestamp_str.split(", ")
+        if len(parts) >= 3:
+            date_part = parts[0]  # "January 9th"
+            time_part = parts[1]  # "8:59am"
+            seconds_part = parts[2]  # "58.95 seconds"
+            
+            # Extract seconds value
+            seconds_match = re.search(r'(\d+\.?\d*)', seconds_part)
+            seconds_value = float(seconds_match.group(1)) if seconds_match else 0
+            
+            # Remove ordinal suffix (st, nd, rd, th)
+            date_part_clean = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', date_part)
+            
+            # Parse date and time (assumes local timezone)
+            try:
+                dt_local = datetime.strptime(f"{date_part_clean}, {time_part}", "%B %d, %I:%M%p")
+                # Add seconds
+                dt_local = dt_local.replace(second=int(seconds_value), microsecond=int((seconds_value % 1) * 1000000))
+                
+                # Determine the correct year
+                current_year = datetime.now().year
+                dt_local = dt_local.replace(year=current_year)
+                now = datetime.now()
+                
+                # If the date is more than 6 months in the future, assume it's from last year
+                if dt_local > now + timedelta(days=180):
+                    dt_local = dt_local.replace(year=current_year - 1)
+                elif dt_local < now - timedelta(days=180):
+                    # Only adjust if we're in January and the date is December (likely from previous year)
+                    if now.month == 1 and dt_local.month == 12:
+                        dt_local = dt_local.replace(year=current_year - 1)
+                
+                # Convert local time to UTC
+                # Get local timezone offset
+                local_tz = datetime.now().astimezone().tzinfo
+                dt_aware = dt_local.replace(tzinfo=local_tz)
+                dt_utc = dt_aware.astimezone(timezone.utc)
+                
+                # Return ISO 8601 format with milliseconds
+                return dt_utc.strftime("%Y-%m-%dT%H:%M:%S") + f".{int(dt_utc.microsecond / 1000):03d}Z"
+            except ValueError:
+                pass
+    except Exception:
+        pass
+    
+    return None
+
+def extract_commit_hash(error_message: str) -> Optional[str]:
+    """Extract commit hash from error message.
+    
+    Looks for commit hashes (typically 7-40 character hex strings).
+    Common patterns:
+    - "commit abc1234"
+    - "abc1234"
+    - "abc1234567890abcdef..."
+    """
+    if not error_message:
+        return None
+    
+    # Pattern for commit hash: 7-40 hex characters, possibly prefixed with "commit" or similar
+    # Look for standalone hex strings of 7+ characters
+    patterns = [
+        r'\bcommit\s+([a-fA-F0-9]{7,40})\b',  # "commit abc1234"
+        r'\b([a-fA-F0-9]{7,40})\b',  # Standalone hash
+    ]
+    
+    for pattern in patterns:
+        match = re.search(pattern, error_message)
+        if match:
+            commit_hash = match.group(1)
+            # Prefer shorter hashes (7 chars) as they're more likely to be commit SHAs
+            if 7 <= len(commit_hash) <= 40:
+                return commit_hash
+    
+    return None
+
+def find_oldest_run_in_centroid(entry: Dict[str, Any], all_errors: List[List], url_to_timestamp: Dict[str, str], url_to_error_message: Dict[str, str]) -> Optional[Dict[str, Any]]:
+    """Find the oldest run in the same centroid group.
+    
+    Returns dict with: timestamp_utc, commit_hash, run_url, error_message
+    """
+    failing_runs = entry.get("failing_runs", [])
+    if not failing_runs:
+        return None
+    
+    oldest_run = None
+    oldest_timestamp = None
+    
+    for url in failing_runs:
+        # Get timestamp for this URL
+        timestamp_str = url_to_timestamp.get(url, "")
+        if not timestamp_str:
+            continue
+        
+        # Parse timestamp to datetime for comparison
+        dt = None
+        try:
+            parts = timestamp_str.split(", ")
+            if len(parts) >= 2:
+                date_part = parts[0]
+                time_part = parts[1]
+                date_part_clean = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', date_part)
+                dt_local = datetime.strptime(f"{date_part_clean}, {time_part}", "%B %d, %I:%M%p")
+                current_year = datetime.now().year
+                dt_local = dt_local.replace(year=current_year)
+                now = datetime.now()
+                if dt_local > now + timedelta(days=180):
+                    dt_local = dt_local.replace(year=current_year - 1)
+                elif dt_local < now - timedelta(days=180):
+                    if now.month == 1 and dt_local.month == 12:
+                        dt_local = dt_local.replace(year=current_year - 1)
+                
+                # Convert to UTC for comparison
+                local_tz = datetime.now().astimezone().tzinfo
+                dt_aware = dt_local.replace(tzinfo=local_tz)
+                dt = dt_aware.astimezone(timezone.utc)
+        except Exception:
+            continue
+        
+        if dt and (oldest_timestamp is None or dt < oldest_timestamp):
+            oldest_timestamp = dt
+            # Find error message for this URL
+            error_message = url_to_error_message.get(url)
+            commit_hash = None
+            if error_message:
+                commit_hash = extract_commit_hash(error_message)
+            
+            oldest_run = {
+                "timestamp_utc": parse_timestamp_to_utc(timestamp_str),
+                "commit_hash": commit_hash,
+                "run_url": url,
+                "error_message": error_message
+            }
+    
+    return oldest_run
 
 def load_secrets():
     """Load configuration from secrets.json file."""
@@ -202,6 +354,25 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
     print(f"  ✓ Mapped {len(url_to_entry)} URL(s) to issue entries")
     print(f"  ✓ Found {len(existing_urls)} existing URL(s) in issue_dump")
     
+    # Build URL to timestamp and error message mappings from all_errors (for finding oldest runs)
+    print(f"\nBuilding URL to timestamp and error message mappings from all errors...")
+    url_to_timestamp = {}
+    url_to_error_message = {}
+    for error_entry in all_errors:
+        if len(error_entry) > 1:
+            job_url = error_entry[1]
+            if job_url:
+                if len(error_entry) > 2:
+                    timestamp_str = error_entry[2]
+                    if timestamp_str:
+                        url_to_timestamp[job_url] = timestamp_str
+                if len(error_entry) > 0:
+                    error_message = error_entry[0]
+                    if error_message:
+                        url_to_error_message[job_url] = error_message
+    print(f"  ✓ Mapped {len(url_to_timestamp)} URL(s) to timestamps")
+    print(f"  ✓ Mapped {len(url_to_error_message)} URL(s) to error messages")
+    
     # Filter to only include new errors (not already in issue_dump)
     print(f"\nFiltering errors to only include new ones (not already in issues)...")
     new_errors = []
@@ -237,6 +408,7 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
             print(f"  Processing error {idx}/{len(new_errors)}...")
         error_message = error_entry[0] if len(error_entry) > 0 else ""
         job_url = error_entry[1] if len(error_entry) > 1 else None
+        timestamp_str = error_entry[2] if len(error_entry) > 2 else ""
         is_nd = error_entry[5] if len(error_entry) > 5 else False
         
         if not error_message or not job_url:
@@ -244,22 +416,40 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
                 unmatched_count += 1
             continue
         
+        # Extract timestamp and commit hash for this error
+        timestamp_utc = parse_timestamp_to_utc(timestamp_str) if timestamp_str else None
+        commit_hash = extract_commit_hash(error_message)
+        
         # Look up URL directly in issue_dump (no similarity matching needed)
         # Note: Since we filtered out existing URLs, this should only match if the error
         # was just added in this run but hasn't been saved to issue_dump yet
         centroid_run_url = None
         centroid_error_message = None
+        centroid_timestamp_utc = None
+        centroid_commit_hash = None
+        oldest_run = None
         
         if job_url in url_to_entry:
             matched_count += 1
             entry = url_to_entry[job_url]
             centroid_error_message = entry.get("centroid_error", "")
             
+            # Extract commit hash from centroid error message
+            if centroid_error_message:
+                centroid_commit_hash = extract_commit_hash(centroid_error_message)
+            
             # Get centroid run URL (first URL in failing_runs list)
             failing_runs = entry.get("failing_runs", [])
             if failing_runs:
                 # Use the first URL as the centroid run URL
                 centroid_run_url = failing_runs[0]
+                # Get timestamp for centroid run
+                centroid_timestamp_str = url_to_timestamp.get(centroid_run_url, "")
+                if centroid_timestamp_str:
+                    centroid_timestamp_utc = parse_timestamp_to_utc(centroid_timestamp_str)
+            
+            # Find oldest run in this centroid group
+            oldest_run = find_oldest_run_in_centroid(entry, all_errors, url_to_timestamp, url_to_error_message)
         else:
             unmatched_count += 1
         
@@ -267,8 +457,13 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
             "job_url": job_url,
             "error_message": error_message,
             "is_nd": is_nd,
+            "timestamp_utc": timestamp_utc,
+            "commit_hash": commit_hash,
             "centroid_run_url": centroid_run_url,
-            "centroid_error_message": centroid_error_message
+            "centroid_error_message": centroid_error_message,
+            "centroid_timestamp_utc": centroid_timestamp_utc,
+            "centroid_commit_hash": centroid_commit_hash,
+            "oldest_run": oldest_run
         }
         report_entries.append(report_entry)
     
