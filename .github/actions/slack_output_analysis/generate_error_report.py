@@ -9,7 +9,6 @@ import json
 import os
 import sys
 import re
-import time
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Any, Optional, Tuple
 
@@ -119,8 +118,6 @@ def extract_commit_hash(error_message: str) -> Optional[str]:
     
     return None
 
-# Import commit hash function from shared utils
-from github_api_utils import get_commit_hash_from_github
 
 def get_slack_message_link(timestamp_str: str, channel_id: str, slack_token: Optional[str] = None) -> Optional[str]:
     """Construct Slack message link from timestamp and channel ID.
@@ -342,99 +339,6 @@ def load_secrets():
         print(f"ERROR: Invalid JSON in {SECRETS_FILE}: {e}")
         sys.exit(1)
 
-def get_centroid_to_issue_mapping(issue_dump: List[Dict[str, Any]]) -> Dict[str, int]:
-    """Get mapping from centroid error to issue number by fetching GitHub issues."""
-    secrets = load_secrets()
-    repo_owner = secrets["GITHUB_REPO_OWNER"]
-    repo_name = secrets["GITHUB_REPO_NAME"]
-    github_token = secrets["GITHUB_TOKEN"]
-    
-    if not github_token:
-        print("⚠ Warning: github_token not found, cannot fetch issue URLs")
-        return {}
-    
-    # Build a set of centroids for faster lookup (normalized for case-insensitive matching)
-    centroid_lookup = {}
-    for entry in issue_dump:
-        centroid_error = entry.get("centroid_error", "")
-        if centroid_error:
-            centroid_lookup[centroid_error.strip()] = centroid_error
-            centroid_lookup[centroid_error.strip().lower()] = centroid_error
-    
-    if not centroid_lookup:
-        print("  No centroids found in issue_dump, skipping issue mapping")
-        return {}
-    
-    # Fetch GitHub issues
-    url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/issues"
-    headers = {
-        "Authorization": f"token {github_token}",
-        "Accept": "application/vnd.github.v3+json"
-    }
-    
-    centroid_to_issue = {}
-    found_count = 0
-    
-    print(f"Fetching GitHub issues to map {len(issue_dump)} centroid(s) to issue URLs...")
-    
-    # Only fetch open issues (closed issues shouldn't be in the active issue dump)
-    page = 1
-    per_page = 100
-    
-    while True:
-        try:
-            params = {
-                "state": "open",
-                "per_page": per_page,
-                "page": page
-            }
-            
-            response = requests.get(url, headers=headers, params=params)
-            response.raise_for_status()
-            issues = response.json()
-            
-            # Filter out pull requests
-            actual_issues = [issue for issue in issues if "pull_request" not in issue]
-            
-            # Extract centroid from issue body and map to issue number
-            for issue in actual_issues:
-                issue_body = issue.get("body", "")
-                pattern = r"## Error Message\s*```\s*(.+?)\s*```"
-                match = re.search(pattern, issue_body, re.DOTALL)
-                if match:
-                    centroid_from_issue = match.group(1).strip()
-                    centroid_normalized = centroid_from_issue.strip()
-                    centroid_lower = centroid_normalized.lower()
-                    
-                    # Fast lookup using pre-built dictionary
-                    matched_centroid = None
-                    if centroid_normalized in centroid_lookup:
-                        matched_centroid = centroid_lookup[centroid_normalized]
-                    elif centroid_lower in centroid_lookup:
-                        matched_centroid = centroid_lookup[centroid_lower]
-                    
-                    if matched_centroid and matched_centroid not in centroid_to_issue:
-                        centroid_to_issue[matched_centroid] = issue["number"]
-                        found_count += 1
-            
-            # Early exit if we've found all centroids
-            if found_count >= len(issue_dump):
-                print(f"  Found all {found_count} centroid(s), stopping fetch")
-                break
-            
-            if len(issues) < per_page:
-                break
-            
-            page += 1
-            time.sleep(0.5)  # Rate limiting
-            
-        except Exception as e:
-            print(f"⚠ Warning: Error fetching issues: {e}")
-            break
-    
-    print(f"  Mapped {len(centroid_to_issue)} centroid(s) to issue numbers")
-    return centroid_to_issue
-
 def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
     """
     Generate error report from all_errors.json and issue_dump.json.
@@ -471,37 +375,14 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
         print(f"  ⚠ Warning: Could not refresh issue dump: {e}")
         print(f"  Will use existing {ISSUE_DUMP_FILE} if available")
     
-    # Load issue dump
+    # Load issue dump (already filtered to only open issues by download_issue_dump.py)
     try:
         with open(ISSUE_DUMP_FILE, 'r', encoding='utf-8') as f:
             issue_dump = json.load(f)
-        print(f"  ✓ Loaded {len(issue_dump)} issue(s) from {ISSUE_DUMP_FILE}")
+        print(f"  ✓ Loaded {len(issue_dump)} open issue(s) from {ISSUE_DUMP_FILE}")
     except FileNotFoundError:
         print(f"⚠ Warning: {ISSUE_DUMP_FILE} not found, centroid URLs will be missing")
         issue_dump = []
-    
-    # Filter issue_dump to only include entries from open issues
-    # We need to check GitHub to see which issues are open
-    print("\nFiltering issue_dump to exclude closed issues...")
-    repo_owner = secrets["GITHUB_REPO_OWNER"]
-    repo_name = secrets["GITHUB_REPO_NAME"]
-    
-    if github_token:
-        # Get mapping to check which centroids belong to open issues
-        centroid_to_issue = get_centroid_to_issue_mapping(issue_dump)
-        original_count = len(issue_dump)
-        issue_dump = [
-            entry for entry in issue_dump
-            if entry.get("centroid_error", "") in centroid_to_issue
-        ]
-        filtered_count = original_count - len(issue_dump)
-        if filtered_count > 0:
-            print(f"  Removed {filtered_count} entry/entries from closed issues")
-        print(f"  {len(issue_dump)} open issue(s) remaining")
-    else:
-        print("  ⚠ Warning: No GitHub token - cannot filter closed issues")
-    
-    print(f"  ✓ Found {len(issue_dump)} issue group(s) to match against")
     
     # Build reverse lookup: URL -> issue entry (much faster than similarity matching)
     print(f"\nBuilding URL to issue mapping...")
@@ -643,23 +524,14 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
         # Extract timestamp for this error
         timestamp_utc = parse_timestamp_to_utc(timestamp_str) if timestamp_str else None
         
-        # Get commit hash from issue_dump if available, otherwise fetch from GitHub API
+        # Get commit hash from issue_dump (already extracted from issue body by download_issue_dump.py)
+        # No need to fetch from GitHub API - commit hashes are stored in the issue body when we create/update issues
         commit_hash = None
         if job_url in url_to_entry:
-            # Try to get commit hash from issue_dump first
             entry = url_to_entry[job_url]
             run_metadata = entry.get("run_metadata", {})
             if job_url in run_metadata:
-                commit_hash = run_metadata[job_url].get("commit_hash", "")
-                # Only use if it's not empty
-                if not commit_hash or commit_hash == "":
-                    commit_hash = None
-        
-        # If not found in issue_dump (or was empty), fetch from GitHub API
-        if not commit_hash and job_url and github_token:
-            commit_hash = get_commit_hash_from_github(job_url, github_token)
-            if commit_hash and idx % 10 == 0:
-                print(f"    Fetched commit hash from API for {idx}/{len(recent_errors)}...")
+                commit_hash = run_metadata[job_url].get("commit_hash", "") or None
         
         # Get Slack message link - try multiple URL formats
         slack_message_link = None
@@ -707,25 +579,17 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
                 if centroid_timestamp_str:
                     centroid_timestamp_utc = parse_timestamp_to_utc(centroid_timestamp_str)
                 
-                # Get commit hash for centroid run from issue_dump if available
+                # Get commit hash for centroid run from issue_dump (already stored in issue body)
                 run_metadata = entry.get("run_metadata", {})
                 if centroid_run_url in run_metadata:
-                    centroid_commit_hash = run_metadata[centroid_run_url].get("commit_hash", "")
-                    # Only use if it's not empty
-                    if not centroid_commit_hash or centroid_commit_hash == "":
-                        centroid_commit_hash = None
-                
-                # If not found in issue_dump (or was empty), fetch from GitHub API
-                if not centroid_commit_hash and github_token:
-                    centroid_commit_hash = get_commit_hash_from_github(centroid_run_url, github_token)
+                    centroid_commit_hash = run_metadata[centroid_run_url].get("commit_hash", "") or None
             
             # Find oldest run in this centroid group
             oldest_run = find_oldest_run_in_centroid(entry, all_errors, url_to_timestamp, url_to_error_message)
             
-            # Get commit hash for oldest run from issue_dump if available
+            # Get commit hash for oldest run from issue_dump (already stored in issue body)
             if oldest_run and oldest_run.get("run_url"):
                 oldest_url = oldest_run["run_url"]
-                # Try to get from issue_dump first
                 if oldest_url in url_to_entry:
                     entry = url_to_entry[oldest_url]
                     run_metadata = entry.get("run_metadata", {})
@@ -733,12 +597,6 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
                         oldest_commit_hash = run_metadata[oldest_url].get("commit_hash", "")
                         if oldest_commit_hash:
                             oldest_run["commit_hash"] = oldest_commit_hash
-                
-                # If not found in issue_dump, fetch from GitHub API
-                if not oldest_run.get("commit_hash") and github_token:
-                    oldest_commit_hash = get_commit_hash_from_github(oldest_url, github_token)
-                    if oldest_commit_hash:
-                        oldest_run["commit_hash"] = oldest_commit_hash
         else:
             unmatched_count += 1
         

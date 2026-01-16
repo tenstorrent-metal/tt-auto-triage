@@ -515,13 +515,21 @@ def main():
     
     # Create output structure - simplified format: list of entries
     # Each entry has centroid_error, failing_runs, and run_metadata
+    # Only include OPEN issues - closed issues are not useful for the sync process
     output = []
+    closed_count = 0
     for parsed in parsed_issues:
+        if parsed.get("issue_state", "").upper() == "CLOSED":
+            closed_count += 1
+            continue  # Skip closed issues
         output.append({
             "centroid_error": parsed["centroid_error"],
             "failing_runs": parsed["failing_runs"],
             "run_metadata": parsed.get("run_metadata", {})
         })
+    
+    if closed_count > 0:
+        print(f"  Skipped {closed_count} closed issue(s)")
     
     # Save to file
     print(f"\nSaving results to {OUTPUT_FILE}...")

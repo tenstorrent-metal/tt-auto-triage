@@ -671,9 +671,11 @@ def format_issue_body(centroid_error: str, failing_runs: List[str], timestamps: 
         body_parts.append(f"{idx}. [{label}]({url}){job_workflow_suffix}{commit_hash_suffix}")
         # Add error message as sub-bullet in a code block if available
         if error_message:
-            body_parts.append(f"   ```")
-            body_parts.append(f"   {error_message}")
-            body_parts.append(f"   ```")
+            body_parts.append("   ```")
+            # Indent each line of the error message to stay within the list context
+            for line in error_message.split("\n"):
+                body_parts.append(f"   {line}")
+            body_parts.append("   ```")
     
     return "\n".join(body_parts)
 
