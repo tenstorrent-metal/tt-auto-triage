@@ -621,6 +621,12 @@ def format_issue_body(centroid_error: str, failing_runs: List[str], timestamps: 
     body_parts.append(f"**Number of Occurrences:** {count}")
     body_parts.append("")
     
+    # Add centroid link at the top (first URL in failing_runs)
+    if failing_runs:
+        centroid_url = failing_runs[0]
+        body_parts.append(f"**Centroid Run:** [{centroid_url}]({centroid_url})")
+        body_parts.append("")
+    
     # Add centroid error as the main description
     body_parts.append("## Error Message\n")
     body_parts.append("```")
@@ -1136,9 +1142,9 @@ def main():
     else:
         print(f"\nNo new errors to process.")
     
-    # Clean up old runs (older than 1 month) - always run this automatically
+    # Clean up old issues (newest run older than 3 months) - always run this automatically
     print(f"\n{'='*80}")
-    print("Cleaning up old runs (older than 1 month)...")
+    print("Cleaning up old issues (newest run older than 3 months)...")
     print(f"{'='*80}")
     
     # Build all_metadata from issue_dump for cleanup function
@@ -1156,14 +1162,14 @@ def main():
         issue_dump, cleanup_updated, cleanup_closed = maintain_issues.cleanup_old_runs(
             issue_dump, all_timestamps, centroid_to_issue, all_metadata
         )
-        print(f"\n✓ Cleanup completed: {cleanup_updated} issue(s) updated, {cleanup_closed} issue(s) closed")
+        print(f"\n✓ Cleanup completed: {cleanup_closed} issue(s) closed (newest run older than 3 months)")
     except Exception as e:
         print(f"\n⚠ Warning: Failed to cleanup old runs: {e}")
         import traceback
         traceback.print_exc()
     
     # Save updated issue dump
-    if new_count > 0 or updated_count > 0 or cleanup_updated > 0 or cleanup_closed > 0:
+    if new_count > 0 or updated_count > 0 or cleanup_closed > 0:
         print(f"\n{'='*80}")
         print("Saving updated issue dump...")
         print(f"{'='*80}")
@@ -1178,7 +1184,7 @@ def main():
     print("Summary:")
     print(f"  New issues created: {new_count}")
     print(f"  Existing issues updated: {updated_count}")
-    print(f"  Old runs cleaned up: {cleanup_updated} issue(s) updated, {cleanup_closed} issue(s) closed")
+    print(f"  Old issues closed: {cleanup_closed} issue(s) closed (newest run older than 3 months)")
     print(f"  Errors skipped (no URL): {skipped_no_url}")
     print(f"  Errors skipped (already exists): {skipped_existing}")
     print(f"  Total issues in dump: {len(issue_dump)}")

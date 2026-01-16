@@ -414,6 +414,12 @@ def format_issue_body(centroid_error: str, failing_runs: List[str], timestamps: 
     body_parts.append(f"**Number of Occurrences:** {count}")
     body_parts.append("")
     
+    # Add centroid link at the top (first URL in failing_runs)
+    if failing_runs:
+        centroid_url = failing_runs[0]
+        body_parts.append(f"**Centroid Run:** [{centroid_url}]({centroid_url})")
+        body_parts.append("")
+    
     # Add centroid error as the main description
     body_parts.append("## Error Message\n")
     body_parts.append("```")
@@ -561,120 +567,92 @@ def is_older_than_one_month(timestamp_str: str) -> bool:
     one_month_ago = datetime.now() - timedelta(days=30)
     return dt < one_month_ago
 
+def is_older_than_three_months(timestamp_str: str) -> bool:
+    """Check if a timestamp string represents a date older than 3 months."""
+    dt = parse_timestamp(timestamp_str)
+    if dt is None:
+        return False
+    
+    three_months_ago = datetime.now() - timedelta(days=90)
+    return dt < three_months_ago
+
 # ============================================================================
 # Maintenance Functions
 # ============================================================================
 
 def cleanup_old_runs(issue_dump: List[Dict[str, Any]], all_timestamps: Dict[str, str], centroid_to_issue: Dict[str, int], all_metadata: Optional[Dict[str, Dict[str, Any]]] = None) -> Tuple[List[Dict[str, Any]], int, int]:
     """
-    Remove run entries older than 1 month from issues.
+    Delete entire issues if their newest run is older than 3 months.
+    No longer removes individual runs from issues.
     
     Returns:
         Tuple of (updated_issue_dump, issues_updated_count, issues_closed_count)
     """
     print(f"\n{'='*80}")
-    print("Cleaning up old runs (older than 1 month)...")
+    print("Cleaning up old issues (newest run older than 3 months)...")
     print(f"{'='*80}")
     
-    issues_updated = 0
     issues_closed = 0
     entries_to_remove = []
     
     for idx, entry in enumerate(issue_dump):
         failing_runs = entry.get("failing_runs", [])
-        run_metadata = entry.get("run_metadata", {})
         centroid_error = entry.get("centroid_error", "")
         
         if not failing_runs:
             continue
         
-        # Filter out old runs
-        old_runs = []
-        remaining_runs = []
-        remaining_metadata = {}
+        # Find the newest run timestamp
+        newest_timestamp = None
+        newest_timestamp_str = ""
         
         for url in failing_runs:
-            timestamp = all_timestamps.get(url, "")
-            if is_older_than_one_month(timestamp):
-                old_runs.append(url)
-            else:
-                remaining_runs.append(url)
-                if url in run_metadata:
-                    remaining_metadata[url] = run_metadata[url]
-        
-        # If we removed any runs, update the entry
-        if old_runs:
-            print(f"\n  Issue entry {idx + 1}: Removing {len(old_runs)} old run(s), {len(remaining_runs)} remaining")
+            timestamp_str = all_timestamps.get(url, "")
+            if not timestamp_str:
+                continue
             
-            if not remaining_runs:
-                # All runs removed - mark for closure
-                print(f"    → All runs removed, will close issue")
-                entries_to_remove.append(idx)
-                issues_closed += 1
-                
-                # Close the issue on GitHub
-                issue_number = None
-                for centroid, issue_num in centroid_to_issue.items():
-                    if centroid.strip() == centroid_error.strip():
-                        issue_number = issue_num
-                        break
-                
-                if issue_number:
-                    try:
-                        print(f"    Closing issue #{issue_number}...")
-                        close_issue(issue_number)
-                        print(f"    ✓ Closed issue #{issue_number}")
-                        if centroid_error in centroid_to_issue:
-                            del centroid_to_issue[centroid_error]
-                        time.sleep(0.5)  # Rate limiting
-                    except Exception as e:
-                        print(f"    ✗ Error closing issue #{issue_number}: {e}")
-            else:
-                # Some runs remain - update the entry
-                issues_updated += 1
-                
-                entry["failing_runs"] = sorted(list(set(remaining_runs)))
-                entry["run_metadata"] = remaining_metadata
-                
-                # Update GitHub issue
-                issue_number = None
-                for centroid, issue_num in centroid_to_issue.items():
-                    if centroid.strip() == centroid_error.strip():
-                        issue_number = issue_num
-                        break
-                
-                if issue_number:
-                    try:
-                        count = len(remaining_runs)
-                        existing_title = get_issue_title(issue_number)
-                        group_num = None
-                        if existing_title:
-                            group_num = extract_group_num_from_title(existing_title)
-                        title = create_title_from_count(count, centroid_error, group_num)
-                        body = format_issue_body(centroid_error, remaining_runs, all_timestamps, remaining_metadata)
-                        
-                        print(f"    Updating issue #{issue_number}...")
-                        update_issue(issue_number, title, body)
-                        print(f"    ✓ Updated issue #{issue_number}")
-                        
-                        if PROJECT_FIELD_ID:
-                            project_item_id = get_project_item_id_for_issue(issue_number)
-                            if project_item_id:
-                                update_project_field(project_item_id, count)
-                        
-                        time.sleep(0.5)  # Rate limiting
-                    except Exception as e:
-                        print(f"    ✗ Error updating issue #{issue_number}: {e}")
+            dt = parse_timestamp(timestamp_str)
+            if dt and (newest_timestamp is None or dt > newest_timestamp):
+                newest_timestamp = dt
+                newest_timestamp_str = timestamp_str
+        
+        # If no timestamps found, skip this entry
+        if newest_timestamp is None:
+            continue
+        
+        # Check if newest run is older than 3 months
+        if is_older_than_three_months(newest_timestamp_str):
+            print(f"\n  Issue entry {idx + 1}: Newest run is older than 3 months, will close issue")
+            entries_to_remove.append(idx)
+            issues_closed += 1
+            
+            # Close the issue on GitHub
+            issue_number = None
+            for centroid, issue_num in centroid_to_issue.items():
+                if centroid.strip() == centroid_error.strip():
+                    issue_number = issue_num
+                    break
+            
+            if issue_number:
+                try:
+                    print(f"    Closing issue #{issue_number}...")
+                    close_issue(issue_number)
+                    print(f"    ✓ Closed issue #{issue_number}")
+                    if centroid_error in centroid_to_issue:
+                        del centroid_to_issue[centroid_error]
+                    time.sleep(0.5)  # Rate limiting
+                except Exception as e:
+                    print(f"    ✗ Error closing issue #{issue_number}: {e}")
     
-    # Remove entries that were closed (all runs removed)
+    # Remove entries that were closed (newest run older than 3 months)
     for idx in reversed(entries_to_remove):
         issue_dump.pop(idx)
     
     print(f"\n  Summary:")
-    print(f"    Issues updated: {issues_updated}")
-    print(f"    Issues closed: {issues_closed}")
+    print(f"    Issues closed (newest run older than 3 months): {issues_closed}")
+    print(f"    Remaining entries: {len(issue_dump)}")
     
-    return issue_dump, issues_updated, issues_closed
+    return issue_dump, 0, issues_closed  # No issues updated, only closed
 
 def ensure_all_issues_sorted(issue_dump: List[Dict[str, Any]], all_timestamps: Dict[str, str], centroid_to_issue: Dict[str, int], all_metadata: Optional[Dict[str, Dict[str, Any]]] = None, open_issues_only: bool = True) -> int:
     """
@@ -1023,8 +1001,7 @@ def main():
     print(f"\n{'='*80}")
     print("Summary:")
     print(f"  Issues updated with rebuilt metadata: {metadata_rebuilt}")
-    print(f"  Issues cleaned up (old runs removed): {cleanup_updated}")
-    print(f"  Issues closed (all runs expired): {cleanup_closed}")
+    print(f"  Issues closed (newest run older than 3 months): {cleanup_closed}")
     print(f"  Issues updated for sorting: {sorting_updated}")
     print(f"  Total issues in dump: {len(issue_dump)}")
     print(f"{'='*80}")

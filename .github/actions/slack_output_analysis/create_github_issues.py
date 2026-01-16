@@ -611,33 +611,17 @@ def format_issue_body(group_data: Dict[str, Any], group_name: str) -> str:
     body_parts.append(f"**Number of Occurrences:** {count}")
     body_parts.append("")
     
+    # Add centroid link at the top (first URL in failing_runs)
+    if centroid.get("url"):
+        body_parts.append(f"**Centroid Run:** [{centroid['url']}]({centroid['url']})")
+        body_parts.append("")
+    
     # Add centroid error as the main description
     body_parts.append("## Error Message\n")
     body_parts.append("```")
     body_parts.append(centroid["error"])
     body_parts.append("```")
     body_parts.append("")
-    
-    # Add centroid run link
-    if centroid.get("url"):
-        centroid_label = "Centroid Run"
-        if centroid.get("timestamp"):
-            centroid_label += f" ({centroid['timestamp']})"
-        # Add ND marker if applicable
-        if centroid.get("is_nd", False):
-            centroid_label += " (marked as ND)"
-        job_name = centroid.get("job_name", "")
-        workflow_name = centroid.get("workflow_name", "")
-        job_workflow_suffix = ""
-        if job_name or workflow_name:
-            parts = []
-            if workflow_name:
-                parts.append(workflow_name)
-            if job_name:
-                parts.append(job_name)
-            job_workflow_suffix = f" - {' / '.join(parts)}"
-        body_parts.append(f"**{centroid_label}:** [{centroid['url']}]({centroid['url']}){job_workflow_suffix}")
-        body_parts.append("")
     
     # Add all run URLs (sorted chronologically)
     body_parts.append("## All Occurrences")

@@ -115,6 +115,74 @@ def extract_commit_hash(error_message: str) -> Optional[str]:
     
     return None
 
+def parse_timestamp_to_datetime(timestamp_str: str) -> Optional[datetime]:
+    """Parse formatted timestamp string to datetime object.
+    
+    Handles formats like "January 9th, 8:59am, 58.95 seconds"
+    Returns datetime object in UTC timezone.
+    """
+    if not timestamp_str:
+        return None
+    
+    try:
+        # Try to parse the format: "January 9th, 8:59am, 58.95 seconds"
+        parts = timestamp_str.split(", ")
+        if len(parts) >= 2:
+            date_part = parts[0]  # "January 9th"
+            time_part = parts[1]  # "8:59am"
+            
+            # Remove ordinal suffix (st, nd, rd, th)
+            date_part_clean = re.sub(r'(\d+)(st|nd|rd|th)', r'\1', date_part)
+            
+            # Parse date and time (assumes local timezone)
+            try:
+                dt_local = datetime.strptime(f"{date_part_clean}, {time_part}", "%B %d, %I:%M%p")
+                # Add seconds if available
+                if len(parts) >= 3:
+                    seconds_part = parts[2]  # "58.95 seconds"
+                    seconds_match = re.search(r'(\d+\.?\d*)', seconds_part)
+                    if seconds_match:
+                        seconds_value = float(seconds_match.group(1))
+                        dt_local = dt_local.replace(second=int(seconds_value), microsecond=int((seconds_value % 1) * 1000000))
+                
+                # Determine the correct year
+                current_year = datetime.now().year
+                dt_local = dt_local.replace(year=current_year)
+                now = datetime.now()
+                
+                # If the date is more than 6 months in the future, assume it's from last year
+                if dt_local > now + timedelta(days=180):
+                    dt_local = dt_local.replace(year=current_year - 1)
+                elif dt_local < now - timedelta(days=180):
+                    # Only adjust if we're in January and the date is December (likely from previous year)
+                    if now.month == 1 and dt_local.month == 12:
+                        dt_local = dt_local.replace(year=current_year - 1)
+                
+                # Convert local time to UTC
+                local_tz = datetime.now().astimezone().tzinfo
+                dt_aware = dt_local.replace(tzinfo=local_tz)
+                dt_utc = dt_aware.astimezone(timezone.utc)
+                
+                return dt_utc
+            except ValueError:
+                pass
+    except Exception:
+        pass
+    
+    return None
+
+def is_within_last_month(timestamp_str: str) -> bool:
+    """Check if a timestamp string represents a date within the last month."""
+    if not timestamp_str:
+        return False
+    
+    dt = parse_timestamp_to_datetime(timestamp_str)
+    if dt is None:
+        return False
+    
+    one_month_ago = datetime.now(timezone.utc) - timedelta(days=30)
+    return dt >= one_month_ago
+
 def find_oldest_run_in_centroid(entry: Dict[str, Any], all_errors: List[List], url_to_timestamp: Dict[str, str], url_to_error_message: Dict[str, str]) -> Optional[Dict[str, Any]]:
     """Find the oldest run in the same centroid group.
     
@@ -373,39 +441,47 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
     print(f"  ✓ Mapped {len(url_to_timestamp)} URL(s) to timestamps")
     print(f"  ✓ Mapped {len(url_to_error_message)} URL(s) to error messages")
     
-    # Filter to only include new errors (not already in issue_dump)
-    print(f"\nFiltering errors to only include new ones (not already in issues)...")
-    new_errors = []
-    skipped_existing = 0
+    # Filter to only include errors from the last month
+    print(f"\nFiltering errors to only include those from the last month...")
+    recent_errors = []
     skipped_no_url = 0
+    skipped_old = 0
+    skipped_no_timestamp = 0
     
     for error_entry in all_errors:
         job_url = error_entry[1] if len(error_entry) > 1 else None
+        timestamp_str = error_entry[2] if len(error_entry) > 2 else ""
         
         if not job_url:
             skipped_no_url += 1
             continue
         
-        if job_url in existing_urls:
-            skipped_existing += 1
+        if not timestamp_str:
+            skipped_no_timestamp += 1
             continue
         
-        new_errors.append(error_entry)
+        # Only include errors from the last month
+        if not is_within_last_month(timestamp_str):
+            skipped_old += 1
+            continue
+        
+        recent_errors.append(error_entry)
     
     print(f"  Total errors in all_errors.json: {len(all_errors)}")
     print(f"  Skipped (no URL): {skipped_no_url}")
-    print(f"  Skipped (already exists in issue_dump): {skipped_existing}")
-    print(f"  New errors to include in report: {len(new_errors)}")
+    print(f"  Skipped (no timestamp): {skipped_no_timestamp}")
+    print(f"  Skipped (older than 1 month): {skipped_old}")
+    print(f"  Errors from last month: {len(recent_errors)}")
     
-    # Generate report entries (only for new errors)
-    print(f"\nGenerating report entries for {len(new_errors)} new error(s)...")
+    # Generate report entries (for all errors from last month)
+    print(f"\nGenerating report entries for {len(recent_errors)} error(s) from last month...")
     report_entries = []
     matched_count = 0
     unmatched_count = 0
     
-    for idx, error_entry in enumerate(new_errors, 1):
-        if idx % 50 == 0 or idx == len(new_errors):
-            print(f"  Processing error {idx}/{len(new_errors)}...")
+    for idx, error_entry in enumerate(recent_errors, 1):
+        if idx % 50 == 0 or idx == len(recent_errors):
+            print(f"  Processing error {idx}/{len(recent_errors)}...")
         error_message = error_entry[0] if len(error_entry) > 0 else ""
         job_url = error_entry[1] if len(error_entry) > 1 else None
         timestamp_str = error_entry[2] if len(error_entry) > 2 else ""
@@ -420,9 +496,8 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
         timestamp_utc = parse_timestamp_to_utc(timestamp_str) if timestamp_str else None
         commit_hash = extract_commit_hash(error_message)
         
-        # Look up URL directly in issue_dump (no similarity matching needed)
-        # Note: Since we filtered out existing URLs, this should only match if the error
-        # was just added in this run but hasn't been saved to issue_dump yet
+        # Look up URL in issue_dump to get centroid info (if available)
+        # Note: Errors may or may not be in issue_dump - include them either way
         centroid_run_url = None
         centroid_error_message = None
         centroid_timestamp_utc = None
