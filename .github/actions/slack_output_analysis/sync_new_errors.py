@@ -25,7 +25,7 @@ ALL_ERRORS_FILE = os.path.join(SCRIPT_DIR, "all_errors.json")
 ISSUE_DUMP_FILE = os.path.join(SCRIPT_DIR, "issue_dump.json")
 
 # Import error similarity helper
-from error_similarity import find_best_matching_centroid, recalculate_centroid, compare_errors
+from error_similarity import find_best_matching_centroid, compare_errors
 
 # Similarity thresholds
 RAPIDFUZZ_THRESHOLD = 50.0
@@ -875,25 +875,15 @@ def process_new_error(error_entry: List, issue_dump: List[Dict[str, Any]], centr
             "is_nd": is_nd
         }
         
-        # Recalculate centroid
-        old_centroid = entry["centroid_error"]
-        centroid_idx, new_centroid = recalculate_centroid([old_centroid, error_message])
-        if new_centroid is None:
-            new_centroid = old_centroid
+        # Keep centroid unchanged - centroids are fixed once set
+        centroid_error = entry["centroid_error"]
         
-        # Update entry
-        entry["centroid_error"] = new_centroid
+        # Update entry (centroid stays the same)
         entry["failing_runs"] = sorted(list(set(failing_runs)))  # Remove duplicates and sort
         entry["run_metadata"] = run_metadata
         
-        # Update GitHub issue - use old centroid to find issue number
-        issue_number = centroid_to_issue.get(old_centroid)
-        
-        # Update mapping if centroid changed
-        if new_centroid != old_centroid and issue_number:
-            centroid_to_issue[new_centroid] = issue_number
-            if old_centroid in centroid_to_issue:
-                del centroid_to_issue[old_centroid]
+        # Get issue number using the unchanged centroid
+        issue_number = centroid_to_issue.get(centroid_error)
         
         if issue_number:
             try:
