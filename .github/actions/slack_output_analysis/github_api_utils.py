@@ -3,8 +3,10 @@
 Utility functions for GitHub API interactions, including rate limit checking.
 """
 
+import re
+from typing import Dict, Optional
+
 import requests
-from typing import Dict, Optional, Tuple
 
 
 def check_github_rate_limit(github_token: str) -> Optional[Dict[str, int]]:
@@ -83,7 +85,6 @@ def get_commit_hash_from_github(job_url: str, github_token: str) -> Optional[str
         return None
     
     try:
-        import re
         # Extract run ID from URL: https://github.com/owner/repo/actions/runs/RUN_ID/job/JOB_ID
         match = re.search(r'/actions/runs/(\d+)', job_url)
         if not match:

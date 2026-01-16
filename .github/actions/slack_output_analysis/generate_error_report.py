@@ -9,8 +9,11 @@ import json
 import os
 import sys
 import re
+import time
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Any, Optional, Tuple
+
+import requests
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ALL_ERRORS_FILE = os.path.join(SCRIPT_DIR, "all_errors.json")
@@ -137,7 +140,6 @@ def get_slack_message_link(timestamp_str: str, channel_id: str, slack_token: Opt
         # Try to use Slack API to get permalink if token is available (most reliable)
         if slack_token:
             try:
-                import requests
                 # Use chat.getPermalink API to get the correct permalink
                 response = requests.post(
                     "https://slack.com/api/chat.getPermalink",
@@ -171,7 +173,6 @@ def get_slack_message_link(timestamp_str: str, channel_id: str, slack_token: Opt
         workspace_domain = None
         if slack_token:
             try:
-                import requests
                 # Get team info to get workspace domain
                 response = requests.get(
                     "https://slack.com/api/team.info",
@@ -343,9 +344,6 @@ def load_secrets():
 
 def get_centroid_to_issue_mapping(issue_dump: List[Dict[str, Any]]) -> Dict[str, int]:
     """Get mapping from centroid error to issue number by fetching GitHub issues."""
-    import requests
-    import re
-    
     secrets = load_secrets()
     repo_owner = secrets["GITHUB_REPO_OWNER"]
     repo_name = secrets["GITHUB_REPO_NAME"]
@@ -428,7 +426,6 @@ def get_centroid_to_issue_mapping(issue_dump: List[Dict[str, Any]]) -> Dict[str,
                 break
             
             page += 1
-            import time
             time.sleep(0.5)  # Rate limiting
             
         except Exception as e:

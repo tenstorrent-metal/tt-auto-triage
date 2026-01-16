@@ -9,9 +9,10 @@ import os
 import re
 import sys
 import time
-import requests
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
+
+import requests
 
 # File paths
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -88,8 +89,6 @@ def check_credentials():
 
 def check_repository_access():
     """Check if the token has access to the repository and can read/write."""
-    import requests
-    
     print(f"\n{'='*80}")
     print("Checking repository access...")
     print(f"Repository: {GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}")
@@ -221,8 +220,6 @@ def check_repository_access():
 
 def list_existing_issues():
     """List all existing issues in the repository (for testing connection)."""
-    import requests
-    
     url = f"https://api.github.com/repos/{GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}/issues"
     headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
@@ -269,8 +266,6 @@ def list_existing_issues():
 
 def verify_repository_access() -> bool:
     """Verify that the repository exists and is accessible."""
-    import requests
-    
     url = f"https://api.github.com/repos/{GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}"
     
     auth_methods = [
@@ -319,8 +314,6 @@ def verify_repository_access() -> bool:
 
 def create_issue(title: str, body: str) -> Dict[str, Any]:
     """Create a GitHub issue and return the issue data."""
-    import requests
-    
     url = f"https://api.github.com/repos/{GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}/issues"
     
     # Try with "Bearer" first (for fine-grained PATs), then fall back to "token"
@@ -371,7 +364,7 @@ def create_issue(title: str, body: str) -> Dict[str, Any]:
                         print(f"Error message: {error_json['message']}")
                     if "errors" in error_json:
                         print(f"Errors: {error_json['errors']}")
-                except:
+                except (json.JSONDecodeError, KeyError):
                     pass
                 raise
         except Exception as e:
@@ -399,7 +392,7 @@ def create_issue(title: str, body: str) -> Dict[str, Any]:
                     print("  3. Fine-grained PAT restrictions")
                     print("     - Verify PAT has 'Read and write' for Issues")
                     print("     - Check if PAT expiration or IP restrictions apply")
-        except:
+        except (json.JSONDecodeError, KeyError):
             pass
         print("\nPossible issues:")
         print("  - Token only has 'Read' permission for Issues (needs 'Read and write')")
@@ -410,8 +403,6 @@ def create_issue(title: str, body: str) -> Dict[str, Any]:
 
 def add_issue_to_project(issue_id: str, project_id: str) -> None:
     """Add an issue to a GitHub Project."""
-    import requests
-    
     # First, get the project's node ID
     project_node_id = get_project_node_id(project_id)
     
@@ -449,8 +440,6 @@ def add_issue_to_project(issue_id: str, project_id: str) -> None:
 
 def get_project_node_id(project_number: str) -> str:
     """Get the GraphQL node ID for a project."""
-    import requests
-    
     url = "https://api.github.com/graphql"
     headers = {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
@@ -483,8 +472,6 @@ def get_project_node_id(project_number: str) -> str:
 
 def get_issue_node_id(issue_id: str) -> str:
     """Get the GraphQL node ID for an issue."""
-    import requests
-    
     url = "https://api.github.com/graphql"
     headers = {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
@@ -521,8 +508,6 @@ def get_issue_node_id(issue_id: str) -> str:
 
 def update_project_field(project_item_id: str, field_id: str, value: int) -> None:
     """Update a project field value."""
-    import requests
-    
     url = "https://api.github.com/graphql"
     headers = {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
@@ -816,7 +801,6 @@ def process_group(group_name: str, group_data: Dict[str, Any], group_num: int, t
                 issue_node_id = get_issue_node_id(str(issue_number))
                 
                 # Add to project
-                import requests
                 url = "https://api.github.com/graphql"
                 headers = {
                     "Authorization": f"Bearer {GITHUB_TOKEN}",
@@ -905,8 +889,6 @@ def process_group(group_name: str, group_data: Dict[str, Any], group_num: int, t
 
 def delete_all_issues():
     """Remove all issues from the project board and close them (for testing purposes)."""
-    import requests
-    
     print(f"\n{'='*80}")
     print("WARNING: Removing all issues from project and closing them...")
     print(f"Repository: {GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}")

@@ -12,6 +12,8 @@ import sys
 import time
 from typing import Dict, List, Any
 
+import requests
+
 # File paths
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 SECRETS_FILE = os.path.join(SCRIPT_DIR, "secrets.json")
@@ -54,8 +56,6 @@ PROJECT_NAME = _secrets["PROJECT_NAME"]
 
 def find_project_by_name(project_name: str) -> Dict[str, Any]:
     """Find a GitHub project by name and return its number and node ID."""
-    import requests
-    
     url = "https://api.github.com/graphql"
     headers = {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
@@ -214,8 +214,6 @@ def find_project_by_name(project_name: str) -> Dict[str, Any]:
 
 def get_project_items(project_id: str) -> List[Dict[str, Any]]:
     """Get all items (issues) from a GitHub project."""
-    import requests
-    
     url = "https://api.github.com/graphql"
     headers = {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
@@ -320,7 +318,6 @@ def get_project_items(project_id: str) -> List[Dict[str, Any]]:
             if len(items) > 0 and len(issues) == 0 and page_num == 1:
                 print(f"    DEBUG: Sample item structure:")
                 sample = items[0]
-                import json
                 print(f"      Keys: {list(sample.keys())}")
                 if sample.get("content"):
                     print(f"      Content keys: {list(sample['content'].keys())}")

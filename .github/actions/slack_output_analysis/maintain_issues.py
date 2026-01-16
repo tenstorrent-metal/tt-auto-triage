@@ -12,6 +12,8 @@ import time
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional, Tuple
 
+import requests
+
 # ============================================================================
 # File paths
 # ============================================================================
@@ -66,8 +68,6 @@ def get_all_issues(open_only: bool = False) -> List[Dict[str, Any]]:
     Args:
         open_only: If True, only fetch open issues. If False, fetch all issues.
     """
-    import requests
-    
     url = f"https://api.github.com/repos/{GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}/issues"
     headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
@@ -119,8 +119,6 @@ def extract_centroid_from_issue_body(issue_body: str) -> str:
 
 def update_issue(issue_number: int, title: str, body: str) -> Dict[str, Any]:
     """Update an existing GitHub issue."""
-    import requests
-    
     url = f"https://api.github.com/repos/{GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}/issues/{issue_number}"
     
     # Try with "Bearer" first (for fine-grained PATs), then fall back to "token"
@@ -164,8 +162,6 @@ def update_issue(issue_number: int, title: str, body: str) -> Dict[str, Any]:
 
 def close_issue(issue_number: int) -> Dict[str, Any]:
     """Close an existing GitHub issue."""
-    import requests
-    
     url = f"https://api.github.com/repos/{GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}/issues/{issue_number}"
     
     # Try with "Bearer" first (for fine-grained PATs), then fall back to "token"
@@ -211,8 +207,6 @@ def get_project_node_id() -> Optional[str]:
     if not PROJECT_OWNER or not PROJECT_NUMBER:
         return None
     
-    import requests
-    
     url = "https://api.github.com/graphql"
     headers = {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
@@ -242,7 +236,7 @@ def get_project_node_id() -> Optional[str]:
         
         if "errors" not in result and result["data"]["organization"]:
             return result["data"]["organization"]["projectV2"]["id"]
-    except:
+    except Exception:
         pass
     
     # Try user account
@@ -263,7 +257,7 @@ def get_project_node_id() -> Optional[str]:
         
         if "errors" not in result and result["data"]["user"]:
             return result["data"]["user"]["projectV2"]["id"]
-    except:
+    except Exception:
         pass
     
     return None
@@ -273,8 +267,6 @@ def get_project_item_id_for_issue(issue_number: int) -> Optional[str]:
     project_node_id = get_project_node_id()
     if not project_node_id:
         return None
-    
-    import requests
     
     url = "https://api.github.com/graphql"
     headers = {
@@ -350,8 +342,6 @@ def update_project_field(project_item_id: str, count: int) -> bool:
     if not project_node_id:
         return False
     
-    import requests
-    
     url = "https://api.github.com/graphql"
     headers = {
         "Authorization": f"Bearer {GITHUB_TOKEN}",
@@ -390,7 +380,7 @@ def update_project_field(project_item_id: str, count: int) -> bool:
         result = response.json()
         
         return "errors" not in result
-    except:
+    except Exception:
         return False
 
 # ============================================================================
@@ -507,8 +497,6 @@ def extract_group_num_from_title(title: str) -> Optional[int]:
 
 def get_issue_title(issue_number: int) -> Optional[str]:
     """Get the title of an existing issue."""
-    import requests
-    
     url = f"https://api.github.com/repos/{GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}/issues/{issue_number}"
     headers = {
         "Authorization": f"token {GITHUB_TOKEN}",
