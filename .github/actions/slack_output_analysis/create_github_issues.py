@@ -641,6 +641,7 @@ def format_issue_body(group_data: Dict[str, Any], group_name: str) -> str:
         job_name = error.get("job_name", "")
         workflow_name = error.get("workflow_name", "")
         is_nd = error.get("is_nd", False)
+        error_message = error.get("error", "")
         
         # Skip if no URL or already seen (avoid duplicates)
         if not url or url in seen_urls:
@@ -675,7 +676,7 @@ def format_issue_body(group_data: Dict[str, Any], group_name: str) -> str:
         # Parse timestamp for proper chronological sorting
         dt = parse_timestamp(timestamp) if timestamp else None
         # Use datetime for sorting (None for items without timestamps, which go to end)
-        url_list.append((dt, label, url, job_workflow_suffix, commit_hash_suffix))
+        url_list.append((dt, label, url, job_workflow_suffix, commit_hash_suffix, error_message))
     
     # Sort chronologically (newest first), items without timestamps go to the end
     # Key: (has_timestamp, datetime) 
@@ -685,8 +686,13 @@ def format_issue_body(group_data: Dict[str, Any], group_name: str) -> str:
     url_list.sort(key=lambda x: (x[0] is not None, x[0] if x[0] is not None else datetime.max), reverse=True)
     
     # Format the list
-    for idx, (dt, label, url, job_workflow_suffix, commit_hash_suffix) in enumerate(url_list, 1):
+    for idx, (dt, label, url, job_workflow_suffix, commit_hash_suffix, error_message) in enumerate(url_list, 1):
         body_parts.append(f"{idx}. [{label}]({url}){job_workflow_suffix}{commit_hash_suffix}")
+        # Add error message as sub-bullet in a code block if available
+        if error_message:
+            body_parts.append(f"   ```")
+            body_parts.append(f"   {error_message}")
+            body_parts.append(f"   ```")
     
     return "\n".join(body_parts)
 

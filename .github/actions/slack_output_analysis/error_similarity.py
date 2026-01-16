@@ -60,22 +60,35 @@ def find_best_matching_centroid(error_message: str, centroids: list, rapidfuzz_t
     if not centroids:
         return None, None
     
+    # Batch encode the new error and all centroids at once (much faster than N separate encodes)
+    model = get_model()
+    all_texts = [error_message] + centroids
+    all_embeddings = model.encode(all_texts)
+    
+    # Split embeddings: first is the new error, rest are centroids
+    error_embedding = all_embeddings[0:1]  # Keep as 2D array for cosine_similarity
+    centroid_embeddings = all_embeddings[1:]
+    
+    # Compute all semantic similarities at once
+    semantic_scores = cosine_similarity(error_embedding, centroid_embeddings)[0] * 100
+    
     best_index = None
     best_scores = None
     best_combined_score = -1
     
     for idx, centroid in enumerate(centroids):
-        scores = compare_errors(error_message, centroid)
+        semantic_score = semantic_scores[idx]
+        rapidfuzz_score = fuzz.token_set_ratio(error_message, centroid)
         
         # Check if both thresholds are met
-        if scores["rapidfuzz"] >= rapidfuzz_threshold and scores["semantic"] >= semantic_threshold:
+        if rapidfuzz_score >= rapidfuzz_threshold and semantic_score >= semantic_threshold:
             # Use combined score (weighted average) to find best match
-            combined = (scores["rapidfuzz"] * 0.4 + scores["semantic"] * 0.6)
+            combined = (rapidfuzz_score * 0.4 + semantic_score * 0.6)
             
             if combined > best_combined_score:
                 best_combined_score = combined
                 best_index = idx
-                best_scores = scores
+                best_scores = {"rapidfuzz": rapidfuzz_score, "semantic": semantic_score}
     
     return best_index, best_scores
 

@@ -595,7 +595,7 @@ def format_issue_body(centroid_error: str, failing_runs: List[str], timestamps: 
         centroid_error: The centroid error message
         failing_runs: List of failing run URLs
         timestamps: Dictionary mapping URLs to timestamps
-        run_metadata: Optional dictionary mapping URLs to dicts with 'job_name', 'workflow_name', 'is_nd', and 'commit_hash'
+        run_metadata: Optional dictionary mapping URLs to dicts with 'job_name', 'workflow_name', 'is_nd', 'commit_hash', and 'error_message'
     """
     body_parts = []
     
@@ -629,9 +629,10 @@ def format_issue_body(centroid_error: str, failing_runs: List[str], timestamps: 
         timestamp = timestamps.get(url, "")
         label = timestamp if timestamp else "Link"
         
-        # Get job/workflow info, ND flag, and commit hash if available
+        # Get job/workflow info, ND flag, commit hash, and error message if available
         job_workflow_suffix = ""
         commit_hash_suffix = ""
+        error_message = ""
         is_nd = False
         if run_metadata and url in run_metadata:
             meta = run_metadata[url]
@@ -639,6 +640,7 @@ def format_issue_body(centroid_error: str, failing_runs: List[str], timestamps: 
             workflow_name = meta.get("workflow_name", "")
             is_nd = meta.get("is_nd", False)
             commit_hash = meta.get("commit_hash", "")
+            error_message = meta.get("error_message", "")
             
             if job_name or workflow_name:
                 parts = []
@@ -659,14 +661,19 @@ def format_issue_body(centroid_error: str, failing_runs: List[str], timestamps: 
         # Parse timestamp for proper chronological sorting
         dt = parse_timestamp(timestamp) if timestamp else None
         # Use datetime for sorting (None for items without timestamps, which go to end)
-        url_list.append((dt, label, url, job_workflow_suffix, commit_hash_suffix))
+        url_list.append((dt, label, url, job_workflow_suffix, commit_hash_suffix, error_message))
     
     # Sort chronologically (newest first), items without timestamps go to the end
     url_list.sort(key=lambda x: (x[0] is not None, x[0] if x[0] is not None else datetime.max), reverse=True)
     
     # Format the list
-    for idx, (dt, label, url, job_workflow_suffix, commit_hash_suffix) in enumerate(url_list, 1):
+    for idx, (dt, label, url, job_workflow_suffix, commit_hash_suffix, error_message) in enumerate(url_list, 1):
         body_parts.append(f"{idx}. [{label}]({url}){job_workflow_suffix}{commit_hash_suffix}")
+        # Add error message as sub-bullet in a code block if available
+        if error_message:
+            body_parts.append(f"   ```")
+            body_parts.append(f"   {error_message}")
+            body_parts.append(f"   ```")
     
     return "\n".join(body_parts)
 
@@ -867,12 +874,13 @@ def process_new_error(error_entry: List, issue_dump: List[Dict[str, Any]], centr
         if github_token:
             commit_hash = get_commit_hash_from_github(url, github_token)
         
-        # Store job/workflow metadata, ND flag, and commit hash
+        # Store job/workflow metadata, ND flag, commit hash, and error message
         run_metadata[url] = {
             "job_name": job_name,
             "workflow_name": workflow_name,
             "is_nd": is_nd,
-            "commit_hash": commit_hash if commit_hash else ""
+            "commit_hash": commit_hash if commit_hash else "",
+            "error_message": error_message
         }
         
         # Keep centroid unchanged - centroids are fixed once set
@@ -937,13 +945,14 @@ def process_new_error(error_entry: List, issue_dump: List[Dict[str, Any]], centr
     if github_token:
         commit_hash = get_commit_hash_from_github(url, github_token)
     
-    # Store job/workflow metadata, ND flag, and commit hash
+    # Store job/workflow metadata, ND flag, commit hash, and error message
     run_metadata = {}
     run_metadata[url] = {
         "job_name": job_name,
         "workflow_name": workflow_name,
         "is_nd": is_nd,
-        "commit_hash": commit_hash if commit_hash else ""
+        "commit_hash": commit_hash if commit_hash else "",
+        "error_message": error_message
     }
     new_entry["run_metadata"] = run_metadata
     

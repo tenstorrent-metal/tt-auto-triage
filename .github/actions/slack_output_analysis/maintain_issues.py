@@ -394,7 +394,7 @@ def format_issue_body(centroid_error: str, failing_runs: List[str], timestamps: 
         centroid_error: The centroid error message
         failing_runs: List of failing run URLs
         timestamps: Dictionary mapping URLs to timestamps
-        run_metadata: Optional dictionary mapping URLs to dicts with 'job_name', 'workflow_name', and 'is_nd'
+        run_metadata: Optional dictionary mapping URLs to dicts with 'job_name', 'workflow_name', 'is_nd', 'commit_hash', and 'error_message'
     """
     body_parts = []
     
@@ -428,14 +428,19 @@ def format_issue_body(centroid_error: str, failing_runs: List[str], timestamps: 
         timestamp = timestamps.get(url, "")
         label = timestamp if timestamp else "Link"
         
-        # Get job/workflow info and ND flag if available
+        # Get job/workflow info, ND flag, commit hash, and error message if available
         job_workflow_suffix = ""
+        commit_hash_suffix = ""
+        error_message = ""
         is_nd = False
         if run_metadata and url in run_metadata:
             meta = run_metadata[url]
             job_name = meta.get("job_name", "")
             workflow_name = meta.get("workflow_name", "")
             is_nd = meta.get("is_nd", False)
+            commit_hash = meta.get("commit_hash", "")
+            error_message = meta.get("error_message", "")
+            
             if job_name or workflow_name:
                 parts = []
                 if workflow_name:
@@ -443,6 +448,10 @@ def format_issue_body(centroid_error: str, failing_runs: List[str], timestamps: 
                 if job_name:
                     parts.append(job_name)
                 job_workflow_suffix = f" - {' / '.join(parts)}"
+            
+            # Add commit hash if available
+            if commit_hash:
+                commit_hash_suffix = f" (commit: {commit_hash})"
         
         # Add ND marker if applicable
         if is_nd:
@@ -450,14 +459,19 @@ def format_issue_body(centroid_error: str, failing_runs: List[str], timestamps: 
         
         # Parse timestamp for proper chronological sorting
         dt = parse_timestamp(timestamp) if timestamp else None
-        url_list.append((dt, label, url, job_workflow_suffix))
+        url_list.append((dt, label, url, job_workflow_suffix, commit_hash_suffix, error_message))
     
     # Sort chronologically (newest first), items without timestamps go to the end
     url_list.sort(key=lambda x: (x[0] is not None, x[0] if x[0] is not None else datetime.max), reverse=True)
     
     # Format the list
-    for idx, (dt, label, url, job_workflow_suffix) in enumerate(url_list, 1):
-        body_parts.append(f"{idx}. [{label}]({url}){job_workflow_suffix}")
+    for idx, (dt, label, url, job_workflow_suffix, commit_hash_suffix, error_message) in enumerate(url_list, 1):
+        body_parts.append(f"{idx}. [{label}]({url}){job_workflow_suffix}{commit_hash_suffix}")
+        # Add error message as sub-bullet in a code block if available
+        if error_message:
+            body_parts.append(f"   ```")
+            body_parts.append(f"   {error_message}")
+            body_parts.append(f"   ```")
     
     return "\n".join(body_parts)
 
@@ -918,13 +932,15 @@ def main():
             url = error_entry[1]
             if len(error_entry) > 2:
                 all_timestamps[url] = error_entry[2]
+            error_message = error_entry[0] if len(error_entry) > 0 else ""
             job_name = error_entry[3] if len(error_entry) > 3 and error_entry[3] else ""
             workflow_name = error_entry[4] if len(error_entry) > 4 and error_entry[4] else ""
             is_nd = error_entry[5] if len(error_entry) > 5 and error_entry[5] is not None else False
             all_metadata[url] = {
                 "job_name": job_name,
                 "workflow_name": workflow_name,
-                "is_nd": is_nd
+                "is_nd": is_nd,
+                "error_message": error_message
             }
     
     # Get all GitHub issues and map to centroids
