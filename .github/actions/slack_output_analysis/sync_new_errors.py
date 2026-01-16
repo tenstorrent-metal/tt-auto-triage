@@ -12,6 +12,7 @@ import os
 import re
 import sys
 import time
+import requests
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional, Tuple
 
@@ -26,6 +27,7 @@ ISSUE_DUMP_FILE = os.path.join(SCRIPT_DIR, "issue_dump.json")
 
 # Import error similarity helper
 from error_similarity import find_best_matching_centroid, compare_errors
+from github_api_utils import log_rate_limit_status, get_commit_hash_from_github
 
 # Similarity thresholds
 RAPIDFUZZ_THRESHOLD = 50.0
@@ -611,7 +613,7 @@ def format_issue_body(centroid_error: str, failing_runs: List[str], timestamps: 
         centroid_error: The centroid error message
         failing_runs: List of failing run URLs
         timestamps: Dictionary mapping URLs to timestamps
-        run_metadata: Optional dictionary mapping URLs to dicts with 'job_name', 'workflow_name', and 'is_nd'
+        run_metadata: Optional dictionary mapping URLs to dicts with 'job_name', 'workflow_name', 'is_nd', and 'commit_hash'
     """
     body_parts = []
     
@@ -645,14 +647,17 @@ def format_issue_body(centroid_error: str, failing_runs: List[str], timestamps: 
         timestamp = timestamps.get(url, "")
         label = timestamp if timestamp else "Link"
         
-        # Get job/workflow info and ND flag if available
+        # Get job/workflow info, ND flag, and commit hash if available
         job_workflow_suffix = ""
+        commit_hash_suffix = ""
         is_nd = False
         if run_metadata and url in run_metadata:
             meta = run_metadata[url]
             job_name = meta.get("job_name", "")
             workflow_name = meta.get("workflow_name", "")
             is_nd = meta.get("is_nd", False)
+            commit_hash = meta.get("commit_hash", "")
+            
             if job_name or workflow_name:
                 parts = []
                 if workflow_name:
@@ -660,6 +665,10 @@ def format_issue_body(centroid_error: str, failing_runs: List[str], timestamps: 
                 if job_name:
                     parts.append(job_name)
                 job_workflow_suffix = f" - {' / '.join(parts)}"
+            
+            # Add commit hash if available
+            if commit_hash:
+                commit_hash_suffix = f" (commit: {commit_hash})"
         
         # Add ND marker if applicable
         if is_nd:
@@ -668,14 +677,14 @@ def format_issue_body(centroid_error: str, failing_runs: List[str], timestamps: 
         # Parse timestamp for proper chronological sorting
         dt = parse_timestamp(timestamp) if timestamp else None
         # Use datetime for sorting (None for items without timestamps, which go to end)
-        url_list.append((dt, label, url, job_workflow_suffix))
+        url_list.append((dt, label, url, job_workflow_suffix, commit_hash_suffix))
     
     # Sort chronologically (newest first), items without timestamps go to the end
     url_list.sort(key=lambda x: (x[0] is not None, x[0] if x[0] is not None else datetime.max), reverse=True)
     
     # Format the list
-    for idx, (dt, label, url, job_workflow_suffix) in enumerate(url_list, 1):
-        body_parts.append(f"{idx}. [{label}]({url}){job_workflow_suffix}")
+    for idx, (dt, label, url, job_workflow_suffix, commit_hash_suffix) in enumerate(url_list, 1):
+        body_parts.append(f"{idx}. [{label}]({url}){job_workflow_suffix}{commit_hash_suffix}")
     
     return "\n".join(body_parts)
 
@@ -874,11 +883,18 @@ def process_new_error(error_entry: List, issue_dump: List[Dict[str, Any]], centr
         if timestamp:
             all_timestamps[url] = timestamp
         
-        # Store job/workflow metadata and ND flag
+        # Fetch commit hash from GitHub API
+        commit_hash = None
+        github_token = load_secrets().get("GITHUB_TOKEN", "")
+        if github_token:
+            commit_hash = get_commit_hash_from_github(url, github_token)
+        
+        # Store job/workflow metadata, ND flag, and commit hash
         run_metadata[url] = {
             "job_name": job_name,
             "workflow_name": workflow_name,
-            "is_nd": is_nd
+            "is_nd": is_nd,
+            "commit_hash": commit_hash if commit_hash else ""
         }
         
         # Keep centroid unchanged - centroids are fixed once set
@@ -937,12 +953,19 @@ def process_new_error(error_entry: List, issue_dump: List[Dict[str, Any]], centr
     if timestamp:
         all_timestamps[url] = timestamp
     
-    # Store job/workflow metadata and ND flag
+    # Fetch commit hash from GitHub API
+    commit_hash = None
+    github_token = load_secrets().get("GITHUB_TOKEN", "")
+    if github_token:
+        commit_hash = get_commit_hash_from_github(url, github_token)
+    
+    # Store job/workflow metadata, ND flag, and commit hash
     run_metadata = {}
     run_metadata[url] = {
         "job_name": job_name,
         "workflow_name": workflow_name,
-        "is_nd": is_nd
+        "is_nd": is_nd,
+        "commit_hash": commit_hash if commit_hash else ""
     }
     new_entry["run_metadata"] = run_metadata
     
@@ -984,6 +1007,12 @@ def main():
     print("="*80)
     print("Syncing new errors to GitHub issues")
     print("="*80)
+    
+    # Check GitHub API rate limit at start
+    secrets = load_secrets()
+    github_token = secrets.get("GITHUB_TOKEN", "")
+    if github_token:
+        log_rate_limit_status(github_token, "start")
     
     # Refresh issue dump from GitHub project to ensure it's up to date
     print(f"\n{'='*80}")

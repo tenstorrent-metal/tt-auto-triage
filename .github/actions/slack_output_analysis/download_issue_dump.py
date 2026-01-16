@@ -379,29 +379,30 @@ def extract_failing_runs(issue_body: str) -> List[str]:
     return sorted(list(urls))
 
 def extract_run_metadata(issue_body: str) -> Dict[str, Dict[str, Any]]:
-    """Extract run metadata (job_name, workflow_name, is_nd) from issue body.
+    """Extract run metadata (job_name, workflow_name, is_nd, commit_hash) from issue body.
     
-    Parses the format: [label](url) - workflow / job
-    or: [label (marked as ND)](url) - workflow / job
+    Parses the format: [label](url) - workflow / job (commit: abc1234...)
+    or: [label (marked as ND)](url) - workflow / job (commit: abc1234...)
     
     Returns:
-        Dictionary mapping URL to dict with 'job_name', 'workflow_name', and 'is_nd'
+        Dictionary mapping URL to dict with 'job_name', 'workflow_name', 'is_nd', and 'commit_hash'
     """
     run_metadata = {}
     
-    # Pattern to match lines like: "1. [label](url) - workflow / job"
-    # The format is: {number}. [{label}]({url}){job_workflow_suffix}
+    # Pattern to match lines like: "1. [label](url) - workflow / job (commit: abc1234...)"
+    # The format is: {number}. [{label}]({url}){job_workflow_suffix}{commit_hash_suffix}
     # where job_workflow_suffix is optional and can be " - workflow / job" or " - workflow" or " - job"
+    # and commit_hash_suffix is optional and can be " (commit: abc1234...)"
     # Also handles ND markers: [label (marked as ND)](url)
     
     # Match numbered list items in the "All Occurrences" section
-    # Pattern: number. [label](url) - optional suffix
-    line_pattern = r"^\d+\.\s+\[([^\]]+)\]\(([^)]+)\)(?:\s*-\s*([^\n]+))?"
+    # Pattern: number. [label](url) - optional suffix - optional commit hash
+    line_pattern = r"^\d+\.\s+\[([^\]]+)\]\(([^)]+)\)(?:\s*-\s*([^(]+))?(?:\s*\(commit:\s*([a-fA-F0-9]+)\))?"
     
     # Find all matches (using MULTILINE flag)
     matches = re.findall(line_pattern, issue_body, re.MULTILINE)
     
-    for label, url, suffix in matches:
+    for label, url, suffix, commit_hash in matches:
         # Only process GitHub Actions run URLs
         if not ("github.com" in url and ("actions/runs" in url or "/job/" in url)):
             continue
@@ -424,11 +425,15 @@ def extract_run_metadata(issue_body: str) -> Dict[str, Dict[str, Any]]:
                 # We'll store it as workflow_name (safer assumption)
                 workflow_name = suffix.strip()
         
+        # Extract commit hash (should be 40 characters, but accept any length)
+        commit_hash_str = commit_hash.strip() if commit_hash else ""
+        
         # Always store metadata for each URL (even if empty)
         run_metadata[url] = {
             "job_name": job_name,
             "workflow_name": workflow_name,
-            "is_nd": is_nd
+            "is_nd": is_nd,
+            "commit_hash": commit_hash_str
         }
     
     return run_metadata

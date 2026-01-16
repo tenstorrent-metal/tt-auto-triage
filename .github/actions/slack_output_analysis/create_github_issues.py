@@ -9,6 +9,7 @@ import os
 import re
 import sys
 import time
+import requests
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
 
@@ -16,6 +17,9 @@ from typing import Dict, List, Any, Optional
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 SECRETS_FILE = os.path.join(SCRIPT_DIR, "secrets.json")
 GROUPED_ERRORS_FILE = os.path.join(SCRIPT_DIR, "grouped_errors.json")
+
+# Import GitHub API utilities
+from github_api_utils import log_rate_limit_status, get_commit_hash_from_github
 
 # ============================================================================
 # CONFIGURATION - Load from secrets.json
@@ -636,6 +640,16 @@ def format_issue_body(group_data: Dict[str, Any], group_name: str) -> str:
     # Add all errors including centroid
     all_errors = [centroid] + errors
     
+    # Fetch commit hashes for all URLs (if not already present)
+    github_token = load_secrets().get("GITHUB_TOKEN", "")
+    for error in all_errors:
+        url = error.get("url", "")
+        if url and github_token and not error.get("commit_hash"):
+            # Fetch commit hash from GitHub API
+            commit_hash = get_commit_hash_from_github(url, github_token)
+            if commit_hash:
+                error["commit_hash"] = commit_hash
+    
     for error in all_errors:
         url = error.get("url", "")
         timestamp = error.get("timestamp", "")
@@ -669,10 +683,14 @@ def format_issue_body(group_data: Dict[str, Any], group_name: str) -> str:
                 parts.append(job_name)
             job_workflow_suffix = f" - {' / '.join(parts)}"
         
+        # Get commit hash if available
+        commit_hash = error.get("commit_hash", "")
+        commit_hash_suffix = f" (commit: {commit_hash})" if commit_hash else ""
+        
         # Parse timestamp for proper chronological sorting
         dt = parse_timestamp(timestamp) if timestamp else None
         # Use datetime for sorting (None for items without timestamps, which go to end)
-        url_list.append((dt, label, url, job_workflow_suffix))
+        url_list.append((dt, label, url, job_workflow_suffix, commit_hash_suffix))
     
     # Sort chronologically (newest first), items without timestamps go to the end
     # Key: (has_timestamp, datetime) 
@@ -682,8 +700,8 @@ def format_issue_body(group_data: Dict[str, Any], group_name: str) -> str:
     url_list.sort(key=lambda x: (x[0] is not None, x[0] if x[0] is not None else datetime.max), reverse=True)
     
     # Format the list
-    for idx, (dt, label, url, job_workflow_suffix) in enumerate(url_list, 1):
-        body_parts.append(f"{idx}. [{label}]({url}){job_workflow_suffix}")
+    for idx, (dt, label, url, job_workflow_suffix, commit_hash_suffix) in enumerate(url_list, 1):
+        body_parts.append(f"{idx}. [{label}]({url}){job_workflow_suffix}{commit_hash_suffix}")
     
     return "\n".join(body_parts)
 
@@ -1050,6 +1068,12 @@ def main():
     print("GitHub Issue Creator from Grouped Errors")
     print("="*80)
     
+    # Check GitHub API rate limit at start
+    secrets = load_secrets()
+    github_token = secrets.get("GITHUB_TOKEN", "")
+    if github_token:
+        log_rate_limit_status(github_token, "start")
+    
     # Check credentials
     check_credentials()
     
@@ -1101,6 +1125,10 @@ def main():
     print("\n" + "="*80)
     print("All groups processed!")
     print("="*80)
+    
+    # Check GitHub API rate limit at end
+    if github_token:
+        log_rate_limit_status(github_token, "end")
 
 if __name__ == "__main__":
     main()

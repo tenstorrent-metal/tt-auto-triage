@@ -15,6 +15,7 @@ from typing import Dict, List, Any, Optional, Tuple
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ALL_ERRORS_FILE = os.path.join(SCRIPT_DIR, "all_errors.json")
 ISSUE_DUMP_FILE = os.path.join(SCRIPT_DIR, "issue_dump.json")
+SLACK_EXPORT_FILE = os.path.join(SCRIPT_DIR, "build_slack_export_with_threads.json")
 REPORT_JSON_FILE = os.path.join(SCRIPT_DIR, "error_report.json")
 REPORT_MARKDOWN_FILE = os.path.join(SCRIPT_DIR, "error_report.md")
 
@@ -114,6 +115,58 @@ def extract_commit_hash(error_message: str) -> Optional[str]:
                 return commit_hash
     
     return None
+
+# Import commit hash function from shared utils
+from github_api_utils import get_commit_hash_from_github
+
+def get_slack_message_link(timestamp_str: str, channel_id: str, slack_token: Optional[str] = None) -> Optional[str]:
+    """Construct Slack message link from timestamp and channel ID.
+    
+    Args:
+        timestamp_str: Unix timestamp string (e.g., "1768333360.325209")
+        channel_id: Slack channel ID (e.g., "C08SJ7MGESY")
+        slack_token: Optional Slack token to fetch workspace info
+    
+    Returns:
+        Slack message URL or None if timestamp is invalid
+    """
+    if not timestamp_str or not channel_id:
+        return None
+    
+    try:
+        # Parse timestamp (remove decimal part for link)
+        timestamp_float = float(timestamp_str)
+        timestamp_int = int(timestamp_float)
+        
+        # Slack message link format: https://[workspace].slack.com/archives/[CHANNEL_ID]/p[TIMESTAMP]
+        # Timestamp needs to be padded to 16 digits (remove decimal, pad with zeros)
+        timestamp_padded = str(timestamp_int).ljust(16, '0')
+        
+        # Try to get workspace name from Slack API if token is available
+        workspace_name = None
+        if slack_token:
+            try:
+                import requests
+                # Get team info to get workspace name
+                response = requests.get(
+                    "https://slack.com/api/team.info",
+                    headers={"Authorization": f"Bearer {slack_token}"}
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get("ok") and "team" in data:
+                        workspace_name = data["team"].get("domain")
+            except Exception:
+                pass  # Fall back to placeholder format
+        
+        if workspace_name:
+            return f"https://{workspace_name}.slack.com/archives/{channel_id}/p{timestamp_padded}"
+        else:
+            # Return format with placeholder - user can replace [workspace] with their workspace name
+            return f"https://[workspace].slack.com/archives/{channel_id}/p{timestamp_padded}"
+        
+    except (ValueError, TypeError):
+        return None
 
 def parse_timestamp_to_datetime(timestamp_str: str) -> Optional[datetime]:
     """Parse formatted timestamp string to datetime object.
@@ -253,6 +306,7 @@ def load_secrets():
             "GITHUB_REPO_OWNER": secrets.get("github_repo_owner", ""),
             "GITHUB_REPO_NAME": secrets.get("github_repo_name", ""),
             "GITHUB_TOKEN": secrets.get("github_token", ""),
+            "CHANNEL_ID": secrets.get("channel_id", ""),
         }
     except FileNotFoundError:
         print(f"ERROR: secrets.json not found at {SECRETS_FILE}")
@@ -365,6 +419,15 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
     Returns:
         Tuple of (report_data, markdown_summary)
     """
+    # Check GitHub API rate limit at start
+    secrets = load_secrets()
+    github_token = secrets.get("GITHUB_TOKEN", "")
+    start_rate_limit = None
+    if github_token:
+        from github_api_utils import log_rate_limit_status, check_github_rate_limit
+        log_rate_limit_status(github_token, "start")
+        start_rate_limit = check_github_rate_limit(github_token)
+    
     print("Loading data files...")
     # Load all errors
     try:
@@ -387,10 +450,8 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
     # Filter issue_dump to only include entries from open issues
     # We need to check GitHub to see which issues are open
     print("\nFiltering issue_dump to exclude closed issues...")
-    secrets = load_secrets()
     repo_owner = secrets["GITHUB_REPO_OWNER"]
     repo_name = secrets["GITHUB_REPO_NAME"]
-    github_token = secrets.get("GITHUB_TOKEN", "")
     
     if github_token:
         # Get mapping to check which centroids belong to open issues
@@ -440,6 +501,33 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
                         url_to_error_message[job_url] = error_message
     print(f"  ✓ Mapped {len(url_to_timestamp)} URL(s) to timestamps")
     print(f"  ✓ Mapped {len(url_to_error_message)} URL(s) to error messages")
+    
+    # Load Slack export to get original timestamps for Slack message links
+    print(f"\nLoading Slack export for message links...")
+    url_to_slack_timestamp = {}
+    slack_token = secrets.get("slack_token", "")
+    channel_id = secrets.get("CHANNEL_ID", "")
+    try:
+        with open(SLACK_EXPORT_FILE, 'r', encoding='utf-8') as f:
+            slack_data = json.load(f)
+        print(f"  ✓ Loaded {len(slack_data)} Slack message(s)")
+        
+        # Map failing_run URLs to Slack timestamps
+        for entry in slack_data:
+            failing_run = entry.get("failing_run", "")
+            slack_timestamp = entry.get("timestamp", "")
+            if failing_run and slack_timestamp:
+                # Extract URL from failing_run field
+                url_pattern = r"\(https?://[^\)]+\)"
+                match = re.search(url_pattern, failing_run)
+                if match:
+                    url = match.group(0)[1:-1]  # Remove parentheses
+                    url_to_slack_timestamp[url] = slack_timestamp
+        print(f"  ✓ Mapped {len(url_to_slack_timestamp)} URL(s) to Slack timestamps")
+    except FileNotFoundError:
+        print(f"  ⚠ Warning: {SLACK_EXPORT_FILE} not found, Slack message links will be missing")
+    except Exception as e:
+        print(f"  ⚠ Warning: Could not load Slack export: {e}")
     
     # Filter to only include errors from the last month
     print(f"\nFiltering errors to only include those from the last month...")
@@ -492,9 +580,29 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
                 unmatched_count += 1
             continue
         
-        # Extract timestamp and commit hash for this error
+        # Extract timestamp for this error
         timestamp_utc = parse_timestamp_to_utc(timestamp_str) if timestamp_str else None
-        commit_hash = extract_commit_hash(error_message)
+        
+        # Get commit hash from issue_dump if available, otherwise fetch from GitHub API
+        commit_hash = None
+        if job_url in url_to_entry:
+            # Try to get commit hash from issue_dump first
+            entry = url_to_entry[job_url]
+            run_metadata = entry.get("run_metadata", {})
+            if job_url in run_metadata:
+                commit_hash = run_metadata[job_url].get("commit_hash", "")
+        
+        # If not found in issue_dump, fetch from GitHub API (only if we have token and hash is missing)
+        if not commit_hash and job_url and github_token:
+            commit_hash = get_commit_hash_from_github(job_url, github_token)
+            if commit_hash and idx % 10 == 0:
+                print(f"    Fetched commit hash from API for {idx}/{len(recent_errors)}...")
+        
+        # Get Slack message link
+        slack_message_link = None
+        slack_timestamp = url_to_slack_timestamp.get(job_url, "")
+        if slack_timestamp and channel_id:
+            slack_message_link = get_slack_message_link(slack_timestamp, channel_id, slack_token)
         
         # Look up URL in issue_dump to get centroid info (if available)
         # Note: Errors may or may not be in issue_dump - include them either way
@@ -509,10 +617,6 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
             entry = url_to_entry[job_url]
             centroid_error_message = entry.get("centroid_error", "")
             
-            # Extract commit hash from centroid error message
-            if centroid_error_message:
-                centroid_commit_hash = extract_commit_hash(centroid_error_message)
-            
             # Get centroid run URL (first URL in failing_runs list)
             failing_runs = entry.get("failing_runs", [])
             if failing_runs:
@@ -522,9 +626,31 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
                 centroid_timestamp_str = url_to_timestamp.get(centroid_run_url, "")
                 if centroid_timestamp_str:
                     centroid_timestamp_utc = parse_timestamp_to_utc(centroid_timestamp_str)
+                
+                # Fetch full commit hash for centroid run from GitHub API
+                if github_token:
+                    centroid_commit_hash = get_commit_hash_from_github(centroid_run_url, github_token)
             
             # Find oldest run in this centroid group
             oldest_run = find_oldest_run_in_centroid(entry, all_errors, url_to_timestamp, url_to_error_message)
+            
+            # Get commit hash for oldest run from issue_dump if available
+            if oldest_run and oldest_run.get("run_url"):
+                oldest_url = oldest_run["run_url"]
+                # Try to get from issue_dump first
+                if oldest_url in url_to_entry:
+                    entry = url_to_entry[oldest_url]
+                    run_metadata = entry.get("run_metadata", {})
+                    if oldest_url in run_metadata:
+                        oldest_commit_hash = run_metadata[oldest_url].get("commit_hash", "")
+                        if oldest_commit_hash:
+                            oldest_run["commit_hash"] = oldest_commit_hash
+                
+                # If not found in issue_dump, fetch from GitHub API
+                if not oldest_run.get("commit_hash") and github_token:
+                    oldest_commit_hash = get_commit_hash_from_github(oldest_url, github_token)
+                    if oldest_commit_hash:
+                        oldest_run["commit_hash"] = oldest_commit_hash
         else:
             unmatched_count += 1
         
@@ -533,12 +659,13 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
             "error_message": error_message,
             "is_nd": is_nd,
             "timestamp_utc": timestamp_utc,
-            "commit_hash": commit_hash,
+            "commit_hash": commit_hash,  # Full 40-char commit SHA from GitHub API
+            "slack_message_link": slack_message_link,
             "centroid_run_url": centroid_run_url,
             "centroid_error_message": centroid_error_message,
             "centroid_timestamp_utc": centroid_timestamp_utc,
-            "centroid_commit_hash": centroid_commit_hash,
-            "oldest_run": oldest_run
+            "centroid_commit_hash": centroid_commit_hash,  # Full 40-char commit SHA from GitHub API
+            "oldest_run": oldest_run  # Includes full commit_hash if available
         }
         report_entries.append(report_entry)
     
@@ -546,6 +673,22 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
     print(f"    - Matched to centroids: {matched_count}")
     print(f"    - Unmatched: {unmatched_count}")
     print(f"    - With centroid run URLs: {sum(1 for e in report_entries if e['centroid_run_url'])}")
+    
+    # Check GitHub API rate limit at end
+    end_rate_limit = None
+    api_used = None
+    api_remaining = None
+    if github_token:
+        from github_api_utils import log_rate_limit_status, check_github_rate_limit
+        log_rate_limit_status(github_token, "end")
+        end_rate_limit = check_github_rate_limit(github_token)
+        
+        # Calculate API usage
+        if start_rate_limit and end_rate_limit:
+            start_remaining = start_rate_limit.get("remaining", 0)
+            end_remaining = end_rate_limit.get("remaining", 0)
+            api_used = start_remaining - end_remaining
+            api_remaining = end_remaining
     
     # Generate markdown summary
     print("\nGenerating markdown summary...")
@@ -556,6 +699,13 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
     nd_percentage = (nd_errors/total_errors*100) if total_errors > 0 else 0
     centroid_percentage = (errors_with_centroid/total_errors*100) if total_errors > 0 else 0
     
+    # Build API usage section
+    api_section = ""
+    if api_used is not None and api_remaining is not None:
+        api_section = f"""
+- **GitHub API Used**: {api_used:,} requests
+- **GitHub API Remaining**: {api_remaining:,} requests"""
+    
     markdown = f"""# Error Report Summary
 
 ## Statistics
@@ -564,7 +714,7 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
 - **ND (Non-Deterministic) Errors**: {nd_errors} ({nd_percentage:.1f}% of total)
 - **Errors with Centroid Runs**: {errors_with_centroid} ({centroid_percentage:.1f}% of total)
 - **Matched to Centroids**: {matched_count}
-- **Unmatched Errors**: {unmatched_count}
+- **Unmatched Errors**: {unmatched_count}{api_section}
 
 ## Error Breakdown
 
