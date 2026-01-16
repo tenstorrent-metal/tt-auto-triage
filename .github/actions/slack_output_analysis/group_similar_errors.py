@@ -111,36 +111,36 @@ embeddings = model.encode(error_messages)
 print("Computing semantic similarities...")
 semantic_matrix = cosine_similarity(embeddings) * 100
 
-# Build graph: edge if both thresholds met
-print("Building similarity graph...")
-graph = defaultdict(list)
-for i in range(len(error_messages)):
-    for j in range(i + 1, len(error_messages)):
-        semantic_score = semantic_matrix[i][j]
-        rapidfuzz_score = fuzz.token_set_ratio(error_messages[i], error_messages[j])
-        
-        if semantic_score >= SEMANTIC_THRESHOLD and rapidfuzz_score >= RAPIDFUZZ_THRESHOLD:
-            graph[i].append(j)
-            graph[j].append(i)
-
-# Find connected components (groups)
-print("Finding groups...")
+# Use strict centroid-based clustering: all errors must be similar to the centroid
+# This prevents transitive chaining where A->B->C groups dissimilar A and C together
+print("Clustering errors using strict centroid-based approach...")
 visited = set()
 groups = []
 
-def dfs(node, current_group):
-    """Depth-first search to find connected component."""
-    visited.add(node)
-    current_group.append(node)
-    for neighbor in graph[node]:
-        if neighbor not in visited:
-            dfs(neighbor, current_group)
-
 for i in range(len(error_messages)):
-    if i not in visited:
-        group = []
-        dfs(i, group)
-        groups.append(group)
+    if i in visited:
+        continue
+    
+    # Start a new group with this error as the centroid
+    centroid_idx = i
+    current_group = [i]
+    visited.add(i)
+    
+    # Find all unvisited errors that are similar to THIS centroid
+    # Only add errors that are directly similar to the centroid, not transitively
+    for j in range(len(error_messages)):
+        if j in visited:
+            continue
+        
+        # Check similarity to the centroid (not to other group members)
+        semantic_score = semantic_matrix[i][j]  # Use precomputed matrix
+        rapidfuzz_score = fuzz.token_set_ratio(error_messages[centroid_idx], error_messages[j])
+        
+        if semantic_score >= SEMANTIC_THRESHOLD and rapidfuzz_score >= RAPIDFUZZ_THRESHOLD:
+            current_group.append(j)
+            visited.add(j)
+    
+    groups.append(current_group)
 
 # Sort groups by size (descending order)
 groups.sort(key=len, reverse=True)

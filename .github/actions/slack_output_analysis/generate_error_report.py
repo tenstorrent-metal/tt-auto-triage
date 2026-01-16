@@ -464,6 +464,16 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
         print(f"ERROR: {ALL_ERRORS_FILE} not found")
         sys.exit(1)
     
+    # Refresh issue dump from GitHub before loading (ensures we have latest data after rebuild)
+    print(f"\nRefreshing issue dump from GitHub...")
+    try:
+        import download_issue_dump
+        download_issue_dump.main()
+        print(f"  ✓ Refreshed issue dump from GitHub")
+    except Exception as e:
+        print(f"  ⚠ Warning: Could not refresh issue dump: {e}")
+        print(f"  Will use existing {ISSUE_DUMP_FILE} if available")
+    
     # Load issue dump
     try:
         with open(ISSUE_DUMP_FILE, 'r', encoding='utf-8') as f:
@@ -539,16 +549,43 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
         print(f"  ✓ Loaded {len(slack_data)} Slack message(s)")
         
         # Map failing_run URLs to Slack timestamps
+        # Try multiple extraction patterns to catch different URL formats
         for entry in slack_data:
             failing_run = entry.get("failing_run", "")
             slack_timestamp = entry.get("timestamp", "")
             if failing_run and slack_timestamp:
-                # Extract URL from failing_run field
-                url_pattern = r"\(https?://[^\)]+\)"
-                match = re.search(url_pattern, failing_run)
+                url = None
+                
+                # Try pattern 1: URL in parentheses: "Run #123 (https://...)"
+                url_pattern1 = r"\(https?://[^\)]+\)"
+                match = re.search(url_pattern1, failing_run)
                 if match:
                     url = match.group(0)[1:-1]  # Remove parentheses
+                
+                # Try pattern 2: Plain URL in the text
+                if not url:
+                    url_pattern2 = r"https?://[^\s\)]+"
+                    match = re.search(url_pattern2, failing_run)
+                    if match:
+                        url = match.group(0).rstrip('.,;:')  # Remove trailing punctuation
+                
+                # Try pattern 3: Markdown link format: [text](url)
+                if not url:
+                    link_pattern = r"\[([^\]]+)\]\(([^)]+)\)"
+                    match = re.search(link_pattern, failing_run)
+                    if match:
+                        url = match.group(2)  # Get URL from markdown link
+                
+                if url:
+                    # Normalize URL (remove trailing slash, etc.) for consistent lookup
+                    url_normalized = url.rstrip('/')
+                    url_to_slack_timestamp[url_normalized] = slack_timestamp
+                    # Also store with trailing slash for lookup flexibility
+                    if url_normalized != url:
+                        url_to_slack_timestamp[url] = slack_timestamp
+                    # Store original URL as well
                     url_to_slack_timestamp[url] = slack_timestamp
+        
         print(f"  ✓ Mapped {len(url_to_slack_timestamp)} URL(s) to Slack timestamps")
     except FileNotFoundError:
         print(f"  ⚠ Warning: {SLACK_EXPORT_FILE} not found, Slack message links will be missing")
@@ -617,18 +654,38 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
             run_metadata = entry.get("run_metadata", {})
             if job_url in run_metadata:
                 commit_hash = run_metadata[job_url].get("commit_hash", "")
+                # Only use if it's not empty
+                if not commit_hash or commit_hash == "":
+                    commit_hash = None
         
-        # If not found in issue_dump, fetch from GitHub API (only if we have token and hash is missing)
+        # If not found in issue_dump (or was empty), fetch from GitHub API
         if not commit_hash and job_url and github_token:
             commit_hash = get_commit_hash_from_github(job_url, github_token)
             if commit_hash and idx % 10 == 0:
                 print(f"    Fetched commit hash from API for {idx}/{len(recent_errors)}...")
         
-        # Get Slack message link
+        # Get Slack message link - try multiple URL formats
         slack_message_link = None
         slack_timestamp = url_to_slack_timestamp.get(job_url, "")
+        
+        # Also try matching with trailing slash or other variations
+        if not slack_timestamp:
+            # Try variations of the URL
+            url_variations = [
+                job_url.rstrip('/'),
+                job_url + '/',
+                job_url.replace('/job/', '/jobs/'),  # Some URLs might use /jobs/ instead
+            ]
+            for url_var in url_variations:
+                if url_var in url_to_slack_timestamp:
+                    slack_timestamp = url_to_slack_timestamp[url_var]
+                    break
+        
         if slack_timestamp and channel_id:
             slack_message_link = get_slack_message_link(slack_timestamp, channel_id, slack_token)
+            # If link generation failed, log a warning
+            if not slack_message_link and idx % 100 == 0:
+                print(f"    ⚠ Warning: Could not generate Slack link for error {idx} (timestamp: {slack_timestamp[:20]}...)")
         
         # Look up URL in issue_dump to get centroid info (if available)
         # Note: Errors may or may not be in issue_dump - include them either way
@@ -653,8 +710,16 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
                 if centroid_timestamp_str:
                     centroid_timestamp_utc = parse_timestamp_to_utc(centroid_timestamp_str)
                 
-                # Fetch full commit hash for centroid run from GitHub API
-                if github_token:
+                # Get commit hash for centroid run from issue_dump if available
+                run_metadata = entry.get("run_metadata", {})
+                if centroid_run_url in run_metadata:
+                    centroid_commit_hash = run_metadata[centroid_run_url].get("commit_hash", "")
+                    # Only use if it's not empty
+                    if not centroid_commit_hash or centroid_commit_hash == "":
+                        centroid_commit_hash = None
+                
+                # If not found in issue_dump (or was empty), fetch from GitHub API
+                if not centroid_commit_hash and github_token:
                     centroid_commit_hash = get_commit_hash_from_github(centroid_run_url, github_token)
             
             # Find oldest run in this centroid group
