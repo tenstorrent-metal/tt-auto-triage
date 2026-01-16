@@ -767,20 +767,27 @@ def process_group(group_name: str, group_data: Dict[str, Any], group_num: int, t
         if len(urls) > 3:
             print(f"  ... and {len(urls) - 3} more")
     
-    # Wait for user confirmation (unless in bulk mode)
+    # Wait for user confirmation (unless in bulk mode or CI)
     if not bulk_mode:
-        print("\n" + "="*80)
-        response = input("Create issue for this group? (y/n/a for all remaining/q to quit): ").strip().lower()
-        
-        if response == 'q':
-            print("\nExiting...")
-            sys.exit(0)
-        elif response == 'a':
-            print("Bulk mode enabled - creating all remaining issues...\n")
+        # Skip confirmation in CI environments
+        if os.environ.get("GITHUB_ACTIONS") or os.environ.get("CI"):
+            # Running in CI - auto-confirm and enable bulk mode
+            print("\nRunning in CI - auto-confirming and enabling bulk mode...")
             bulk_mode = True
-        elif response != 'y':
-            print("Skipping this group.\n")
-            return False
+        else:
+            # Interactive mode - ask for confirmation
+            print("\n" + "="*80)
+            response = input("Create issue for this group? (y/n/a for all remaining/q to quit): ").strip().lower()
+            
+            if response == 'q':
+                print("\nExiting...")
+                sys.exit(0)
+            elif response == 'a':
+                print("Bulk mode enabled - creating all remaining issues...\n")
+                bulk_mode = True
+            elif response != 'y':
+                print("Skipping this group.\n")
+                return False
     
     if bulk_mode:
         print(f"Creating issue for {group_name}...")
@@ -931,10 +938,16 @@ def delete_all_issues():
             return
         
         print(f"Found {len(actual_issues)} issue(s) to remove.")
-        response = input("Remove all issues from project and close them? (yes/no): ").strip().lower()
-        if response != "yes":
-            print("Skipping deletion.")
-            return
+        
+        # Auto-confirm in CI environments
+        if os.environ.get("GITHUB_ACTIONS") or os.environ.get("CI"):
+            print("Running in CI - auto-confirming deletion of all issues...")
+        else:
+            # Interactive mode - ask for confirmation
+            response = input("Remove all issues from project and close them? (yes/no): ").strip().lower()
+            if response != "yes":
+                print("Skipping deletion.")
+                return
         
         # Get project node ID if project is configured
         project_node_id = None
@@ -1110,12 +1123,17 @@ def main():
         print("No groups to process. Exiting.")
         return
     
-    # Confirm before starting
+    # Confirm before starting (skip in CI environments)
     print("\n" + "="*80)
-    response = input(f"Ready to create {total_groups} issue(s). Continue? (y/n): ").strip().lower()
-    if response != 'y':
-        print("Cancelled.")
-        return
+    if os.environ.get("GITHUB_ACTIONS") or os.environ.get("CI"):
+        # Running in CI - auto-confirm
+        print(f"Running in CI - auto-confirming creation of {total_groups} issue(s)...")
+    else:
+        # Interactive mode - ask for confirmation
+        response = input(f"Ready to create {total_groups} issue(s). Continue? (y/n): ").strip().lower()
+        if response != 'y':
+            print("Cancelled.")
+            return
     
     # Process each group
     bulk_mode = False

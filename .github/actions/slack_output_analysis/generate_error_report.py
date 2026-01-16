@@ -134,20 +134,45 @@ def get_slack_message_link(timestamp_str: str, channel_id: str, slack_token: Opt
         return None
     
     try:
-        # Parse timestamp (remove decimal part for link)
-        timestamp_float = float(timestamp_str)
-        timestamp_int = int(timestamp_float)
-        
-        # Slack message link format: https://[workspace].slack.com/archives/[CHANNEL_ID]/p[TIMESTAMP]
-        # Timestamp needs to be padded to 16 digits (remove decimal, pad with zeros)
-        timestamp_padded = str(timestamp_int).ljust(16, '0')
-        
-        # Try to get workspace name from Slack API if token is available
-        workspace_name = None
+        # Try to use Slack API to get permalink if token is available (most reliable)
         if slack_token:
             try:
                 import requests
-                # Get team info to get workspace name
+                # Use chat.getPermalink API to get the correct permalink
+                response = requests.post(
+                    "https://slack.com/api/chat.getPermalink",
+                    headers={
+                        "Authorization": f"Bearer {slack_token}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "channel": channel_id,
+                        "message_ts": timestamp_str
+                    }
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get("ok") and "permalink" in data:
+                        return data["permalink"]
+            except Exception as e:
+                print(f"  ⚠ Warning: Could not fetch Slack permalink via API: {e}")
+        
+        # Fallback: construct URL manually
+        # Parse timestamp - Slack wants format: p{seconds}{microseconds} (16 digits total)
+        timestamp_float = float(timestamp_str)
+        seconds = int(timestamp_float)
+        microseconds = int((timestamp_float - seconds) * 1000000)
+        
+        # Format: p{seconds}{microseconds padded to 6 digits} = 16 digits total
+        # Example: 1768333360.325209 -> p1768333360325209
+        timestamp_padded = f"{seconds}{microseconds:06d}"
+        
+        # Try to get workspace domain from Slack API
+        workspace_domain = None
+        if slack_token:
+            try:
+                import requests
+                # Get team info to get workspace domain
                 response = requests.get(
                     "https://slack.com/api/team.info",
                     headers={"Authorization": f"Bearer {slack_token}"}
@@ -155,17 +180,18 @@ def get_slack_message_link(timestamp_str: str, channel_id: str, slack_token: Opt
                 if response.status_code == 200:
                     data = response.json()
                     if data.get("ok") and "team" in data:
-                        workspace_name = data["team"].get("domain")
+                        workspace_domain = data["team"].get("domain")
             except Exception:
-                pass  # Fall back to placeholder format
+                pass
         
-        if workspace_name:
-            return f"https://{workspace_name}.slack.com/archives/{channel_id}/p{timestamp_padded}"
+        if workspace_domain:
+            return f"https://{workspace_domain}.slack.com/archives/{channel_id}/p{timestamp_padded}"
         else:
-            # Return format with placeholder - user can replace [workspace] with their workspace name
-            return f"https://[workspace].slack.com/archives/{channel_id}/p{timestamp_padded}"
+            # Return None if we can't get workspace domain (better than broken link with placeholder)
+            return None
         
-    except (ValueError, TypeError):
+    except (ValueError, TypeError) as e:
+        print(f"  ⚠ Warning: Could not parse Slack timestamp: {e}")
         return None
 
 def parse_timestamp_to_datetime(timestamp_str: str) -> Optional[datetime]:
