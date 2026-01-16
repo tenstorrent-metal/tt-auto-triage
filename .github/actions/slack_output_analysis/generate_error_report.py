@@ -192,22 +192,49 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
     # Build reverse lookup: URL -> issue entry (much faster than similarity matching)
     print(f"\nBuilding URL to issue mapping...")
     url_to_entry = {}
+    existing_urls = set()
     for entry in issue_dump:
         failing_runs = entry.get("failing_runs", [])
         for url in failing_runs:
             if url:
                 url_to_entry[url] = entry
+                existing_urls.add(url)
     print(f"  ✓ Mapped {len(url_to_entry)} URL(s) to issue entries")
+    print(f"  ✓ Found {len(existing_urls)} existing URL(s) in issue_dump")
     
-    # Generate report entries
-    print(f"\nGenerating report entries for {len(all_errors)} error(s)...")
+    # Filter to only include new errors (not already in issue_dump)
+    print(f"\nFiltering errors to only include new ones (not already in issues)...")
+    new_errors = []
+    skipped_existing = 0
+    skipped_no_url = 0
+    
+    for error_entry in all_errors:
+        job_url = error_entry[1] if len(error_entry) > 1 else None
+        
+        if not job_url:
+            skipped_no_url += 1
+            continue
+        
+        if job_url in existing_urls:
+            skipped_existing += 1
+            continue
+        
+        new_errors.append(error_entry)
+    
+    print(f"  Total errors in all_errors.json: {len(all_errors)}")
+    print(f"  Skipped (no URL): {skipped_no_url}")
+    print(f"  Skipped (already exists in issue_dump): {skipped_existing}")
+    print(f"  New errors to include in report: {len(new_errors)}")
+    
+    # Generate report entries (only for new errors)
+    print(f"\nGenerating report entries for {len(new_errors)} new error(s)...")
     report_entries = []
     matched_count = 0
     unmatched_count = 0
     
-    for idx, error_entry in enumerate(all_errors, 1):
-        if idx % 50 == 0 or idx == len(all_errors):
-            print(f"  Processing error {idx}/{len(all_errors)}...")
+    for idx, error_entry in enumerate(new_errors, 1):
+        if idx % 50 == 0 or idx == len(new_errors):
+            print(f"  Processing error {idx}/{len(new_errors)}...")
         error_message = error_entry[0] if len(error_entry) > 0 else ""
         job_url = error_entry[1] if len(error_entry) > 1 else None
         is_nd = error_entry[5] if len(error_entry) > 5 else False
@@ -218,6 +245,8 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
             continue
         
         # Look up URL directly in issue_dump (no similarity matching needed)
+        # Note: Since we filtered out existing URLs, this should only match if the error
+        # was just added in this run but hasn't been saved to issue_dump yet
         centroid_run_url = None
         centroid_error_message = None
         
