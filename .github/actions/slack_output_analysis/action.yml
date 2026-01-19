@@ -14,10 +14,6 @@ inputs:
     description: "Mode: 'update' to sync new errors, 'rebuild' to recreate all issues from scratch"
     required: false
     default: "update"
-  run_maintenance:
-    description: "Whether to run maintenance (cleanup old runs, ensure sorting)"
-    required: false
-    default: "false"
   start_date:
     description: "Start date for fetching Slack messages (format: 'January 1, 2026')"
     required: false
@@ -128,17 +124,6 @@ runs:
         GITHUB_TOKEN: ${{ inputs.github_token }}
         DATE_RANGE_START: ${{ inputs.start_date || '' }}
         DATE_RANGE_END: ${{ inputs.end_date || '' }}
-
-    - name: Run maintenance on issues
-      if: inputs.run_maintenance == 'true'
-      shell: bash
-      run: |
-        set -euo pipefail
-        cd "${{ github.action_path }}"
-        python3 maintain_issues.py
-      env:
-        PYTHONUNBUFFERED: 1
-        GITHUB_TOKEN: ${{ inputs.github_token }}
 
     - name: Generate error report
       shell: bash
