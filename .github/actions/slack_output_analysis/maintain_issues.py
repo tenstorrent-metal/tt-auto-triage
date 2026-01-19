@@ -965,26 +965,45 @@ def main():
     print(f"Mapped {len(centroid_to_issue)} centroid(s) to issue numbers")
     
     # Rebuild run_metadata from all_errors.json for any missing entries
+    # Also rebuild if error_message is missing (for displaying in issue body)
     print(f"\nRebuilding metadata from all_errors.json for missing entries...")
     metadata_rebuilt = 0
+    error_messages_added = 0
     for entry in issue_dump:
         run_metadata = entry.get("run_metadata", {})
         failing_runs = entry.get("failing_runs", [])
         
         for url in failing_runs:
-            if url not in run_metadata or (not run_metadata[url].get("job_name") and not run_metadata[url].get("workflow_name")):
-                if url in all_metadata:
-                    run_metadata[url] = all_metadata[url]
-                    metadata_rebuilt += 1
+            needs_rebuild = False
+            if url not in run_metadata:
+                needs_rebuild = True
+            elif not run_metadata[url].get("job_name") and not run_metadata[url].get("workflow_name"):
+                needs_rebuild = True
+            elif not run_metadata[url].get("error_message"):
+                # Also rebuild if error_message is missing
+                needs_rebuild = True
+                error_messages_added += 1
+            
+            if needs_rebuild and url in all_metadata:
+                # Merge with existing metadata to preserve any fields we already have
+                existing = run_metadata.get(url, {})
+                new_meta = all_metadata[url].copy()
+                # Keep existing commit_hash if we have one (it's not in all_errors.json)
+                if existing.get("commit_hash"):
+                    new_meta["commit_hash"] = existing["commit_hash"]
+                run_metadata[url] = new_meta
+                metadata_rebuilt += 1
         
         entry["run_metadata"] = run_metadata
     
     if metadata_rebuilt > 0:
         print(f"  ✓ Rebuilt metadata for {metadata_rebuilt} run(s)")
+        if error_messages_added > 0:
+            print(f"    (including {error_messages_added} missing error message(s))")
         metadata_updates = update_all_issues_with_metadata(issue_dump, all_timestamps, centroid_to_issue, open_issues_only=True)
         print(f"  ✓ Updated {metadata_updates} GitHub issue(s) with rebuilt metadata")
     else:
-        print(f"  ✓ All runs already have metadata")
+        print(f"  ✓ All runs already have complete metadata")
     
     # Clean up old runs (older than 1 month)
     issue_dump, cleanup_updated, cleanup_closed = cleanup_old_runs(issue_dump, all_timestamps, centroid_to_issue, all_metadata)

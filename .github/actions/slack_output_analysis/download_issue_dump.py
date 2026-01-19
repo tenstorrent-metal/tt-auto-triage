@@ -376,62 +376,101 @@ def extract_failing_runs(issue_body: str) -> List[str]:
     return sorted(list(urls))
 
 def extract_run_metadata(issue_body: str) -> Dict[str, Dict[str, Any]]:
-    """Extract run metadata (job_name, workflow_name, is_nd, commit_hash) from issue body.
+    """Extract run metadata (job_name, workflow_name, is_nd, commit_hash, error_message) from issue body.
     
     Parses the format: [label](url) - workflow / job (commit: abc1234...)
     or: [label (marked as ND)](url) - workflow / job (commit: abc1234...)
     
+    Also extracts error_message from code blocks that follow each URL line:
+        1. [label](url) - workflow / job
+           ```
+           Error message here
+           ```
+    
     Returns:
-        Dictionary mapping URL to dict with 'job_name', 'workflow_name', 'is_nd', and 'commit_hash'
+        Dictionary mapping URL to dict with 'job_name', 'workflow_name', 'is_nd', 'commit_hash', and 'error_message'
     """
     run_metadata = {}
     
     # Pattern to match lines like: "1. [label](url) - workflow / job (commit: abc1234...)"
-    # The format is: {number}. [{label}]({url}){job_workflow_suffix}{commit_hash_suffix}
-    # where job_workflow_suffix is optional and can be " - workflow / job" or " - workflow" or " - job"
-    # and commit_hash_suffix is optional and can be " (commit: abc1234...)"
-    # Also handles ND markers: [label (marked as ND)](url)
-    
-    # Match numbered list items in the "All Occurrences" section
-    # Pattern: number. [label](url) - optional suffix - optional commit hash
     line_pattern = r"^\d+\.\s+\[([^\]]+)\]\(([^)]+)\)(?:\s*-\s*([^(]+))?(?:\s*\(commit:\s*([a-fA-F0-9]+)\))?"
     
-    # Find all matches (using MULTILINE flag)
-    matches = re.findall(line_pattern, issue_body, re.MULTILINE)
+    # Split body into lines for processing
+    lines = issue_body.split('\n')
     
-    for label, url, suffix, commit_hash in matches:
-        # Only process GitHub Actions run URLs
-        if not ("github.com" in url and ("actions/runs" in url or "/job/" in url)):
-            continue
-        
-        # Check if marked as ND
-        is_nd = "(marked as ND)" in label
-        
-        # Parse workflow/job from suffix
-        workflow_name = ""
-        job_name = ""
-        if suffix:
-            suffix = suffix.strip()
-            # Format is typically "workflow / job" or just "workflow" or just "job"
-            if " / " in suffix:
-                parts = suffix.split(" / ", 1)
-                workflow_name = parts[0].strip() if parts[0].strip() else ""
-                job_name = parts[1].strip() if parts[1].strip() else ""
-            else:
-                # Single value - could be workflow or job
-                # We'll store it as workflow_name (safer assumption)
-                workflow_name = suffix.strip()
-        
-        # Extract commit hash (should be 40 characters, but accept any length)
-        commit_hash_str = commit_hash.strip() if commit_hash else ""
-        
-        # Always store metadata for each URL (even if empty)
-        run_metadata[url] = {
-            "job_name": job_name,
-            "workflow_name": workflow_name,
-            "is_nd": is_nd,
-            "commit_hash": commit_hash_str
-        }
+    current_url = None
+    current_metadata = None
+    in_code_block = False
+    code_block_lines = []
+    
+    for i, line in enumerate(lines):
+        # Check if this line matches a numbered URL entry
+        match = re.match(line_pattern, line)
+        if match:
+            # Save any pending code block to previous URL
+            if current_url and code_block_lines:
+                current_metadata["error_message"] = '\n'.join(code_block_lines).strip()
+                code_block_lines = []
+            
+            label, url, suffix, commit_hash = match.groups()
+            
+            # Only process GitHub Actions run URLs
+            if not ("github.com" in url and ("actions/runs" in url or "/job/" in url)):
+                current_url = None
+                current_metadata = None
+                continue
+            
+            # Check if marked as ND
+            is_nd = "(marked as ND)" in label
+            
+            # Parse workflow/job from suffix
+            workflow_name = ""
+            job_name = ""
+            if suffix:
+                suffix = suffix.strip()
+                if " / " in suffix:
+                    parts = suffix.split(" / ", 1)
+                    workflow_name = parts[0].strip() if parts[0].strip() else ""
+                    job_name = parts[1].strip() if parts[1].strip() else ""
+                else:
+                    workflow_name = suffix.strip()
+            
+            commit_hash_str = commit_hash.strip() if commit_hash else ""
+            
+            current_url = url
+            current_metadata = {
+                "job_name": job_name,
+                "workflow_name": workflow_name,
+                "is_nd": is_nd,
+                "commit_hash": commit_hash_str,
+                "error_message": ""
+            }
+            run_metadata[url] = current_metadata
+            in_code_block = False
+            code_block_lines = []
+            
+        elif current_url:
+            # Check for code block markers (indented with spaces)
+            stripped = line.strip()
+            if stripped == '```' or line.lstrip().startswith('```'):
+                if in_code_block:
+                    # End of code block
+                    in_code_block = False
+                    if code_block_lines:
+                        current_metadata["error_message"] = '\n'.join(code_block_lines).strip()
+                        code_block_lines = []
+                else:
+                    # Start of code block
+                    in_code_block = True
+                    code_block_lines = []
+            elif in_code_block:
+                # Inside code block - collect lines (remove leading indentation)
+                # Lines are typically indented with 3 spaces
+                code_block_lines.append(line.lstrip())
+    
+    # Handle any remaining code block
+    if current_url and code_block_lines:
+        current_metadata["error_message"] = '\n'.join(code_block_lines).strip()
     
     return run_metadata
 
