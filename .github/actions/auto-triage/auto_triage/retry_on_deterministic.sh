@@ -20,6 +20,14 @@
 
 set -euo pipefail
 
+# ============================================================================
+# TESTING MODE FLAG
+# Set to "true" to force retry regardless of case/hardware (for testing only)
+# Set to "false" for normal production behavior
+# ============================================================================
+TEST_MODE="true"
+# ============================================================================
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -62,29 +70,36 @@ fi
 SCENARIO=$(jq -r '.scenario // ""' "$SLACK_MSG_PATH")
 echo -e "${BLUE}Scenario: ${SCENARIO}${NC}"
 
-# Check if this is a Case 1 or Case 4 (deterministic failure with commits)
-if [ "$SCENARIO" != "Deterministic failure with identified commit" ] && \
-   [ "$SCENARIO" != "Deterministic failure with multiple plausible commits" ]; then
-    echo -e "${YELLOW}Not a Case 1/4 scenario, skipping retry${NC}"
-    exit 0
+# TEST_MODE: Skip all eligibility checks
+if [ "$TEST_MODE" = "true" ]; then
+    echo -e "${YELLOW}========================================${NC}"
+    echo -e "${YELLOW}TEST MODE ENABLED - Forcing retry regardless of case/hardware${NC}"
+    echo -e "${YELLOW}========================================${NC}"
+else
+    # Check if this is a Case 1 or Case 4 (deterministic failure with commits)
+    if [ "$SCENARIO" != "Deterministic failure with identified commit" ] && \
+       [ "$SCENARIO" != "Deterministic failure with multiple plausible commits" ]; then
+        echo -e "${YELLOW}Not a Case 1/4 scenario, skipping retry${NC}"
+        exit 0
+    fi
+
+    # Check if job name contains supported hardware (N150, N300, P150, P300)
+    # Case-insensitive check
+    JOB_NAME_LOWER=$(echo "$JOB_NAME" | tr '[:upper:]' '[:lower:]')
+    if ! echo "$JOB_NAME_LOWER" | grep -qiE '(n150|n300|p150|p300)'; then
+        echo -e "${YELLOW}Job '$JOB_NAME' does not contain N150/N300/P150/P300, skipping retry${NC}"
+        echo -e "${YELLOW}(Jobs with galaxy, T3K, or p100 are too expensive for automatic retries)${NC}"
+        exit 0
+    fi
+
+    # Check for expensive hardware that should NOT be retried
+    if echo "$JOB_NAME_LOWER" | grep -qiE '(galaxy|t3k|t3000|p100)'; then
+        echo -e "${YELLOW}Job '$JOB_NAME' contains expensive hardware (galaxy/T3K/p100), skipping retry${NC}"
+        exit 0
+    fi
 fi
 
-# Check if job name contains supported hardware (N150, N300, P150, P300)
-# Case-insensitive check
-JOB_NAME_LOWER=$(echo "$JOB_NAME" | tr '[:upper:]' '[:lower:]')
-if ! echo "$JOB_NAME_LOWER" | grep -qiE '(n150|n300|p150|p300)'; then
-    echo -e "${YELLOW}Job '$JOB_NAME' does not contain N150/N300/P150/P300, skipping retry${NC}"
-    echo -e "${YELLOW}(Jobs with galaxy, T3K, or p100 are too expensive for automatic retries)${NC}"
-    exit 0
-fi
-
-# Check for expensive hardware that should NOT be retried
-if echo "$JOB_NAME_LOWER" | grep -qiE '(galaxy|t3k|t3000|p100)'; then
-    echo -e "${YELLOW}Job '$JOB_NAME' contains expensive hardware (galaxy/T3K/p100), skipping retry${NC}"
-    exit 0
-fi
-
-echo -e "${GREEN}Retry conditions met: Case 1/4 on supported hardware${NC}"
+echo -e "${GREEN}Retry conditions met: proceeding with retry${NC}"
 
 # Get the failing job URL and extract IDs
 FAILING_RUN_URL=$(jq -r '.failing_run_url // ""' "$SLACK_MSG_PATH")
@@ -171,7 +186,11 @@ send_retry_notification() {
 }
 
 # Send notification about retry
-RETRY_MSG=":arrows_counterclockwise: *Deterministic failure suspected.* Re-running job to confirm:\n<${NEW_RUN_URL}|View retry run>\n\n_Workflow:_ ${WORKFLOW_NAME}\n_Job:_ ${JOB_NAME}"
+if [ "$TEST_MODE" = "true" ]; then
+    RETRY_MSG=":test_tube: *[TEST MODE]* Re-running job for testing:\n<${NEW_RUN_URL}|View retry run>\n\n_Workflow:_ ${WORKFLOW_NAME}\n_Job:_ ${JOB_NAME}"
+else
+    RETRY_MSG=":arrows_counterclockwise: *Deterministic failure suspected.* Re-running job to confirm:\n<${NEW_RUN_URL}|View retry run>\n\n_Workflow:_ ${WORKFLOW_NAME}\n_Job:_ ${JOB_NAME}"
+fi
 send_retry_notification "$RETRY_MSG"
 
 # Wait for job to complete
@@ -264,7 +283,27 @@ echo -e "${BLUE}Retry job ID: ${RETRY_JOB_ID}${NC}"
 echo -e "${BLUE}Retry job conclusion: ${RETRY_JOB_CONCLUSION}${NC}"
 echo -e "${BLUE}Retry job URL: ${RETRY_JOB_URL}${NC}"
 
-# Handle the three outcomes
+# TEST_MODE: Skip all outcome handling, just send notification and proceed with original message
+if [ "$TEST_MODE" = "true" ]; then
+    echo -e "${YELLOW}========================================${NC}"
+    echo -e "${YELLOW}TEST MODE: Retry completed with conclusion: ${RETRY_JOB_CONCLUSION}${NC}"
+    echo -e "${YELLOW}TEST MODE: Skipping message modifications, will send original message${NC}"
+    echo -e "${YELLOW}========================================${NC}"
+    
+    # Send a test notification about the result
+    if [ "$RETRY_JOB_CONCLUSION" = "success" ]; then
+        send_retry_notification ":test_tube: *[TEST MODE]* Retry completed: *PASSED*\n\nRetry run: <${RETRY_JOB_URL}|link>\n\n_Original message will be sent unchanged._"
+    elif [ "$RETRY_JOB_CONCLUSION" = "failure" ]; then
+        send_retry_notification ":test_tube: *[TEST MODE]* Retry completed: *FAILED*\n\nRetry run: <${RETRY_JOB_URL}|link>\n\n_Original message will be sent unchanged._"
+    else
+        send_retry_notification ":test_tube: *[TEST MODE]* Retry completed: *${RETRY_JOB_CONCLUSION}*\n\nRetry run: <${RETRY_JOB_URL}|link>\n\n_Original message will be sent unchanged._"
+    fi
+    
+    echo -e "${GREEN}TEST MODE: Retry logic completed, proceeding with original analysis${NC}"
+    exit 0
+fi
+
+# Handle the three outcomes (normal mode)
 if [ "$RETRY_JOB_CONCLUSION" = "success" ]; then
     # ========================================
     # CASE: Retry PASSED - Convert to Case 3

@@ -245,15 +245,15 @@ runs:
         set -euo pipefail
         cd "${GITHUB_WORKSPACE}/.auto_triage"
         # Check cancel state
-        if [ -f cancel.json ] && [ "$(jq -r '.should_cancel // false' cancel.json)" = "true" ]; then
-          echo "Skipping: cancellation requested"
-          exit 0
-        fi
-        # Check if slack_message.json exists before attempting retry
-        if [ ! -f "auto_triage/output/slack_message.json" ]; then
-          echo "No slack_message.json found, skipping retry logic"
-          exit 0
-        fi
+        # if [ -f cancel.json ] && [ "$(jq -r '.should_cancel // false' cancel.json)" = "true" ]; then
+        #   echo "Skipping: cancellation requested"
+        #   exit 0
+        # fi
+        # # Check if slack_message.json exists before attempting retry
+        # if [ ! -f "auto_triage/output/slack_message.json" ]; then
+        #   echo "No slack_message.json found, skipping retry logic"
+        #   exit 0
+        # fi
         # Run retry logic for Case 1/4 on N150/N300/P150/P300 hardware
         # This script will:
         # 1. Check if scenario is "Deterministic failure with identified commit" or "Deterministic failure with multiple plausible commits"
