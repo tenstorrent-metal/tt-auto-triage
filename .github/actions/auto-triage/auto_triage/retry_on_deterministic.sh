@@ -169,24 +169,36 @@ echo "$ORIGINAL_ERROR" > "${DATA_DIR}/original_error.txt"
 # Re-run the failed job
 echo -e "${GREEN}Re-running failed job...${NC}"
 
+# Get the current run_attempt BEFORE triggering rerun
+RUN_INFO_BEFORE=$(gh api "repos/${OWNER}/${REPO}/actions/runs/${RUN_ID}" 2>/dev/null || echo "{}")
+OLD_ATTEMPT=$(echo "$RUN_INFO_BEFORE" | jq -r '.run_attempt // 1')
+echo -e "${BLUE}Current run_attempt before rerun: ${OLD_ATTEMPT}${NC}"
+
 # GitHub API to re-run failed jobs in a workflow run
 # POST /repos/{owner}/{repo}/actions/runs/{run_id}/rerun-failed-jobs
-RERUN_RESPONSE=$(gh api \
+# NOTE: This API returns 201 with empty body on success
+RERUN_HTTP_CODE=$(gh api \
     --method POST \
     "repos/${OWNER}/${REPO}/actions/runs/${RUN_ID}/rerun-failed-jobs" \
-    2>&1 || echo "RERUN_FAILED")
+    --silent \
+    -i 2>&1 | grep -E "^HTTP/" | tail -1 | awk '{print $2}' || echo "000")
 
-if [ "$RERUN_RESPONSE" = "RERUN_FAILED" ] || echo "$RERUN_RESPONSE" | grep -q "error"; then
-    echo -e "${RED}Failed to re-run job: ${RERUN_RESPONSE}${NC}"
-    # Try the alternative: re-run specific job
+echo -e "${BLUE}Rerun API response code: ${RERUN_HTTP_CODE}${NC}"
+
+if [ "$RERUN_HTTP_CODE" != "201" ] && [ "$RERUN_HTTP_CODE" != "200" ]; then
+    echo -e "${RED}Failed to re-run failed jobs (HTTP ${RERUN_HTTP_CODE})${NC}"
+    # Try the alternative: re-run entire workflow run
     echo -e "${YELLOW}Trying to re-run entire workflow run...${NC}"
-    RERUN_RESPONSE=$(gh api \
+    RERUN_HTTP_CODE=$(gh api \
         --method POST \
         "repos/${OWNER}/${REPO}/actions/runs/${RUN_ID}/rerun" \
-        2>&1 || echo "RERUN_FAILED_AGAIN")
+        --silent \
+        -i 2>&1 | grep -E "^HTTP/" | tail -1 | awk '{print $2}' || echo "000")
     
-    if [ "$RERUN_RESPONSE" = "RERUN_FAILED_AGAIN" ] || echo "$RERUN_RESPONSE" | grep -q "error"; then
-        echo -e "${RED}Failed to re-run workflow: ${RERUN_RESPONSE}${NC}"
+    echo -e "${BLUE}Full rerun API response code: ${RERUN_HTTP_CODE}${NC}"
+    
+    if [ "$RERUN_HTTP_CODE" != "201" ] && [ "$RERUN_HTTP_CODE" != "200" ]; then
+        echo -e "${RED}Failed to re-run workflow (HTTP ${RERUN_HTTP_CODE})${NC}"
         echo -e "${YELLOW}Proceeding without retry${NC}"
         exit 0
     fi
@@ -194,14 +206,30 @@ fi
 
 echo -e "${GREEN}Re-run triggered successfully${NC}"
 
-# Wait a moment for the new run to be created, then get the new attempt info
-sleep 10
+# Wait for the new attempt to be created and become visible
+echo -e "${BLUE}Waiting for new run attempt to start...${NC}"
+NEW_ATTEMPT="$OLD_ATTEMPT"
+WAIT_FOR_START=0
+MAX_WAIT_FOR_START=120  # 2 minutes max to wait for new attempt to appear
 
-# Get the workflow run info to find the new attempt
-RUN_INFO=$(gh api "repos/${OWNER}/${REPO}/actions/runs/${RUN_ID}" 2>/dev/null || echo "{}")
-NEW_ATTEMPT=$(echo "$RUN_INFO" | jq -r '.run_attempt // 1')
+while [ "$NEW_ATTEMPT" = "$OLD_ATTEMPT" ] && [ $WAIT_FOR_START -lt $MAX_WAIT_FOR_START ]; do
+    sleep 10
+    WAIT_FOR_START=$((WAIT_FOR_START + 10))
+    RUN_INFO=$(gh api "repos/${OWNER}/${REPO}/actions/runs/${RUN_ID}" 2>/dev/null || echo "{}")
+    NEW_ATTEMPT=$(echo "$RUN_INFO" | jq -r '.run_attempt // 1')
+    RUN_STATUS=$(echo "$RUN_INFO" | jq -r '.status // "unknown"')
+    echo -e "${BLUE}  Waited ${WAIT_FOR_START}s - run_attempt: ${NEW_ATTEMPT}, status: ${RUN_STATUS}${NC}"
+done
+
+if [ "$NEW_ATTEMPT" = "$OLD_ATTEMPT" ]; then
+    echo -e "${RED}New run attempt did not start within ${MAX_WAIT_FOR_START}s${NC}"
+    echo -e "${YELLOW}Proceeding without retry${NC}"
+    exit 0
+fi
+
 NEW_RUN_URL="https://github.com/${OWNER}/${REPO}/actions/runs/${RUN_ID}/attempts/${NEW_ATTEMPT}"
 
+echo -e "${GREEN}New run attempt started: ${NEW_ATTEMPT}${NC}"
 echo -e "${GREEN}Retry run URL: ${NEW_RUN_URL}${NC}"
 
 # Send quick Slack notification about the retry
@@ -216,21 +244,31 @@ send_retry_notification() {
     fi
     
     if [ -n "${SLACK_BOT_TOKEN:-}" ] && [ -n "${SLACK_CHANNEL_ID:-}" ]; then
-        curl -s -X POST "https://slack.com/api/chat.postMessage" \
+        echo -e "${BLUE}Sending Slack notification...${NC}"
+        SLACK_RESPONSE=$(curl -s -X POST "https://slack.com/api/chat.postMessage" \
             -H "Authorization: Bearer ${SLACK_BOT_TOKEN}" \
             -H "Content-Type: application/json" \
             -d "$(echo "$payload" | jq --arg channel "$SLACK_CHANNEL_ID" '. + {channel: $channel}')" \
-            > /dev/null 2>&1 || echo -e "${YELLOW}Warning: Failed to send Slack notification${NC}"
+            2>&1)
+        
+        SLACK_OK=$(echo "$SLACK_RESPONSE" | jq -r '.ok // false' 2>/dev/null || echo "false")
+        if [ "$SLACK_OK" = "true" ]; then
+            echo -e "${GREEN}Slack notification sent successfully${NC}"
+        else
+            SLACK_ERROR=$(echo "$SLACK_RESPONSE" | jq -r '.error // "unknown"' 2>/dev/null || echo "unknown")
+            echo -e "${YELLOW}Warning: Slack notification failed: ${SLACK_ERROR}${NC}"
+        fi
     else
         echo -e "${YELLOW}Slack credentials not set, skipping notification${NC}"
     fi
 }
 
 # Send notification about retry
+# Use printf to create actual newlines (not literal \n)
 if [ "$TEST_MODE" = "true" ]; then
-    RETRY_MSG=":test_tube: *[TEST MODE]* Re-running job for testing:\n<${NEW_RUN_URL}|View retry run>\n\n_Workflow:_ ${WORKFLOW_NAME}\n_Job:_ ${JOB_NAME}"
+    RETRY_MSG=$(printf ':test_tube: *[TEST MODE]* Re-running job for testing:\n<%s|View retry run>\n\n_Workflow:_ %s\n_Job:_ %s' "$NEW_RUN_URL" "$WORKFLOW_NAME" "$JOB_NAME")
 else
-    RETRY_MSG=":arrows_counterclockwise: *Deterministic failure suspected.* Re-running job to confirm:\n<${NEW_RUN_URL}|View retry run>\n\n_Workflow:_ ${WORKFLOW_NAME}\n_Job:_ ${JOB_NAME}"
+    RETRY_MSG=$(printf ':arrows_counterclockwise: *Deterministic failure suspected.* Re-running job to confirm:\n<%s|View retry run>\n\n_Workflow:_ %s\n_Job:_ %s' "$NEW_RUN_URL" "$WORKFLOW_NAME" "$JOB_NAME")
 fi
 send_retry_notification "$RETRY_MSG"
 
@@ -271,7 +309,30 @@ fi
 
 # Find the specific job in the retry attempt
 echo -e "${BLUE}Finding retry job results...${NC}"
-RETRY_JOBS=$(gh api "repos/${OWNER}/${REPO}/actions/runs/${RUN_ID}/attempts/${NEW_ATTEMPT}/jobs?per_page=100" 2>/dev/null || echo "{}")
+RETRY_JOBS=$(gh api "repos/${OWNER}/${REPO}/actions/runs/${RUN_ID}/attempts/${NEW_ATTEMPT}/jobs?per_page=100" 2>&1 || echo "{}")
+
+# Debug: Check what we got back
+echo -e "${BLUE}API response type check...${NC}"
+RESPONSE_TYPE=$(echo "$RETRY_JOBS" | jq -r 'type' 2>/dev/null || echo "invalid")
+echo -e "${BLUE}Response type: ${RESPONSE_TYPE}${NC}"
+
+if [ "$RESPONSE_TYPE" = "invalid" ] || [ "$RESPONSE_TYPE" = "string" ]; then
+    echo -e "${RED}API returned invalid response or error: ${RETRY_JOBS}${NC}"
+    echo -e "${YELLOW}Proceeding with original analysis${NC}"
+    exit 0
+fi
+
+# Check if jobs array exists
+JOBS_COUNT=$(echo "$RETRY_JOBS" | jq '.jobs | length' 2>/dev/null || echo "0")
+echo -e "${BLUE}Found ${JOBS_COUNT} jobs in retry attempt${NC}"
+
+if [ "$JOBS_COUNT" = "0" ]; then
+    echo -e "${YELLOW}No jobs found in retry attempt, checking main jobs endpoint...${NC}"
+    # Try the main jobs endpoint instead
+    RETRY_JOBS=$(gh api "repos/${OWNER}/${REPO}/actions/runs/${RUN_ID}/jobs?per_page=100" 2>&1 || echo "{}")
+    JOBS_COUNT=$(echo "$RETRY_JOBS" | jq '.jobs | length' 2>/dev/null || echo "0")
+    echo -e "${BLUE}Found ${JOBS_COUNT} jobs from main endpoint${NC}"
+fi
 
 # Normalize the job name for matching (handle unicode dashes, lowercase)
 normalize_name() {
@@ -279,6 +340,7 @@ normalize_name() {
 }
 
 JOB_NAME_NORMALIZED=$(normalize_name "$JOB_NAME")
+echo -e "${BLUE}Looking for job matching: ${JOB_NAME_NORMALIZED}${NC}"
 
 # Find the matching job by name - try exact match first, then partial
 RETRY_JOB=$(echo "$RETRY_JOBS" | jq --arg name "$JOB_NAME_NORMALIZED" '
@@ -287,7 +349,7 @@ RETRY_JOB=$(echo "$RETRY_JOBS" | jq --arg name "$JOB_NAME_NORMALIZED" '
     map(select((.name | normalize) == $name or (.name | normalize | contains($name)) or ($name | contains(.name | normalize)))) |
     sort_by(.status == "completed" | not) |
     first // null
-')
+' 2>/dev/null || echo "null")
 
 if [ "$RETRY_JOB" = "null" ] || [ -z "$RETRY_JOB" ]; then
     echo -e "${YELLOW}Could not find job by name match, trying to find any failed job...${NC}"
@@ -296,7 +358,7 @@ if [ "$RETRY_JOB" = "null" ] || [ -z "$RETRY_JOB" ]; then
         .jobs // [] | 
         map(select(.status == "completed" and .conclusion == "failure")) |
         first // null
-    ')
+    ' 2>/dev/null || echo "null")
 fi
 
 if [ "$RETRY_JOB" = "null" ] || [ -z "$RETRY_JOB" ]; then
@@ -306,8 +368,12 @@ if [ "$RETRY_JOB" = "null" ] || [ -z "$RETRY_JOB" ]; then
         .jobs // [] | 
         map(select(.status == "completed")) |
         first // null
-    ')
+    ' 2>/dev/null || echo "null")
 fi
+
+# List all job names for debugging
+echo -e "${BLUE}All jobs in response:${NC}"
+echo "$RETRY_JOBS" | jq -r '.jobs // [] | .[].name' 2>/dev/null || echo "(none)"
 
 RETRY_JOB_ID=$(echo "$RETRY_JOB" | jq -r '.id // ""')
 RETRY_JOB_CONCLUSION=$(echo "$RETRY_JOB" | jq -r '.conclusion // "unknown"')
@@ -333,11 +399,11 @@ if [ "$TEST_MODE" = "true" ]; then
     
     # Send a test notification about the result
     if [ "$RETRY_JOB_CONCLUSION" = "success" ]; then
-        send_retry_notification ":test_tube: *[TEST MODE]* Retry completed: *PASSED*\n\nRetry run: <${RETRY_JOB_URL}|link>\n\n_Original message will be sent unchanged._"
+        send_retry_notification "$(printf ':test_tube: *[TEST MODE]* Retry completed: *PASSED*\n\nRetry run: <%s|link>\n\n_Original message will be sent unchanged._' "$RETRY_JOB_URL")"
     elif [ "$RETRY_JOB_CONCLUSION" = "failure" ]; then
-        send_retry_notification ":test_tube: *[TEST MODE]* Retry completed: *FAILED*\n\nRetry run: <${RETRY_JOB_URL}|link>\n\n_Original message will be sent unchanged._"
+        send_retry_notification "$(printf ':test_tube: *[TEST MODE]* Retry completed: *FAILED*\n\nRetry run: <%s|link>\n\n_Original message will be sent unchanged._' "$RETRY_JOB_URL")"
     else
-        send_retry_notification ":test_tube: *[TEST MODE]* Retry completed: *${RETRY_JOB_CONCLUSION}*\n\nRetry run: <${RETRY_JOB_URL}|link>\n\n_Original message will be sent unchanged._"
+        send_retry_notification "$(printf ':test_tube: *[TEST MODE]* Retry completed: *%s*\n\nRetry run: <%s|link>\n\n_Original message will be sent unchanged._' "$RETRY_JOB_CONCLUSION" "$RETRY_JOB_URL")"
     fi
     
     echo -e "${GREEN}TEST MODE: Retry logic completed, proceeding with original analysis${NC}"
@@ -401,7 +467,7 @@ Investigate test flakiness or infrastructure stability. No code changes appear t
 _This analysis was performed automatically by the auto-triage system._
 EOF
 
-    send_retry_notification ":white_check_mark: *Retry passed!* Failure appears to be non-deterministic.\n\nOriginal failure: <${FAILING_RUN_URL}|link>\nSuccessful retry: <${RETRY_JOB_URL}|link>"
+    send_retry_notification "$(printf ':white_check_mark: *Retry passed!* Failure appears to be non-deterministic.\n\nOriginal failure: <%s|link>\nSuccessful retry: <%s|link>' "$FAILING_RUN_URL" "$RETRY_JOB_URL")"
 
 elif [ "$RETRY_JOB_CONCLUSION" = "failure" ]; then
     # ========================================
@@ -512,7 +578,7 @@ The job was automatically retried and **failed with the same error**, confirming
 ${EXISTING_EXPLANATION}
 EOF
 
-        send_retry_notification ":x: *Retry also failed with the same error.* Deterministic failure confirmed.\n\nFirst failure: <${FAILING_RUN_URL}|link>\nRetry failure: <${RETRY_JOB_URL}|link>"
+        send_retry_notification "$(printf ':x: *Retry also failed with the same error.* Deterministic failure confirmed.\n\nFirst failure: <%s|link>\nRetry failure: <%s|link>' "$FAILING_RUN_URL" "$RETRY_JOB_URL")"
         
     else
         # ========================================
@@ -578,7 +644,7 @@ Both failures should be investigated as potential flakiness issues. The differen
 _This analysis was performed automatically by the auto-triage system._
 EOF
 
-        send_retry_notification ":warning: *Retry failed with a DIFFERENT error.* Both failures appear non-deterministic.\n\nFirst failure: <${FAILING_RUN_URL}|link>\nRetry failure: <${RETRY_JOB_URL}|link>\n\n_Different error messages suggest flakiness rather than a code regression._"
+        send_retry_notification "$(printf ':warning: *Retry failed with a DIFFERENT error.* Both failures appear non-deterministic.\n\nFirst failure: <%s|link>\nRetry failure: <%s|link>\n\n_Different error messages suggest flakiness rather than a code regression._' "$FAILING_RUN_URL" "$RETRY_JOB_URL")"
     fi
 else
     # Unknown conclusion (cancelled, skipped, etc.)
