@@ -177,28 +177,48 @@ echo -e "${BLUE}Current run_attempt before rerun: ${OLD_ATTEMPT}${NC}"
 # GitHub API to re-run failed jobs in a workflow run
 # POST /repos/{owner}/{repo}/actions/runs/{run_id}/rerun-failed-jobs
 # NOTE: This API returns 201 with empty body on success
-RERUN_HTTP_CODE=$(gh api \
+# NOTE: Requires 'actions: write' permission on GITHUB_TOKEN
+RERUN_RESPONSE=$(gh api \
     --method POST \
     "repos/${OWNER}/${REPO}/actions/runs/${RUN_ID}/rerun-failed-jobs" \
-    --silent \
-    -i 2>&1 | grep -E "^HTTP/" | tail -1 | awk '{print $2}' || echo "000")
+    -i 2>&1 || echo "API_ERROR")
+
+# Extract HTTP status code from response headers
+RERUN_HTTP_CODE=$(echo "$RERUN_RESPONSE" | head -1 | awk '{print $2}')
+RERUN_HTTP_CODE="${RERUN_HTTP_CODE:-000}"
 
 echo -e "${BLUE}Rerun API response code: ${RERUN_HTTP_CODE}${NC}"
 
 if [ "$RERUN_HTTP_CODE" != "201" ] && [ "$RERUN_HTTP_CODE" != "200" ]; then
+    # Show error details
     echo -e "${RED}Failed to re-run failed jobs (HTTP ${RERUN_HTTP_CODE})${NC}"
+    ERROR_MSG=$(echo "$RERUN_RESPONSE" | grep -A5 '"message"' | head -3 || echo "")
+    if [ -n "$ERROR_MSG" ]; then
+        echo -e "${RED}Error details: ${ERROR_MSG}${NC}"
+    fi
+    
+    if [ "$RERUN_HTTP_CODE" = "403" ]; then
+        echo -e "${YELLOW}NOTE: 403 Forbidden usually means the GITHUB_TOKEN needs 'actions: write' permission${NC}"
+        echo -e "${YELLOW}Add 'permissions: actions: write' to your workflow file${NC}"
+    fi
+    
     # Try the alternative: re-run entire workflow run
     echo -e "${YELLOW}Trying to re-run entire workflow run...${NC}"
-    RERUN_HTTP_CODE=$(gh api \
+    RERUN_RESPONSE=$(gh api \
         --method POST \
         "repos/${OWNER}/${REPO}/actions/runs/${RUN_ID}/rerun" \
-        --silent \
-        -i 2>&1 | grep -E "^HTTP/" | tail -1 | awk '{print $2}' || echo "000")
+        -i 2>&1 || echo "API_ERROR")
+    
+    RERUN_HTTP_CODE=$(echo "$RERUN_RESPONSE" | head -1 | awk '{print $2}')
+    RERUN_HTTP_CODE="${RERUN_HTTP_CODE:-000}"
     
     echo -e "${BLUE}Full rerun API response code: ${RERUN_HTTP_CODE}${NC}"
     
     if [ "$RERUN_HTTP_CODE" != "201" ] && [ "$RERUN_HTTP_CODE" != "200" ]; then
         echo -e "${RED}Failed to re-run workflow (HTTP ${RERUN_HTTP_CODE})${NC}"
+        if [ "$RERUN_HTTP_CODE" = "403" ]; then
+            echo -e "${YELLOW}NOTE: 403 Forbidden - GITHUB_TOKEN needs 'actions: write' permission${NC}"
+        fi
         echo -e "${YELLOW}Proceeding without retry${NC}"
         exit 0
     fi
