@@ -601,18 +601,27 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
         else:
             unmatched_count += 1
         
+        # Flatten oldest_run fields to top level (instead of nested dict)
+        oldest_run_url = oldest_run.get("run_url") if oldest_run else None
+        oldest_run_timestamp_utc = oldest_run.get("timestamp_utc") if oldest_run else None
+        oldest_run_commit_hash = oldest_run.get("commit_hash") if oldest_run else None
+        oldest_run_error_message = oldest_run.get("error_message") if oldest_run else None
+        
         report_entry = {
             "job_url": job_url,
             "error_message": error_message,
             "is_nd": is_nd,
             "timestamp_utc": timestamp_utc,
-            "commit_hash": commit_hash,  # Full 40-char commit SHA from GitHub API
+            "commit_hash": commit_hash,
             "slack_message_link": slack_message_link,
             "centroid_run_url": centroid_run_url,
             "centroid_error_message": centroid_error_message,
             "centroid_timestamp_utc": centroid_timestamp_utc,
-            "centroid_commit_hash": centroid_commit_hash,  # Full 40-char commit SHA from GitHub API
-            "oldest_run": oldest_run  # Includes full commit_hash if available
+            "centroid_commit_hash": centroid_commit_hash,
+            "oldest_run_url": oldest_run_url,
+            "oldest_run_timestamp_utc": oldest_run_timestamp_utc,
+            "oldest_run_commit_hash": oldest_run_commit_hash,
+            "oldest_run_error_message": oldest_run_error_message,
         }
         report_entries.append(report_entry)
     
