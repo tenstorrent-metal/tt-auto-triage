@@ -19,9 +19,13 @@ inputs:
     required: false
     default: "false"
   start_date:
-    description: "Start date for fetching Slack messages (format: 'January 1, 2026'). Only used if no existing export file exists."
+    description: "Start date for fetching Slack messages (format: 'January 1, 2026')"
     required: false
     default: "January 1, 2026"
+  end_date:
+    description: "End date (cutoff) for fetching Slack messages (format: 'January 31, 2026'). Messages after this date are ignored. Leave empty for no cutoff."
+    required: false
+    default: ""
 runs:
   using: composite
   steps:
@@ -78,6 +82,7 @@ runs:
       env:
         PYTHONUNBUFFERED: 1
         SLACK_START_DATE: ${{ inputs.start_date || 'January 1, 2026' }}
+        SLACK_END_DATE: ${{ inputs.end_date || '' }}
 
     - name: Extract errors from Slack export
       shell: bash
@@ -87,6 +92,8 @@ runs:
         python3 extract_errors.py
       env:
         PYTHONUNBUFFERED: 1
+        DATE_RANGE_START: ${{ inputs.start_date || '' }}
+        DATE_RANGE_END: ${{ inputs.end_date || '' }}
 
     - name: Group similar errors
       if: inputs.update_mode == 'rebuild'
@@ -119,6 +126,8 @@ runs:
       env:
         PYTHONUNBUFFERED: 1
         GITHUB_TOKEN: ${{ inputs.github_token }}
+        DATE_RANGE_START: ${{ inputs.start_date || '' }}
+        DATE_RANGE_END: ${{ inputs.end_date || '' }}
 
     - name: Run maintenance on issues
       if: inputs.run_maintenance == 'true'

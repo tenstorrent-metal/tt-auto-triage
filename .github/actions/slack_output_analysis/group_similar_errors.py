@@ -17,8 +17,10 @@ from sklearn.metrics.pairwise import cosine_similarity
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 ERRORS_FILE = os.path.join(SCRIPT_DIR, "all_errors.json")
 OUTPUT_FILE = os.path.join(SCRIPT_DIR, "grouped_errors.json")
-SEMANTIC_THRESHOLD = 70
-RAPIDFUZZ_THRESHOLD = 50
+# High thresholds to prevent matching different errors that share boilerplate
+# e.g., "TT_THROW @ path1: Device init failed" vs "TT_THROW @ path2: Device timeout"
+SEMANTIC_THRESHOLD = 85
+RAPIDFUZZ_THRESHOLD = 70
 
 
 def parse_error_item(item: Any) -> Optional[Tuple[str, Dict[str, Any]]]:

@@ -25,8 +25,9 @@ REPORT_MARKDOWN_FILE = os.path.join(SCRIPT_DIR, "error_report.md")
 from error_similarity import find_best_matching_centroid
 
 # Similarity thresholds (same as sync_new_errors.py)
-RAPIDFUZZ_THRESHOLD = 50.0
-SEMANTIC_THRESHOLD = 70.0
+# High thresholds to prevent matching different errors that share boilerplate
+RAPIDFUZZ_THRESHOLD = 70.0
+SEMANTIC_THRESHOLD = 85.0
 
 def parse_timestamp_to_utc(timestamp_str: str) -> Optional[str]:
     """Parse formatted timestamp string to UTC ISO format.

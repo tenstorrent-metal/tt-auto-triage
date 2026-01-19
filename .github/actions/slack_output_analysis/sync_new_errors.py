@@ -25,13 +25,30 @@ SECRETS_FILE = os.path.join(SCRIPT_DIR, "secrets.json")
 ALL_ERRORS_FILE = os.path.join(SCRIPT_DIR, "all_errors.json")
 ISSUE_DUMP_FILE = os.path.join(SCRIPT_DIR, "issue_dump.json")
 
+# Date range filtering (from environment variables)
+DATE_RANGE_START = os.environ.get("DATE_RANGE_START", "")
+DATE_RANGE_END = os.environ.get("DATE_RANGE_END", "")
+
+
+def parse_date_to_datetime(date_str: str) -> Optional[datetime]:
+    """Convert date string like 'January 1, 2026' to datetime."""
+    if not date_str or not date_str.strip():
+        return None
+    try:
+        return datetime.strptime(date_str.strip(), "%B %d, %Y")
+    except ValueError:
+        return None
+
 # Import error similarity helper
 from error_similarity import find_best_matching_centroid, compare_errors
 from github_api_utils import log_rate_limit_status, get_commit_hash_from_github
 
 # Similarity thresholds
-RAPIDFUZZ_THRESHOLD = 50.0
-SEMANTIC_THRESHOLD = 70.0
+# These must be high enough to prevent matching different errors that share boilerplate
+# e.g., "TT_THROW @ path1: Device init failed" vs "TT_THROW @ path2: Device timeout"
+# should NOT match even though they share "TT_THROW", "device", etc.
+RAPIDFUZZ_THRESHOLD = 60.0  # Raised from 50 - requires more token overlap
+SEMANTIC_THRESHOLD = 85.0   # Raised from 70 - requires stronger semantic similarity
 
 # ============================================================================
 # CONFIGURATION - Load from secrets.json
@@ -127,10 +144,43 @@ def extract_centroid_from_issue_body(issue_body: str) -> str:
     
     return ""
 
+def extract_urls_from_issue_body(issue_body: str) -> List[str]:
+    """Extract all GitHub Actions run URLs from an issue body.
+    
+    This extracts URLs from markdown links in the "All Occurrences" section.
+    """
+    urls = set()
+    
+    # Extract URLs from markdown links: [text](url)
+    link_pattern = r"\[([^\]]+)\]\(([^)]+)\)"
+    matches = re.findall(link_pattern, issue_body)
+    
+    for text, url in matches:
+        # Only include GitHub Actions run URLs
+        if "github.com" in url and ("actions/runs" in url or "/job/" in url):
+            urls.add(url)
+    
+    # Also extract plain URLs
+    url_pattern = r"https://github\.com/[^/]+/[^/]+/actions/runs/\d+/job/\d+"
+    plain_urls = re.findall(url_pattern, issue_body)
+    urls.update(plain_urls)
+    
+    return list(urls)
+
+def normalize_centroid(centroid: str) -> str:
+    """Normalize a centroid string for comparison (whitespace, case)."""
+    if not centroid:
+        return ""
+    # Normalize whitespace: collapse multiple spaces/newlines to single space
+    normalized = " ".join(centroid.split())
+    return normalized.lower()
+
 def map_issues_to_centroids(issues: List[Dict[str, Any]], issue_dump: List[Dict[str, Any]]) -> Dict[str, int]:
     """
     Map centroid errors to issue numbers by comparing issue bodies to centroids.
     Only maps OPEN issues - closed issues are ignored entirely.
+    
+    Uses normalized comparison to handle whitespace/formatting differences.
     
     Returns:
         Dictionary mapping centroid_error string to issue_number (only for open issues)
@@ -139,6 +189,14 @@ def map_issues_to_centroids(issues: List[Dict[str, Any]], issue_dump: List[Dict[
     issues_without_centroids = 0
     centroids_not_found = 0
     closed_issues_skipped = 0
+    
+    # Build normalized lookup for issue_dump centroids
+    normalized_to_original = {}
+    for entry in issue_dump:
+        centroid_error = entry.get("centroid_error", "")
+        if centroid_error:
+            normalized = normalize_centroid(centroid_error)
+            normalized_to_original[normalized] = centroid_error
     
     for issue in issues:
         # Skip closed issues entirely - they don't exist for our purposes
@@ -154,25 +212,17 @@ def map_issues_to_centroids(issues: List[Dict[str, Any]], issue_dump: List[Dict[
             issues_without_centroids += 1
             continue
         
-        # Find matching centroid in issue_dump
-        matched = False
-        for idx, entry in enumerate(issue_dump):
-            centroid_error = entry.get("centroid_error", "")
-            if not centroid_error:
-                continue
-            
-            # Try exact match
-            if centroid_error.strip() == centroid_from_issue.strip():
-                centroid_to_issue[centroid_error] = issue["number"]
-                matched = True
-                break
-            # Try case-insensitive match
-            if centroid_error.strip().lower() == centroid_from_issue.strip().lower():
-                centroid_to_issue[centroid_error] = issue["number"]
-                matched = True
-                break
+        # Find matching centroid using normalized comparison
+        normalized_from_issue = normalize_centroid(centroid_from_issue)
         
-        if not matched:
+        if normalized_from_issue in normalized_to_original:
+            # Found match - use the original centroid from issue_dump as key
+            original_centroid = normalized_to_original[normalized_from_issue]
+            centroid_to_issue[original_centroid] = issue["number"]
+        else:
+            # If not in issue_dump, still map using the centroid from the issue body
+            # This handles cases where issue_dump might be stale
+            centroid_to_issue[centroid_from_issue.strip()] = issue["number"]
             centroids_not_found += 1
     
     if closed_issues_skipped > 0:
@@ -180,7 +230,7 @@ def map_issues_to_centroids(issues: List[Dict[str, Any]], issue_dump: List[Dict[
     if issues_without_centroids > 0:
         print(f"  Note: {issues_without_centroids} issue(s) had no extractable centroid")
     if centroids_not_found > 0:
-        print(f"  Note: {centroids_not_found} issue centroid(s) not found in issue_dump")
+        print(f"  Note: {centroids_not_found} issue(s) had centroids not in issue_dump (added directly)")
     
     return centroid_to_issue
 
@@ -800,6 +850,20 @@ def parse_timestamp(timestamp_str: str) -> Optional[datetime]:
     
     return None
 
+def get_issue_number_for_centroid(centroid: str, centroid_to_issue: Dict[str, int]) -> Optional[int]:
+    """Get issue number for a centroid using normalized comparison."""
+    # Try exact match first
+    if centroid in centroid_to_issue:
+        return centroid_to_issue[centroid]
+    
+    # Try normalized match
+    normalized = normalize_centroid(centroid)
+    for key, issue_num in centroid_to_issue.items():
+        if normalize_centroid(key) == normalized:
+            return issue_num
+    
+    return None
+
 def process_new_error(error_entry: List, issue_dump: List[Dict[str, Any]], centroid_to_issue: Dict[str, int], all_timestamps: Dict[str, str]) -> Tuple[bool, List[Dict[str, Any]], bool]:
     """
     Process a new error entry and either add it to an existing issue or create a new one.
@@ -836,7 +900,7 @@ def process_new_error(error_entry: List, issue_dump: List[Dict[str, Any]], centr
         # Check if this centroid belongs to a closed issue
         entry = issue_dump[best_idx]
         old_centroid = entry["centroid_error"]
-        issue_number = centroid_to_issue.get(old_centroid)
+        issue_number = get_issue_number_for_centroid(old_centroid, centroid_to_issue)
         
         # If no issue number in mapping, or issue is closed, treat as no match
         if issue_number:
@@ -892,8 +956,8 @@ def process_new_error(error_entry: List, issue_dump: List[Dict[str, Any]], centr
         entry["failing_runs"] = sorted(list(set(failing_runs)))  # Remove duplicates and sort
         entry["run_metadata"] = run_metadata
         
-        # Get issue number using the unchanged centroid
-        issue_number = centroid_to_issue.get(centroid_error)
+        # Get issue number using the unchanged centroid (with normalized lookup)
+        issue_number = get_issue_number_for_centroid(centroid_error, centroid_to_issue)
         
         if issue_number:
             try:
@@ -1072,9 +1136,18 @@ def main():
     # Closed issues are completely ignored - remove their centroids from issue_dump
     print(f"\nFiltering issue_dump to exclude closed issues...")
     original_count = len(issue_dump)
+    
+    # Build normalized lookup for centroid_to_issue keys
+    normalized_centroid_to_issue = {normalize_centroid(k): k for k in centroid_to_issue.keys()}
+    
+    def is_centroid_in_open_issues(centroid: str) -> bool:
+        """Check if centroid (with normalized comparison) is in an open issue."""
+        normalized = normalize_centroid(centroid)
+        return normalized in normalized_centroid_to_issue
+    
     issue_dump = [
         entry for entry in issue_dump
-        if entry.get("centroid_error", "") in centroid_to_issue
+        if is_centroid_in_open_issues(entry.get("centroid_error", ""))
     ]
     filtered_count = original_count - len(issue_dump)
     if filtered_count > 0:
@@ -1089,9 +1162,13 @@ def main():
             if len(error_entry) > 2:
                 all_timestamps[url] = error_entry[2]
     
-    # Build set of all existing URLs from issue_dump (for fast lookup)
+    # Build set of all existing URLs from:
+    # 1. issue_dump (may be stale)
+    # 2. Actual GitHub issue bodies (authoritative source)
     print(f"\nBuilding set of existing URLs...")
     existing_urls = set()
+    
+    # First, add URLs from issue_dump
     total_runs_in_dump = 0
     for entry in issue_dump:
         failing_runs = entry.get("failing_runs", [])
@@ -1099,17 +1176,45 @@ def main():
         for url in failing_runs:
             if url:
                 existing_urls.add(url)
-    print(f"  Found {len(issue_dump)} issue(s) with {total_runs_in_dump} total run(s)")
-    print(f"  Unique URLs in issue dump: {len(existing_urls)}")
+    urls_from_dump = len(existing_urls)
+    print(f"  From issue_dump: {urls_from_dump} unique URL(s)")
+    
+    # Second, extract URLs directly from fetched GitHub issue bodies
+    # This is the authoritative source - ensures we don't create duplicates
+    urls_from_github = 0
+    for issue in issues:
+        if issue.get("state") == "closed":
+            continue  # Skip closed issues
+        issue_body = issue.get("body", "")
+        if issue_body:
+            urls_in_issue = extract_urls_from_issue_body(issue_body)
+            for url in urls_in_issue:
+                if url not in existing_urls:
+                    existing_urls.add(url)
+                    urls_from_github += 1
+    
+    print(f"  From GitHub issues: {urls_from_github} additional URL(s) not in dump")
+    print(f"  Total unique URLs: {len(existing_urls)}")
+    
+    # Parse date range filters
+    date_range_start = parse_date_to_datetime(DATE_RANGE_START)
+    date_range_end = parse_date_to_datetime(DATE_RANGE_END)
+    
+    if date_range_start:
+        print(f"\nDate range start: {DATE_RANGE_START}")
+    if date_range_end:
+        print(f"Date range end: {DATE_RANGE_END}")
     
     # Filter all_errors to only include entries with URLs not already processed
     print(f"\nFiltering errors to find new ones...")
     new_errors = []
     skipped_no_url = 0
     skipped_existing = 0
+    skipped_date_range = 0
     
     for error_entry in all_errors:
         url = error_entry[1] if len(error_entry) > 1 else None
+        timestamp_str = error_entry[2] if len(error_entry) > 2 else ""
         
         if not url:
             skipped_no_url += 1
@@ -1119,11 +1224,24 @@ def main():
             skipped_existing += 1
             continue
         
+        # Check date range filter using parsed timestamp
+        if timestamp_str and (date_range_start or date_range_end):
+            parsed_dt = parse_timestamp(timestamp_str)
+            if parsed_dt:
+                if date_range_start and parsed_dt < date_range_start:
+                    skipped_date_range += 1
+                    continue
+                if date_range_end and parsed_dt > date_range_end:
+                    skipped_date_range += 1
+                    continue
+        
         new_errors.append(error_entry)
     
     print(f"  Total errors in all_errors.json: {len(all_errors)}")
     print(f"  Skipped (no URL): {skipped_no_url}")
     print(f"  Skipped (already exists in issue_dump): {skipped_existing}")
+    if skipped_date_range > 0:
+        print(f"  Skipped (outside date range): {skipped_date_range}")
     print(f"  New errors to process: {len(new_errors)}")
     
     if skipped_existing == 0 and len(all_errors) > 0:

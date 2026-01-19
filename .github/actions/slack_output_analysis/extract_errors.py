@@ -19,12 +19,29 @@ is_nd is a boolean indicating if the error is marked as non-deterministic (ND).
 """
 
 import json
+import os
 import sys
 import re
+import time
 from datetime import datetime
 
 # Set to True to extract all errors, False to only extract non-deterministic errors
 EXTRACT_ALL_ERRORS = True
+
+# Date range filtering (from environment variables)
+DATE_RANGE_START = os.environ.get("DATE_RANGE_START", "")
+DATE_RANGE_END = os.environ.get("DATE_RANGE_END", "")
+
+
+def parse_date_to_timestamp(date_str: str) -> float:
+    """Convert date string like 'January 1, 2026' to Unix timestamp."""
+    if not date_str or not date_str.strip():
+        return None
+    try:
+        dt = datetime.strptime(date_str.strip(), "%B %d, %Y")
+        return time.mktime(dt.timetuple())
+    except ValueError:
+        return None
 
 
 def is_non_deterministic(entry):
@@ -154,10 +171,33 @@ def main():
         print(f"Error: Invalid JSON in {input_file}: {e}", file=sys.stderr)
         sys.exit(1)
 
+    # Parse date range filters
+    start_timestamp = parse_date_to_timestamp(DATE_RANGE_START)
+    end_timestamp = parse_date_to_timestamp(DATE_RANGE_END)
+    
+    if start_timestamp:
+        print(f"Date range start: {DATE_RANGE_START}")
+    if end_timestamp:
+        print(f"Date range end: {DATE_RANGE_END}")
+
     errors = []
     skipped = 0
+    skipped_date_range = 0
 
     for entry in data:
+        # Check date range filter
+        timestamp_str = entry.get("timestamp", "")
+        if timestamp_str:
+            try:
+                entry_timestamp = float(timestamp_str)
+                if start_timestamp and entry_timestamp < start_timestamp:
+                    skipped_date_range += 1
+                    continue
+                if end_timestamp and entry_timestamp > end_timestamp:
+                    skipped_date_range += 1
+                    continue
+            except (ValueError, TypeError):
+                pass  # Keep entries with invalid timestamps
         # Filter based on EXTRACT_ALL_ERRORS flag
         if not EXTRACT_ALL_ERRORS:
             # Only process non-deterministic errors
@@ -197,7 +237,9 @@ def main():
 
     mode_str = "all" if EXTRACT_ALL_ERRORS else "non-deterministic"
     print(f"Extracted {len(errors)} {mode_str} error messages")
-    print(f"Skipped {skipped} entries")
+    print(f"Skipped {skipped} entries (no error message or filtered by ND flag)")
+    if skipped_date_range > 0:
+        print(f"Skipped {skipped_date_range} entries (outside date range)")
     print(f"Output written to {output_file}")
 
 

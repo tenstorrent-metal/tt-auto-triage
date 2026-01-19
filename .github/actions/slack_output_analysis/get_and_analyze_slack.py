@@ -21,8 +21,9 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # --- CONFIGURATION ---
 SECRETS_FILE = os.path.join(SCRIPT_DIR, "secrets.json")
-# Allow START_DATE_STR to be overridden via environment variable
+# Allow START_DATE_STR and END_DATE_STR to be overridden via environment variable
 START_DATE_STR = os.environ.get("SLACK_START_DATE", "January 1, 2026")
+END_DATE_STR = os.environ.get("SLACK_END_DATE", "")  # Empty means no cutoff
 OUTPUT_FILE = os.path.join(SCRIPT_DIR, "build_slack_export_with_threads.json")
 DEBUG_LOG = os.path.join(SCRIPT_DIR, "debug.log")
 
@@ -475,6 +476,16 @@ def download_and_extract_messages():
     SLACK_TOKEN = secrets["slack_token"]
     CHANNEL_ID = secrets["channel_id"]
 
+    # Parse end date cutoff if specified
+    end_timestamp = None
+    if END_DATE_STR and END_DATE_STR.strip():
+        try:
+            end_timestamp = get_unix_timestamp(END_DATE_STR)
+            print(f"End date cutoff: {END_DATE_STR} (messages after this will be ignored)")
+        except ValueError as e:
+            print(f"Warning: Could not parse end date '{END_DATE_STR}': {e}")
+            print("Continuing without end date cutoff...")
+
     # Check if output file exists and get the newest timestamp for incremental updates
     newest_existing_timestamp = None
     existing_replies = []
@@ -510,19 +521,34 @@ def download_and_extract_messages():
         print(f"Will only process replies newer than {datetime.fromtimestamp(newest_existing_timestamp).strftime('%Y-%m-%d %H:%M:%S')}")
     else:
         oldest_timestamp = get_unix_timestamp(START_DATE_STR)
+    
+    # If end_timestamp is before oldest_timestamp, nothing to fetch
+    if end_timestamp and end_timestamp <= oldest_timestamp:
+        print(f"End date ({END_DATE_STR}) is before or equal to start date. No new messages to fetch.")
+        return []
 
     all_messages = []
     cursor = None
 
     # First pass: collect all messages without fetching replies
+    end_time_str = datetime.fromtimestamp(end_timestamp).strftime('%Y-%m-%d %H:%M:%S') if end_timestamp else "current time"
     print(
-        f"Fetching parent messages from {datetime.fromtimestamp(oldest_timestamp).strftime('%Y-%m-%d %H:%M:%S')} up to current time..."
+        f"Fetching parent messages from {datetime.fromtimestamp(oldest_timestamp).strftime('%Y-%m-%d %H:%M:%S')} up to {end_time_str}..."
     )
     while True:
         try:
-            response = client.conversations_history(
-                channel=CHANNEL_ID, oldest=str(oldest_timestamp), cursor=cursor, limit=1000
-            )
+            # Build API parameters
+            api_params = {
+                "channel": CHANNEL_ID,
+                "oldest": str(oldest_timestamp),
+                "cursor": cursor,
+                "limit": 1000
+            }
+            # Add end date cutoff if specified
+            if end_timestamp:
+                api_params["latest"] = str(end_timestamp)
+            
+            response = client.conversations_history(**api_params)
 
             messages = response["messages"]
             all_messages.extend(messages)
@@ -562,7 +588,18 @@ def download_and_extract_messages():
 
     # Second pass: fetch replies and extract structured information
     # Start with existing replies if doing incremental update
-    all_replies_structured = existing_replies.copy() if newest_existing_timestamp else []
+    all_replies_structured = []
+    if newest_existing_timestamp:
+        # Copy existing replies, but filter out any that are after the end date cutoff
+        for reply in existing_replies:
+            reply_ts = float(reply.get("timestamp", 0))
+            if end_timestamp and reply_ts > end_timestamp:
+                continue  # Skip replies after end date
+            all_replies_structured.append(reply)
+        
+        if len(all_replies_structured) < len(existing_replies):
+            print(f"  Filtered out {len(existing_replies) - len(all_replies_structured)} existing replies after end date cutoff")
+    
     nd_failures = []
     current_index = 0
 
@@ -577,6 +614,9 @@ def download_and_extract_messages():
                 reply_timestamp = float(reply.get("ts", 0))
                 # Skip if this reply is older than our newest existing timestamp (incremental update)
                 if newest_existing_timestamp and reply_timestamp <= newest_existing_timestamp:
+                    continue
+                # Skip if this reply is after our end date cutoff
+                if end_timestamp and reply_timestamp > end_timestamp:
                     continue
 
                 structured_data = extract_structured_info_from_reply(reply)
