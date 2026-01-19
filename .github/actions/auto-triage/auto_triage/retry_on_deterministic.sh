@@ -25,7 +25,7 @@ set -euo pipefail
 # Set to "true" to force retry regardless of case/hardware (for testing only)
 # Set to "false" for normal production behavior
 # ============================================================================
-TEST_MODE="true"
+TEST_MODE="false"
 # ============================================================================
 
 RED='\033[0;31m'
