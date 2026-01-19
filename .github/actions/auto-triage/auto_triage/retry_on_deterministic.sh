@@ -62,12 +62,20 @@ echo '{"result": "no_retry", "message": ""}' > "$RETRY_RESULT_FILE"
 
 # Check if slack_message.json exists
 if [ ! -f "$SLACK_MSG_PATH" ]; then
-    echo -e "${YELLOW}No slack_message.json found, skipping retry logic${NC}"
-    exit 0
+    if [ "$TEST_MODE" = "true" ]; then
+        echo -e "${YELLOW}========================================${NC}"
+        echo -e "${YELLOW}TEST MODE: No slack_message.json found, but will try to get job info from subjob_runs.json${NC}"
+        echo -e "${YELLOW}========================================${NC}"
+        SCENARIO="(cancelled/no analysis)"
+    else
+        echo -e "${YELLOW}No slack_message.json found, skipping retry logic${NC}"
+        exit 0
+    fi
+else
+    # Read the scenario field
+    SCENARIO=$(jq -r '.scenario // ""' "$SLACK_MSG_PATH")
 fi
 
-# Read the scenario field
-SCENARIO=$(jq -r '.scenario // ""' "$SLACK_MSG_PATH")
 echo -e "${BLUE}Scenario: ${SCENARIO}${NC}"
 
 # TEST_MODE: Skip all eligibility checks
@@ -102,9 +110,31 @@ fi
 echo -e "${GREEN}Retry conditions met: proceeding with retry${NC}"
 
 # Get the failing job URL and extract IDs
-FAILING_RUN_URL=$(jq -r '.failing_run_url // ""' "$SLACK_MSG_PATH")
-if [ -z "$FAILING_RUN_URL" ]; then
-    echo -e "${RED}No failing_run_url found in slack_message.json${NC}"
+# First try slack_message.json, then fall back to subjob_runs.json
+FAILING_RUN_URL=""
+if [ -f "$SLACK_MSG_PATH" ]; then
+    FAILING_RUN_URL=$(jq -r '.failing_run_url // ""' "$SLACK_MSG_PATH")
+fi
+
+# If no URL from slack_message.json, try subjob_runs.json (for cancelled runs or TEST_MODE)
+if [ -z "$FAILING_RUN_URL" ] && [ -f "$SUBJOB_RUNS_PATH" ]; then
+    echo -e "${BLUE}Getting failing job URL from subjob_runs.json...${NC}"
+    # Get the most recent failure (highest run_number with status "failure")
+    FAILING_RUN_URL=$(jq -r '
+        (if type == "array" then . else (.runs // []) end) |
+        map(select(.status == "failure")) |
+        sort_by(.run_number // 0) |
+        last |
+        .job_url // .run_url // ""
+    ' "$SUBJOB_RUNS_PATH" 2>/dev/null || echo "")
+    
+    if [ -n "$FAILING_RUN_URL" ] && [ "$FAILING_RUN_URL" != "null" ]; then
+        echo -e "${GREEN}Found failing job URL from subjob_runs.json: ${FAILING_RUN_URL}${NC}"
+    fi
+fi
+
+if [ -z "$FAILING_RUN_URL" ] || [ "$FAILING_RUN_URL" = "null" ]; then
+    echo -e "${RED}No failing_run_url found in slack_message.json or subjob_runs.json${NC}"
     exit 0
 fi
 
@@ -121,7 +151,18 @@ fi
 echo -e "${BLUE}Run ID: $RUN_ID, Job ID: $JOB_ID${NC}"
 
 # Save the original error message for comparison
-ORIGINAL_ERROR=$(jq -r '.failure_message // ""' "$SLACK_MSG_PATH")
+ORIGINAL_ERROR=""
+if [ -f "$SLACK_MSG_PATH" ]; then
+    ORIGINAL_ERROR=$(jq -r '.failure_message // ""' "$SLACK_MSG_PATH")
+fi
+# Also try error_message.txt from filter stage if no error in slack_message.json
+if [ -z "$ORIGINAL_ERROR" ] && [ -f "${DATA_DIR}/error_message.txt" ]; then
+    ORIGINAL_ERROR=$(cat "${DATA_DIR}/error_message.txt" 2>/dev/null || echo "")
+    echo -e "${BLUE}Got error message from error_message.txt${NC}"
+fi
+if [ -z "$ORIGINAL_ERROR" ]; then
+    ORIGINAL_ERROR="(error message not available)"
+fi
 mkdir -p "$DATA_DIR"
 echo "$ORIGINAL_ERROR" > "${DATA_DIR}/original_error.txt"
 
