@@ -1136,6 +1136,7 @@ def main():
     # Closed issues are completely ignored - remove their centroids from issue_dump
     print(f"\nFiltering issue_dump to exclude closed issues...")
     original_count = len(issue_dump)
+    original_url_count = sum(len(entry.get("failing_runs", [])) for entry in issue_dump)
     
     # Build normalized lookup for centroid_to_issue keys
     normalized_centroid_to_issue = {normalize_centroid(k): k for k in centroid_to_issue.keys()}
@@ -1150,8 +1151,9 @@ def main():
         if is_centroid_in_open_issues(entry.get("centroid_error", ""))
     ]
     filtered_count = original_count - len(issue_dump)
+    filtered_url_count = original_url_count - sum(len(entry.get("failing_runs", [])) for entry in issue_dump)
     if filtered_count > 0:
-        print(f"  Removed {filtered_count} entry/entries from closed issues")
+        print(f"  Removed {filtered_count} entry/entries from closed issues ({filtered_url_count} URLs)")
     print(f"  {len(issue_dump)} open issue(s) remaining in issue_dump")
     
     # Build timestamp map from all_errors
@@ -1162,39 +1164,24 @@ def main():
             if len(error_entry) > 2:
                 all_timestamps[url] = error_entry[2]
     
-    # Build set of all existing URLs from:
-    # 1. issue_dump (may be stale)
-    # 2. Actual GitHub issue bodies (authoritative source)
-    print(f"\nBuilding set of existing URLs...")
+    # Build set of existing URLs ONLY from actual OPEN GitHub issues
+    # This is the authoritative source - ignores any stale data in issue_dump
+    print(f"\nBuilding set of existing URLs from OPEN GitHub issues...")
     existing_urls = set()
+    open_issue_count = 0
     
-    # First, add URLs from issue_dump
-    total_runs_in_dump = 0
-    for entry in issue_dump:
-        failing_runs = entry.get("failing_runs", [])
-        total_runs_in_dump += len(failing_runs)
-        for url in failing_runs:
-            if url:
-                existing_urls.add(url)
-    urls_from_dump = len(existing_urls)
-    print(f"  From issue_dump: {urls_from_dump} unique URL(s)")
-    
-    # Second, extract URLs directly from fetched GitHub issue bodies
-    # This is the authoritative source - ensures we don't create duplicates
-    urls_from_github = 0
     for issue in issues:
         if issue.get("state") == "closed":
-            continue  # Skip closed issues
+            continue  # Skip closed issues entirely
+        open_issue_count += 1
         issue_body = issue.get("body", "")
         if issue_body:
             urls_in_issue = extract_urls_from_issue_body(issue_body)
             for url in urls_in_issue:
-                if url not in existing_urls:
-                    existing_urls.add(url)
-                    urls_from_github += 1
+                existing_urls.add(url)
     
-    print(f"  From GitHub issues: {urls_from_github} additional URL(s) not in dump")
-    print(f"  Total unique URLs: {len(existing_urls)}")
+    print(f"  Found {open_issue_count} OPEN issue(s)")
+    print(f"  Total unique URLs in open issues: {len(existing_urls)}")
     
     # Parse date range filters
     date_range_start = parse_date_to_datetime(DATE_RANGE_START)
@@ -1239,7 +1226,7 @@ def main():
     
     print(f"  Total errors in all_errors.json: {len(all_errors)}")
     print(f"  Skipped (no URL): {skipped_no_url}")
-    print(f"  Skipped (already exists in issue_dump): {skipped_existing}")
+    print(f"  Skipped (URL already in open issues): {skipped_existing}")
     if skipped_date_range > 0:
         print(f"  Skipped (outside date range): {skipped_date_range}")
     print(f"  New errors to process: {len(new_errors)}")
