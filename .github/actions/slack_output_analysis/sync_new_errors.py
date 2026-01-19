@@ -1164,24 +1164,30 @@ def main():
             if len(error_entry) > 2:
                 all_timestamps[url] = error_entry[2]
     
-    # Build set of existing URLs ONLY from actual OPEN GitHub issues
-    # This is the authoritative source - ignores any stale data in issue_dump
-    print(f"\nBuilding set of existing URLs from OPEN GitHub issues...")
+    # Build set of existing URLs from issues in the PROJECT BOARD only
+    # This uses issue_dump (from project) not all repo issues
+    # Issues in the repo but NOT in the project board are ignored
+    print(f"\nBuilding set of existing URLs from PROJECT BOARD issues...")
     existing_urls = set()
-    open_issue_count = 0
+    total_urls_in_project = 0
     
-    for issue in issues:
-        if issue.get("state") == "closed":
-            continue  # Skip closed issues entirely
-        open_issue_count += 1
-        issue_body = issue.get("body", "")
-        if issue_body:
-            urls_in_issue = extract_urls_from_issue_body(issue_body)
-            for url in urls_in_issue:
+    for entry in issue_dump:
+        failing_runs = entry.get("failing_runs", [])
+        for url in failing_runs:
+            if url:
                 existing_urls.add(url)
+                total_urls_in_project += 1
     
-    print(f"  Found {open_issue_count} OPEN issue(s)")
-    print(f"  Total unique URLs in open issues: {len(existing_urls)}")
+    print(f"  Issues in project board: {len(issue_dump)}")
+    print(f"  Total URLs in project board issues: {total_urls_in_project}")
+    print(f"  Unique URLs: {len(existing_urls)}")
+    
+    # Also report orphan issues (in repo but not in project)
+    open_repo_issues = sum(1 for issue in issues if issue.get("state") != "closed")
+    orphan_count = open_repo_issues - len(centroid_to_issue)
+    if orphan_count > 0:
+        print(f"  ⚠ Warning: {orphan_count} open issue(s) in repo are NOT in the project board")
+        print(f"    Consider closing or adding them to the project")
     
     # Parse date range filters
     date_range_start = parse_date_to_datetime(DATE_RANGE_START)
