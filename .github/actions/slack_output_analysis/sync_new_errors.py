@@ -1141,6 +1141,12 @@ def main():
     
     print(f"Found {len(issue_dump)} existing issue(s)")
     
+    # Build URL to error_message mapping from all_errors for backfilling (used later)
+    url_to_error_message = {}
+    for error_entry in all_errors:
+        if len(error_entry) >= 2 and error_entry[1]:
+            url_to_error_message[error_entry[1]] = error_entry[0]  # url -> error_message
+    
     # Verify repository access before proceeding
     print(f"\nVerifying repository access...")
     if not verify_repository_access():
@@ -1179,6 +1185,20 @@ def main():
     if filtered_count > 0:
         print(f"  Removed {filtered_count} entry/entries from closed issues ({filtered_url_count} URLs)")
     print(f"  {len(issue_dump)} open issue(s) remaining in issue_dump")
+    
+    # Backfill missing error_messages in issue_dump from all_errors
+    # This must happen AFTER map_issues_to_centroids adds entries from repo issues
+    # This fixes issues where run_metadata exists but has no error_message
+    backfilled_count = 0
+    for entry in issue_dump:
+        run_metadata = entry.get("run_metadata", {})
+        for url, meta in run_metadata.items():
+            if not meta.get("error_message") and url in url_to_error_message:
+                meta["error_message"] = url_to_error_message[url]
+                backfilled_count += 1
+    
+    if backfilled_count > 0:
+        print(f"  ✓ Backfilled {backfilled_count} missing error_message(s) from all_errors.json")
     
     # Build timestamp map from all_errors
     all_timestamps = {}
