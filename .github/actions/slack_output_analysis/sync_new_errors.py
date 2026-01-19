@@ -721,11 +721,13 @@ def format_issue_body(centroid_error: str, failing_runs: List[str], timestamps: 
         body_parts.append(f"{idx}. [{label}]({url}){job_workflow_suffix}{commit_hash_suffix}")
         # Add error message as sub-bullet in a code block if available
         if error_message:
-            body_parts.append("   ```")
+            # Use 4 spaces for proper markdown list continuation
+            body_parts.append("")  # Empty line before code block
+            body_parts.append("    ```")
             # Indent each line of the error message to stay within the list context
             for line in error_message.split("\n"):
-                body_parts.append(f"   {line}")
-            body_parts.append("   ```")
+                body_parts.append(f"    {line}")
+            body_parts.append("    ```")
     
     return "\n".join(body_parts)
 
@@ -924,6 +926,9 @@ def process_new_error(error_entry: List, issue_dump: List[Dict[str, Any]], centr
         failing_runs = entry.get("failing_runs", [])
         run_metadata = entry.get("run_metadata", {})
         
+        # Debug: log current state
+        print(f"  [DEBUG] Entry has {len(failing_runs)} existing runs, {len(run_metadata)} metadata entries")
+        
         # Check if URL already exists in this issue
         if url in failing_runs:
             print(f"  ⚠ URL already exists in this issue, skipping duplicate")
@@ -949,6 +954,10 @@ def process_new_error(error_entry: List, issue_dump: List[Dict[str, Any]], centr
             "error_message": error_message
         }
         
+        # Debug: verify error message was stored
+        print(f"  [DEBUG] Stored error_message for {url}: {len(error_message)} chars")
+        print(f"  [DEBUG] run_metadata now has {len(run_metadata)} entries")
+        
         # Keep centroid unchanged - centroids are fixed once set
         centroid_error = entry["centroid_error"]
         
@@ -969,6 +978,21 @@ def process_new_error(error_entry: List, issue_dump: List[Dict[str, Any]], centr
                     group_num = extract_group_num_from_title(existing_title)
                 title = create_title_from_count(count, entry["centroid_error"], group_num)
                 run_metadata = entry.get("run_metadata", {})
+                
+                # Debug: verify all URLs have metadata with error_message
+                print(f"  [DEBUG] Final state before update:")
+                print(f"    failing_runs: {len(entry['failing_runs'])} URLs")
+                print(f"    run_metadata: {len(run_metadata)} entries")
+                urls_with_error = sum(1 for m in run_metadata.values() if m.get("error_message"))
+                print(f"    URLs with error_message: {urls_with_error}")
+                
+                # Check which URLs are missing metadata
+                missing_metadata = [u for u in entry["failing_runs"] if u not in run_metadata]
+                if missing_metadata:
+                    print(f"    ⚠ Missing metadata for {len(missing_metadata)} URL(s):")
+                    for u in missing_metadata[:3]:  # Show first 3
+                        print(f"      - {u}")
+                
                 body = format_issue_body(entry["centroid_error"], entry["failing_runs"], all_timestamps, run_metadata)
                 
                 print(f"  Updating issue #{issue_number}...")

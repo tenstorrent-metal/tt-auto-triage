@@ -690,11 +690,13 @@ def format_issue_body(group_data: Dict[str, Any], group_name: str) -> str:
         body_parts.append(f"{idx}. [{label}]({url}){job_workflow_suffix}{commit_hash_suffix}")
         # Add error message as sub-bullet in a code block if available
         if error_message:
-            body_parts.append("   ```")
+            # Use 4 spaces for proper markdown list continuation
+            body_parts.append("")  # Empty line before code block
+            body_parts.append("    ```")
             # Indent each line of the error message to stay within the list context
             for line in error_message.split("\n"):
-                body_parts.append(f"   {line}")
-            body_parts.append("   ```")
+                body_parts.append(f"    {line}")
+            body_parts.append("    ```")
     
     return "\n".join(body_parts)
 
