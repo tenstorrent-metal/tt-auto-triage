@@ -256,6 +256,37 @@ NEW_RUN_URL="https://github.com/${OWNER}/${REPO}/actions/runs/${RUN_ID}/attempts
 echo -e "${GREEN}New run attempt started: ${NEW_ATTEMPT}${NC}"
 echo -e "${GREEN}Retry run URL: ${NEW_RUN_URL}${NC}"
 
+# Try to find the specific job ID in the new attempt for a more precise link
+echo -e "${BLUE}Finding specific job in new attempt...${NC}"
+EARLY_RETRY_JOB_URL="$NEW_RUN_URL"  # Default to run URL if we can't find job
+
+# Wait a moment for the job to be created
+sleep 5
+
+# Try to find the job matching our job name
+EARLY_JOBS=$(gh api "repos/${OWNER}/${REPO}/actions/runs/${RUN_ID}/attempts/${NEW_ATTEMPT}/jobs?per_page=100" 2>/dev/null || echo "{}")
+EARLY_JOBS_COUNT=$(echo "$EARLY_JOBS" | jq '.jobs | length' 2>/dev/null || echo "0")
+
+if [ "$EARLY_JOBS_COUNT" != "0" ]; then
+    # Try to find our specific job
+    JOB_NAME_LOWER=$(echo "$JOB_NAME" | tr '[:upper:]' '[:lower:]')
+    EARLY_JOB_ID=$(echo "$EARLY_JOBS" | jq -r --arg name "$JOB_NAME_LOWER" '
+        .jobs // [] |
+        map(select(.name | ascii_downcase | contains($name))) |
+        first | .id // empty
+    ' 2>/dev/null || echo "")
+    
+    if [ -n "$EARLY_JOB_ID" ] && [ "$EARLY_JOB_ID" != "null" ]; then
+        EARLY_RETRY_JOB_URL="https://github.com/${OWNER}/${REPO}/actions/runs/${RUN_ID}/job/${EARLY_JOB_ID}"
+        echo -e "${GREEN}Found specific job ID: ${EARLY_JOB_ID}${NC}"
+        echo -e "${GREEN}Job URL: ${EARLY_RETRY_JOB_URL}${NC}"
+    else
+        echo -e "${YELLOW}Could not find specific job by name, using run URL${NC}"
+    fi
+else
+    echo -e "${YELLOW}No jobs found yet in new attempt, using run URL${NC}"
+fi
+
 # Send quick Slack notification about the retry
 send_retry_notification() {
     local message="$1"
@@ -287,12 +318,12 @@ send_retry_notification() {
     fi
 }
 
-# Send notification about retry
+# Send notification about retry - use specific job URL if found
 # Use printf to create actual newlines (not literal \n)
 if [ "$TEST_MODE" = "true" ]; then
-    RETRY_MSG=$(printf ':test_tube: *[TEST MODE]* Re-running job for testing:\n<%s|View retry run>\n\n_Workflow:_ %s\n_Job:_ %s' "$NEW_RUN_URL" "$WORKFLOW_NAME" "$JOB_NAME")
+    RETRY_MSG=$(printf ':test_tube: *[TEST MODE]* Re-running job for testing:\n<%s|View retry job>\n\n_Workflow:_ %s\n_Job:_ %s' "$EARLY_RETRY_JOB_URL" "$WORKFLOW_NAME" "$JOB_NAME")
 else
-    RETRY_MSG=$(printf ':arrows_counterclockwise: *Deterministic failure suspected.* Re-running job to confirm:\n<%s|View retry run>\n\n_Workflow:_ %s\n_Job:_ %s' "$NEW_RUN_URL" "$WORKFLOW_NAME" "$JOB_NAME")
+    RETRY_MSG=$(printf ':arrows_counterclockwise: *Deterministic failure suspected.* Re-running job to confirm:\n<%s|View retry job>\n\n_Workflow:_ %s\n_Job:_ %s' "$EARLY_RETRY_JOB_URL" "$WORKFLOW_NAME" "$JOB_NAME")
 fi
 send_retry_notification "$RETRY_MSG"
 
