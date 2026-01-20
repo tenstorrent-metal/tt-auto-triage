@@ -28,7 +28,7 @@ inputs:
     required: false
     default: "true"
   enable-retry:
-    description: "Whether to automatically retry Case 1/4 failures on supported hardware (N150/N300/P150/P300) to confirm determinism."
+    description: "Whether to automatically retry Case 1/4 failures on supported hardware (N150/N300/P100A/P150/P300) to confirm determinism."
     required: false
     default: "true"
   cutoff-commit:
