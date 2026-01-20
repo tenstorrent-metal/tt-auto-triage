@@ -131,6 +131,74 @@ else
     fi
 fi
 
+# ============================================================================
+# Check if the job typically takes more than 3 hours (skip retry if so)
+# ============================================================================
+MAX_DURATION_SECONDS=$((3 * 60 * 60))  # 3 hours in seconds
+
+echo -e "${BLUE}Checking job duration from last successful run...${NC}"
+
+# Get the last successful job URL from subjob_runs.json (already collected by find_boundaries.sh)
+LAST_SUCCESS_JOB_URL=""
+if [ -f "$SUBJOB_RUNS_PATH" ]; then
+    LAST_SUCCESS_JOB_URL=$(jq -r '
+        (if type == "array" then . else (.runs // []) end) |
+        map(select(.status == "success")) |
+        first |
+        .job_url // ""
+    ' "$SUBJOB_RUNS_PATH" 2>/dev/null || echo "")
+fi
+
+FOUND_DURATION="false"
+JOB_DURATION_SECONDS=0
+
+if [ -n "$LAST_SUCCESS_JOB_URL" ] && [ "$LAST_SUCCESS_JOB_URL" != "null" ]; then
+    echo -e "${BLUE}Found last successful job: ${LAST_SUCCESS_JOB_URL}${NC}"
+    
+    # Parse job ID from URL: https://github.com/owner/repo/actions/runs/RUN_ID/job/JOB_ID
+    SUCCESS_JOB_ID=$(echo "$LAST_SUCCESS_JOB_URL" | sed -n 's#.*/job/\([0-9]\+\).*#\1#p')
+    
+    if [ -n "$SUCCESS_JOB_ID" ]; then
+        # Query this specific job to get timing info
+        JOB_INFO=$(gh api "repos/${OWNER}/${REPO}/actions/jobs/${SUCCESS_JOB_ID}" 2>/dev/null || echo "{}")
+        
+        STARTED_AT=$(echo "$JOB_INFO" | jq -r '.started_at // empty' 2>/dev/null)
+        COMPLETED_AT=$(echo "$JOB_INFO" | jq -r '.completed_at // empty' 2>/dev/null)
+        
+        if [ -n "$STARTED_AT" ] && [ -n "$COMPLETED_AT" ] && [ "$STARTED_AT" != "null" ] && [ "$COMPLETED_AT" != "null" ]; then
+            # Convert to epoch timestamps and calculate difference
+            if command -v gdate &> /dev/null; then
+                # macOS with coreutils
+                START_EPOCH=$(gdate -d "$STARTED_AT" +%s 2>/dev/null || echo "0")
+                END_EPOCH=$(gdate -d "$COMPLETED_AT" +%s 2>/dev/null || echo "0")
+            else
+                # Linux
+                START_EPOCH=$(date -d "$STARTED_AT" +%s 2>/dev/null || echo "0")
+                END_EPOCH=$(date -d "$COMPLETED_AT" +%s 2>/dev/null || echo "0")
+            fi
+            
+            if [ "$START_EPOCH" != "0" ] && [ "$END_EPOCH" != "0" ]; then
+                JOB_DURATION_SECONDS=$((END_EPOCH - START_EPOCH))
+                FOUND_DURATION="true"
+                DURATION_HOURS=$((JOB_DURATION_SECONDS / 3600))
+                DURATION_MINS=$(((JOB_DURATION_SECONDS % 3600) / 60))
+                echo -e "${BLUE}Last successful run took: ${DURATION_HOURS}h ${DURATION_MINS}m${NC}"
+            fi
+        fi
+    fi
+else
+    echo -e "${YELLOW}No successful job URL found in subjob_runs.json${NC}"
+fi
+
+if [ "$FOUND_DURATION" = "true" ] && [ "$JOB_DURATION_SECONDS" -gt "$MAX_DURATION_SECONDS" ]; then
+    DURATION_HOURS=$((JOB_DURATION_SECONDS / 3600))
+    DURATION_MINS=$(((JOB_DURATION_SECONDS % 3600) / 60))
+    echo -e "${YELLOW}Job takes ${DURATION_HOURS}h ${DURATION_MINS}m (>3h), skipping retry to save resources${NC}"
+    exit 0
+elif [ "$FOUND_DURATION" = "false" ]; then
+    echo -e "${YELLOW}Could not determine job duration, proceeding with retry${NC}"
+fi
+
 echo -e "${GREEN}Retry conditions met: proceeding with retry${NC}"
 
 # Get the failing job URL and extract IDs
@@ -497,21 +565,40 @@ if [ "$RETRY_JOB_CONCLUSION" = "success" ]; then
         '{result: $result, message: $msg}' > "$RETRY_RESULT_FILE"
     
     # Update slack_message.json to Case 3
+    # IMPORTANT: Preserve existing notes and append retry info
     FAILURE_MSG=$(jq -r '.failure_message // "Unknown error"' "$SLACK_MSG_PATH")
+    EXISTING_NOTES=$(jq -r '.notes // ""' "$SLACK_MSG_PATH")
+    
+    # Build the retry note
+    RETRY_NOTE="*RETRY PASSED - CONVERTED TO CASE 3:* This failure passed on automatic retry, indicating a non-deterministic/flaky issue rather than a code regression.
+- Original failure: ${FAILING_RUN_URL}
+- Successful retry: ${RETRY_JOB_URL}"
+    
+    # Combine existing notes with retry note
+    if [ -n "$EXISTING_NOTES" ] && [ "$EXISTING_NOTES" != "null" ]; then
+        COMBINED_NOTES="${EXISTING_NOTES}
+
+---
+
+${RETRY_NOTE}"
+    else
+        COMBINED_NOTES="${RETRY_NOTE}"
+    fi
     
     jq --arg scenario "Failure likely outside tt-metal" \
        --arg case_num "3" \
-       --arg failing_url "$FAILING_RUN_URL" \
-       --arg retry_url "$RETRY_JOB_URL" \
+       --arg combined_notes "$COMBINED_NOTES" \
        --arg slack_msg "Failure is non-deterministic. The job passed on retry. Please investigate flakiness or infrastructure issues." \
        '. + {
            scenario: $scenario,
            case: $case_num,
-           notes: ("This failure passed on automatic retry, indicating a non-deterministic/flaky issue rather than a code regression. Original failure: " + $failing_url + " | Successful retry: " + $retry_url),
+           notes: $combined_notes,
            slack_message: $slack_msg,
            commits: []
        }' "$SLACK_MSG_PATH" > "${SLACK_MSG_PATH}.tmp"
     mv "${SLACK_MSG_PATH}.tmp" "$SLACK_MSG_PATH"
+    
+    echo -e "${GREEN}Updated slack_message.json - preserved original notes and added retry info${NC}"
     
     # Update explanation.md
     cat > "$EXPLANATION_PATH" << EOF
@@ -634,6 +721,7 @@ EOF
             '{result: $result, message: $msg}' > "$RETRY_RESULT_FILE"
         
         # Add note to original slack message about confirmed failure
+        # IMPORTANT: Preserve existing notes and append retry confirmation
         echo -e "${BLUE}Adding retry confirmation note to slack_message.json...${NC}"
         echo -e "${BLUE}  Source file: ${SLACK_MSG_PATH}${NC}"
         
@@ -641,13 +729,33 @@ EOF
             echo -e "${RED}ERROR: slack_message.json not found at ${SLACK_MSG_PATH}${NC}"
         else
             echo -e "${GREEN}  File exists, size: $(wc -c < "$SLACK_MSG_PATH") bytes${NC}"
-            jq --arg retry_url "$RETRY_JOB_URL" '
-                .notes = ((.notes // "") + "\n\n*RETRY CONFIRMED DETERMINISTIC ISSUE:* The job was automatically retried and failed with the same error.\n- Retry link: " + $retry_url + "\n- _Failing retry indicates this is a genuine deterministic issue, not flakiness._")
-            ' "$SLACK_MSG_PATH" > "${SLACK_MSG_PATH}.tmp"
+            
+            # Get existing notes first
+            EXISTING_NOTES=$(jq -r '.notes // ""' "$SLACK_MSG_PATH")
+            echo -e "${BLUE}  Existing notes length: ${#EXISTING_NOTES} chars${NC}"
+            
+            # Build the retry note
+            RETRY_NOTE="*RETRY CONFIRMED DETERMINISTIC ISSUE:* The job was automatically retried and failed with the same error.
+- Retry link: ${RETRY_JOB_URL}
+- _Failing retry indicates this is a genuine deterministic issue, not flakiness._"
+            
+            # Combine existing notes with retry note
+            if [ -n "$EXISTING_NOTES" ] && [ "$EXISTING_NOTES" != "null" ]; then
+                COMBINED_NOTES="${EXISTING_NOTES}
+
+---
+
+${RETRY_NOTE}"
+            else
+                COMBINED_NOTES="${RETRY_NOTE}"
+            fi
+            
+            jq --arg combined_notes "$COMBINED_NOTES" '.notes = $combined_notes' "$SLACK_MSG_PATH" > "${SLACK_MSG_PATH}.tmp"
             
             if [ -f "${SLACK_MSG_PATH}.tmp" ]; then
                 mv "${SLACK_MSG_PATH}.tmp" "$SLACK_MSG_PATH"
                 echo -e "${GREEN}  Updated slack_message.json successfully${NC}"
+                echo -e "${GREEN}  New notes length: ${#COMBINED_NOTES} chars${NC}"
             else
                 echo -e "${RED}ERROR: Failed to create temp file${NC}"
             fi
@@ -685,24 +793,44 @@ EOF
             '{result: $result, message: $msg, retry_url: $retry_url, retry_error: $retry_error}' > "$RETRY_RESULT_FILE"
         
         # Update original slack message to Case 3
+        # IMPORTANT: Preserve existing notes and append retry info
         ORIGINAL_FAILURE_MSG=$(jq -r '.failure_message // "Unknown error"' "$SLACK_MSG_PATH")
+        EXISTING_NOTES=$(jq -r '.notes // ""' "$SLACK_MSG_PATH")
+        
+        # Build the retry note (truncate error messages if too long for notes)
+        ORIG_ERR_TRUNCATED=$(echo "$ORIGINAL_ERROR" | head -c 500)
+        RETRY_ERR_TRUNCATED=$(echo "$RETRY_ERROR" | head -c 500)
+        
+        RETRY_NOTE="*RETRY FAILED WITH DIFFERENT ERROR - CONVERTED TO CASE 3:* Two consecutive failures with DIFFERENT error messages suggest non-deterministic issues rather than a code regression.
+- Original failure: ${FAILING_RUN_URL}
+- Retry failure: ${RETRY_JOB_URL}"
+        
+        # Combine existing notes with retry note
+        if [ -n "$EXISTING_NOTES" ] && [ "$EXISTING_NOTES" != "null" ]; then
+            COMBINED_NOTES="${EXISTING_NOTES}
+
+---
+
+${RETRY_NOTE}"
+        else
+            COMBINED_NOTES="${RETRY_NOTE}"
+        fi
         
         # Use jq's proper string escaping for the error messages
         jq --arg scenario "Failure likely outside tt-metal" \
            --arg case_num "3" \
-           --arg failing_url "$FAILING_RUN_URL" \
-           --arg orig_error "$ORIGINAL_ERROR" \
-           --arg retry_url "$RETRY_JOB_URL" \
-           --arg retry_err "$RETRY_ERROR" \
+           --arg combined_notes "$COMBINED_NOTES" \
            --arg slack_msg "Failure appears non-deterministic. Two consecutive runs failed with different errors. Please investigate test flakiness or infrastructure issues." \
            '. + {
                scenario: $scenario,
                case: $case_num,
-               notes: ("Two consecutive failures with DIFFERENT error messages suggest non-deterministic issues rather than a code regression.\n\nOriginal failure: " + $failing_url + "\nOriginal error: " + $orig_error + "\n\nRetry failure: " + $retry_url + "\nRetry error: " + $retry_err),
+               notes: $combined_notes,
                slack_message: $slack_msg,
                commits: []
            }' "$SLACK_MSG_PATH" > "${SLACK_MSG_PATH}.tmp"
         mv "${SLACK_MSG_PATH}.tmp" "$SLACK_MSG_PATH"
+        
+        echo -e "${GREEN}Updated slack_message.json - preserved original notes and added retry info${NC}"
         
         # Update explanation.md
         cat > "$EXPLANATION_PATH" << EOF
