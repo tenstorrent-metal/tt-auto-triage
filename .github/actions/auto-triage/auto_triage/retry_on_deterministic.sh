@@ -99,7 +99,7 @@ else
     JOB_NAME_LOWER=$(echo "$JOB_NAME" | tr '[:upper:]' '[:lower:]')
     if ! echo "$JOB_NAME_LOWER" | grep -qiE '(n150|n300|p150|p300|p100a)'; then
         echo -e "${YELLOW}Job '$JOB_NAME' does not contain N150/N300/P150/P300/P100A, skipping retry${NC}"
-        echo -e "${YELLOW}(Jobs with galaxy, T3K, or p100 are too expensive for automatic retries)${NC}"
+        echo -e "${YELLOW}(Jobs with galaxy, T3K, or are too expensive for automatic retries)${NC}"
         exit 0
     fi
 
@@ -169,32 +169,33 @@ fi
 mkdir -p "$DATA_DIR"
 echo "$ORIGINAL_ERROR" > "${DATA_DIR}/original_error.txt"
 
-# Re-run the failed job
-echo -e "${GREEN}Re-running failed job...${NC}"
+# Re-run the specific failed job (not all failed jobs)
+echo -e "${GREEN}Re-running specific job ${JOB_ID}...${NC}"
 
 # Get the current run_attempt BEFORE triggering rerun
 RUN_INFO_BEFORE=$(gh api "repos/${OWNER}/${REPO}/actions/runs/${RUN_ID}" 2>/dev/null || echo "{}")
 OLD_ATTEMPT=$(echo "$RUN_INFO_BEFORE" | jq -r '.run_attempt // 1')
 echo -e "${BLUE}Current run_attempt before rerun: ${OLD_ATTEMPT}${NC}"
 
-# GitHub API to re-run failed jobs in a workflow run
-# POST /repos/{owner}/{repo}/actions/runs/{run_id}/rerun-failed-jobs
+# GitHub API to re-run a SPECIFIC job (not all failed jobs)
+# POST /repos/{owner}/{repo}/actions/jobs/{job_id}/rerun
 # NOTE: This API returns 201 with empty body on success
 # NOTE: Requires 'actions: write' permission on GITHUB_TOKEN
+echo -e "${BLUE}Using API: repos/${OWNER}/${REPO}/actions/jobs/${JOB_ID}/rerun${NC}"
 RERUN_RESPONSE=$(gh api \
     --method POST \
-    "repos/${OWNER}/${REPO}/actions/runs/${RUN_ID}/rerun-failed-jobs" \
+    "repos/${OWNER}/${REPO}/actions/jobs/${JOB_ID}/rerun" \
     -i 2>&1 || echo "API_ERROR")
 
 # Extract HTTP status code from response headers
 RERUN_HTTP_CODE=$(echo "$RERUN_RESPONSE" | head -1 | awk '{print $2}')
 RERUN_HTTP_CODE="${RERUN_HTTP_CODE:-000}"
 
-echo -e "${BLUE}Rerun API response code: ${RERUN_HTTP_CODE}${NC}"
+echo -e "${BLUE}Rerun job API response code: ${RERUN_HTTP_CODE}${NC}"
 
 if [ "$RERUN_HTTP_CODE" != "201" ] && [ "$RERUN_HTTP_CODE" != "200" ]; then
     # Show error details
-    echo -e "${RED}Failed to re-run failed jobs (HTTP ${RERUN_HTTP_CODE})${NC}"
+    echo -e "${RED}Failed to re-run specific job (HTTP ${RERUN_HTTP_CODE})${NC}"
     ERROR_MSG=$(echo "$RERUN_RESPONSE" | grep -A5 '"message"' | head -3 || echo "")
     if [ -n "$ERROR_MSG" ]; then
         echo -e "${RED}Error details: ${ERROR_MSG}${NC}"
@@ -205,20 +206,20 @@ if [ "$RERUN_HTTP_CODE" != "201" ] && [ "$RERUN_HTTP_CODE" != "200" ]; then
         echo -e "${YELLOW}Add 'permissions: actions: write' to your workflow file${NC}"
     fi
     
-    # Try the alternative: re-run entire workflow run
-    echo -e "${YELLOW}Trying to re-run entire workflow run...${NC}"
+    # Fallback: try re-running just failed jobs (will re-run all failed, but better than nothing)
+    echo -e "${YELLOW}Falling back to re-run-failed-jobs (will re-run ALL failed jobs)...${NC}"
     RERUN_RESPONSE=$(gh api \
         --method POST \
-        "repos/${OWNER}/${REPO}/actions/runs/${RUN_ID}/rerun" \
+        "repos/${OWNER}/${REPO}/actions/runs/${RUN_ID}/rerun-failed-jobs" \
         -i 2>&1 || echo "API_ERROR")
     
     RERUN_HTTP_CODE=$(echo "$RERUN_RESPONSE" | head -1 | awk '{print $2}')
     RERUN_HTTP_CODE="${RERUN_HTTP_CODE:-000}"
     
-    echo -e "${BLUE}Full rerun API response code: ${RERUN_HTTP_CODE}${NC}"
+    echo -e "${BLUE}Rerun-failed-jobs API response code: ${RERUN_HTTP_CODE}${NC}"
     
     if [ "$RERUN_HTTP_CODE" != "201" ] && [ "$RERUN_HTTP_CODE" != "200" ]; then
-        echo -e "${RED}Failed to re-run workflow (HTTP ${RERUN_HTTP_CODE})${NC}"
+        echo -e "${RED}Failed to re-run failed jobs (HTTP ${RERUN_HTTP_CODE})${NC}"
         if [ "$RERUN_HTTP_CODE" = "403" ]; then
             echo -e "${YELLOW}NOTE: 403 Forbidden - GITHUB_TOKEN needs 'actions: write' permission${NC}"
         fi
@@ -669,10 +670,56 @@ EOF
 
         send_retry_notification "$(printf ':warning: *Retry failed with a DIFFERENT error.* Both failures appear non-deterministic.\n\nFirst failure: <%s|link>\nRetry failure: <%s|link>\n\n_Different error messages suggest flakiness rather than a code regression._' "$FAILING_RUN_URL" "$RETRY_JOB_URL")"
     fi
+elif [ "$RETRY_JOB_CONCLUSION" = "cancelled" ]; then
+    # ========================================
+    # CASE: Retry was CANCELLED - Send original message with note
+    # ========================================
+    echo -e "${YELLOW}Retry job was cancelled${NC}"
+    echo -e "${YELLOW}Sending original message with cancellation note${NC}"
+    
+    jq -n --arg result "cancelled" --arg msg "Retry was cancelled, sending original analysis" \
+        '{result: $result, message: $msg}' > "$RETRY_RESULT_FILE"
+    
+    # Add note to original slack message about cancelled retry
+    jq --arg retry_url "$RETRY_JOB_URL" '
+        .notes = ((.notes // "") + "\n\n*NOTE:* An automatic retry was attempted but was cancelled before completion.\n- Retry link: " + $retry_url + "\n- _The analysis above is based on the original failure only._")
+    ' "$SLACK_MSG_PATH" > "${SLACK_MSG_PATH}.tmp"
+    mv "${SLACK_MSG_PATH}.tmp" "$SLACK_MSG_PATH"
+    
+    # Prepend note to explanation.md
+    EXISTING_EXPLANATION=$(cat "$EXPLANATION_PATH" 2>/dev/null || echo "")
+    cat > "$EXPLANATION_PATH" << EOF
+## Note: Retry Was Cancelled
+
+An automatic retry was triggered to confirm whether this failure is deterministic, but the retry job was **cancelled** before completion.
+
+- **Retry link:** [${RETRY_JOB_URL}](${RETRY_JOB_URL})
+
+The analysis below is based on the original failure only.
+
+---
+
+${EXISTING_EXPLANATION}
+EOF
+
+    send_retry_notification "$(printf ':no_entry_sign: *Retry was cancelled.* Sending original analysis.\n\nOriginal failure: <%s|link>\nCancelled retry: <%s|link>' "$FAILING_RUN_URL" "$RETRY_JOB_URL")"
+
 else
-    # Unknown conclusion (cancelled, skipped, etc.)
+    # Unknown conclusion (skipped, etc.)
     echo -e "${YELLOW}Retry job had unexpected conclusion: ${RETRY_JOB_CONCLUSION}${NC}"
-    echo -e "${YELLOW}Proceeding with original analysis${NC}"
+    echo -e "${YELLOW}Sending original message with note about unexpected retry status${NC}"
+    
+    jq -n --arg result "unknown" --arg msg "Retry had unexpected conclusion: $RETRY_JOB_CONCLUSION" \
+        --arg conclusion "$RETRY_JOB_CONCLUSION" \
+        '{result: $result, message: $msg, conclusion: $conclusion}' > "$RETRY_RESULT_FILE"
+    
+    # Add note to original slack message
+    jq --arg retry_url "$RETRY_JOB_URL" --arg conclusion "$RETRY_JOB_CONCLUSION" '
+        .notes = ((.notes // "") + "\n\n*NOTE:* An automatic retry was attempted but ended with status: " + $conclusion + "\n- Retry link: " + $retry_url + "\n- _The analysis above is based on the original failure only._")
+    ' "$SLACK_MSG_PATH" > "${SLACK_MSG_PATH}.tmp"
+    mv "${SLACK_MSG_PATH}.tmp" "$SLACK_MSG_PATH"
+    
+    send_retry_notification "$(printf ':grey_question: *Retry ended with unexpected status: %s*\n\nOriginal failure: <%s|link>\nRetry: <%s|link>\n\n_Sending original analysis._' "$RETRY_JOB_CONCLUSION" "$FAILING_RUN_URL" "$RETRY_JOB_URL")"
 fi
 
 echo -e "${GREEN}Retry logic completed${NC}"
