@@ -31,6 +31,10 @@ inputs:
     description: "Whether to automatically retry Case 1/4 failures on supported hardware (N150/N300/P150/P300) to confirm determinism."
     required: false
     default: "true"
+  cutoff-commit:
+    description: "Optional commit SHA to ignore all runs on commits newer than this one. Useful for testing retry logic on older failures when newer runs have already passed."
+    required: false
+    default: ""
 runs:
   using: composite
   steps:
@@ -72,6 +76,7 @@ runs:
       env:
         GH_TOKEN: ${{ github.token }}
         GITHUB_TOKEN: ${{ github.token }}
+        CUTOFF_COMMIT: ${{ inputs.cutoff-commit }}
 
     - name: Download Slack directory
       if: inputs.slack-test-only != 'true'

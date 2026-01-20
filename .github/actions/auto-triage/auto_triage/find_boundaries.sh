@@ -19,9 +19,11 @@ NC='\033[0m' # No Color
 # This is useful for testing retry logic on older failures when newer runs
 # have already passed.
 # Leave empty ("") for normal behavior (no filtering).
+# Can be set via environment variable CUTOFF_COMMIT or passed as input to the action.
 # Example: CUTOFF_COMMIT="abc123def456"
 # ============================================================================
-CUTOFF_COMMIT="11436d5d672e00864de0388174047c526bd4535f"
+# Default to empty if not set via environment variable
+CUTOFF_COMMIT="${CUTOFF_COMMIT:-}"
 # ============================================================================
 
 # Function to check if commit A is newer than commit B (A is descendant of B)
