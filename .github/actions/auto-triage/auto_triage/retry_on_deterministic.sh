@@ -85,9 +85,12 @@ if [ "$TEST_MODE" = "true" ]; then
     echo -e "${YELLOW}========================================${NC}"
 else
     # Check if this is a Case 1 or Case 4 (deterministic failure with commits)
-    if [ "$SCENARIO" != "Deterministic failure with identified commit" ] && \
-       [ "$SCENARIO" != "Deterministic failure with multiple plausible commits" ]; then
+    # Use case-insensitive comparison since LLM output may vary in capitalization
+    SCENARIO_LOWER=$(echo "$SCENARIO" | tr '[:upper:]' '[:lower:]')
+    if [[ "$SCENARIO_LOWER" != *"deterministic failure with identified commit"* ]] && \
+       [[ "$SCENARIO_LOWER" != *"deterministic failure with multiple plausible commits"* ]]; then
         echo -e "${YELLOW}Not a Case 1/4 scenario, skipping retry${NC}"
+        echo -e "${YELLOW}(Scenario was: ${SCENARIO})${NC}"
         exit 0
     fi
 
