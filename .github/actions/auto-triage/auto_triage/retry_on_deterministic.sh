@@ -467,26 +467,68 @@ MAX_WAIT_MINUTES=180  # 3 hours max wait
 WAIT_INTERVAL=60  # Check every minute
 WAITED=0
 
+# Track whether we're polling the specific job or the whole run
+POLLING_JOB="false"
+POLL_JOB_ID=""
+
+# If we found the specific job ID early, we can poll it directly
+if [ -n "$EARLY_JOB_ID" ] && [ "$EARLY_JOB_ID" != "null" ]; then
+    POLLING_JOB="true"
+    POLL_JOB_ID="$EARLY_JOB_ID"
+    echo -e "${BLUE}Will poll specific job: ${POLL_JOB_ID}${NC}"
+else
+    echo -e "${BLUE}Will poll entire run (specific job ID not found yet)${NC}"
+fi
+
 while [ $WAITED -lt $((MAX_WAIT_MINUTES * 60)) ]; do
     sleep $WAIT_INTERVAL
     WAITED=$((WAITED + WAIT_INTERVAL))
     
-    echo -e "${BLUE}Checking job status (waited ${WAITED}s)...${NC}"
+    echo -e "${BLUE}Checking status (waited ${WAITED}s)...${NC}"
     
-    # Get the run status
-    RUN_STATUS=$(gh api "repos/${OWNER}/${REPO}/actions/runs/${RUN_ID}" 2>/dev/null || echo "{}")
-    STATUS=$(echo "$RUN_STATUS" | jq -r '.status // "unknown"')
-    CONCLUSION=$(echo "$RUN_STATUS" | jq -r '.conclusion // "null"')
-    
-    echo -e "  Status: ${STATUS}, Conclusion: ${CONCLUSION}"
+    if [ "$POLLING_JOB" = "true" ] && [ -n "$POLL_JOB_ID" ]; then
+        # Poll the specific job status
+        JOB_STATUS_RESP=$(gh api "repos/${OWNER}/${REPO}/actions/jobs/${POLL_JOB_ID}" 2>/dev/null || echo "{}")
+        STATUS=$(echo "$JOB_STATUS_RESP" | jq -r '.status // "unknown"')
+        CONCLUSION=$(echo "$JOB_STATUS_RESP" | jq -r '.conclusion // "null"')
+        echo -e "  Job ${POLL_JOB_ID} - Status: ${STATUS}, Conclusion: ${CONCLUSION}"
+    else
+        # Poll the run status (fallback)
+        RUN_STATUS=$(gh api "repos/${OWNER}/${REPO}/actions/runs/${RUN_ID}" 2>/dev/null || echo "{}")
+        STATUS=$(echo "$RUN_STATUS" | jq -r '.status // "unknown"')
+        CONCLUSION=$(echo "$RUN_STATUS" | jq -r '.conclusion // "null"')
+        echo -e "  Run - Status: ${STATUS}, Conclusion: ${CONCLUSION}"
+        
+        # Try to find the specific job ID if we don't have it yet
+        if [ "$POLLING_JOB" = "false" ]; then
+            ATTEMPT_JOBS=$(gh api "repos/${OWNER}/${REPO}/actions/runs/${RUN_ID}/attempts/${NEW_ATTEMPT}/jobs?per_page=100" 2>/dev/null || echo '{"jobs":[]}')
+            JOB_NAME_LOWER=$(echo "$JOB_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[–—−‐‑‒]/-/g')
+            FOUND_JOB_ID=$(echo "$ATTEMPT_JOBS" | jq -r --arg name "$JOB_NAME_LOWER" '
+                def normalize: ascii_downcase | gsub("[–—−‐‑‒]"; "-");
+                .jobs // [] | 
+                map(select((.name | normalize) == $name or (.name | normalize | contains($name)) or ($name | contains(.name | normalize)))) | 
+                first | .id // empty
+            ' 2>/dev/null || echo "")
+            
+            if [ -n "$FOUND_JOB_ID" ] && [ "$FOUND_JOB_ID" != "null" ]; then
+                echo -e "${GREEN}  Found specific job ID: ${FOUND_JOB_ID}, switching to job polling${NC}"
+                POLLING_JOB="true"
+                POLL_JOB_ID="$FOUND_JOB_ID"
+            fi
+        fi
+    fi
     
     if [ "$STATUS" = "completed" ]; then
-        echo -e "${GREEN}Retry job completed with conclusion: ${CONCLUSION}${NC}"
+        if [ "$CONCLUSION" = "cancelled" ]; then
+            echo -e "${YELLOW}Retry job was cancelled${NC}"
+        else
+            echo -e "${GREEN}Retry job completed with conclusion: ${CONCLUSION}${NC}"
+        fi
         break
     fi
     
     if [ "$STATUS" = "unknown" ]; then
-        echo -e "${RED}Failed to get run status${NC}"
+        echo -e "${RED}Failed to get status${NC}"
         exit 0
     fi
 done
