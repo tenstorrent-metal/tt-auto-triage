@@ -98,14 +98,14 @@ else
     # Case-insensitive check
     JOB_NAME_LOWER=$(echo "$JOB_NAME" | tr '[:upper:]' '[:lower:]')
     if ! echo "$JOB_NAME_LOWER" | grep -qiE '(n150|n300|p150|p300|p100a)'; then
-        echo -e "${YELLOW}Job '$JOB_NAME' does not contain N150/N300/P150/P300, skipping retry${NC}"
+        echo -e "${YELLOW}Job '$JOB_NAME' does not contain N150/N300/P150/P300/P100A, skipping retry${NC}"
         echo -e "${YELLOW}(Jobs with galaxy, T3K, or p100 are too expensive for automatic retries)${NC}"
         exit 0
     fi
 
     # Check for expensive hardware that should NOT be retried
     if echo "$JOB_NAME_LOWER" | grep -qiE '(galaxy|t3k|t3000)'; then
-        echo -e "${YELLOW}Job '$JOB_NAME' contains expensive hardware (galaxy/T3K/p100), skipping retry${NC}"
+        echo -e "${YELLOW}Job '$JOB_NAME' contains expensive hardware (galaxy/T3K), skipping retry${NC}"
         exit 0
     fi
 fi
