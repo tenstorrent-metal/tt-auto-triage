@@ -44,15 +44,36 @@ WORKFLOW_NAME="$2"
 SLACK_TS="${3:-}"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DATA_DIR="${ROOT}/auto_triage/data"
-OUTPUT_DIR="${ROOT}/auto_triage/output"
-LOGS_DIR="${ROOT}/auto_triage/logs"
+# Use symlinked paths for consistency with other scripts
+# The symlinks are: ./data -> ./auto_triage/data, ./output -> ./auto_triage/output
+DATA_DIR="${ROOT}/data"
+OUTPUT_DIR="${ROOT}/output"
+LOGS_DIR="${ROOT}/logs"
+
+# Fallback to canonical paths if symlinks don't exist
+if [ ! -d "$DATA_DIR" ]; then
+    DATA_DIR="${ROOT}/auto_triage/data"
+fi
+if [ ! -d "$OUTPUT_DIR" ]; then
+    OUTPUT_DIR="${ROOT}/auto_triage/output"
+fi
+if [ ! -d "$LOGS_DIR" ]; then
+    LOGS_DIR="${ROOT}/auto_triage/logs"
+fi
+
 SLACK_MSG_PATH="${OUTPUT_DIR}/slack_message.json"
 EXPLANATION_PATH="${OUTPUT_DIR}/explanation.md"
 SUBJOB_RUNS_PATH="${DATA_DIR}/subjob_runs.json"
 
 # Output file to signal retry result to calling script
 RETRY_RESULT_FILE="${DATA_DIR}/retry_result.json"
+
+echo -e "${BLUE}Retry script paths:${NC}"
+echo -e "  ROOT: ${ROOT}"
+echo -e "  DATA_DIR: ${DATA_DIR}"
+echo -e "  OUTPUT_DIR: ${OUTPUT_DIR}"
+echo -e "  SLACK_MSG_PATH: ${SLACK_MSG_PATH}"
+echo -e "  EXPLANATION_PATH: ${EXPLANATION_PATH}"
 
 OWNER="tenstorrent"
 REPO="tt-metal"
@@ -613,12 +634,28 @@ EOF
             '{result: $result, message: $msg}' > "$RETRY_RESULT_FILE"
         
         # Add note to original slack message about confirmed failure
-        jq --arg retry_url "$RETRY_JOB_URL" '
-            .notes = ((.notes // "") + "\n\n*RETRY CONFIRMED DETERMINISTIC ISSUE:* The job was automatically retried and failed with the same error.\n- Retry link: " + $retry_url + "\n- _Failing retry indicates this is a genuine deterministic issue, not flakiness._")
-        ' "$SLACK_MSG_PATH" > "${SLACK_MSG_PATH}.tmp"
-        mv "${SLACK_MSG_PATH}.tmp" "$SLACK_MSG_PATH"
+        echo -e "${BLUE}Adding retry confirmation note to slack_message.json...${NC}"
+        echo -e "${BLUE}  Source file: ${SLACK_MSG_PATH}${NC}"
+        
+        if [ ! -f "$SLACK_MSG_PATH" ]; then
+            echo -e "${RED}ERROR: slack_message.json not found at ${SLACK_MSG_PATH}${NC}"
+        else
+            echo -e "${GREEN}  File exists, size: $(wc -c < "$SLACK_MSG_PATH") bytes${NC}"
+            jq --arg retry_url "$RETRY_JOB_URL" '
+                .notes = ((.notes // "") + "\n\n*RETRY CONFIRMED DETERMINISTIC ISSUE:* The job was automatically retried and failed with the same error.\n- Retry link: " + $retry_url + "\n- _Failing retry indicates this is a genuine deterministic issue, not flakiness._")
+            ' "$SLACK_MSG_PATH" > "${SLACK_MSG_PATH}.tmp"
+            
+            if [ -f "${SLACK_MSG_PATH}.tmp" ]; then
+                mv "${SLACK_MSG_PATH}.tmp" "$SLACK_MSG_PATH"
+                echo -e "${GREEN}  Updated slack_message.json successfully${NC}"
+            else
+                echo -e "${RED}ERROR: Failed to create temp file${NC}"
+            fi
+        fi
         
         # Prepend note to explanation.md
+        echo -e "${BLUE}Prepending retry confirmation note to explanation.md...${NC}"
+        echo -e "${BLUE}  Source file: ${EXPLANATION_PATH}${NC}"
         EXISTING_EXPLANATION=$(cat "$EXPLANATION_PATH" 2>/dev/null || echo "")
         cat > "$EXPLANATION_PATH" << EOF
 ## Failure Was Repeatable (Confirmed Deterministic)
@@ -633,6 +670,8 @@ The job was automatically retried and **failed with the same error**, confirming
 ${EXISTING_EXPLANATION}
 EOF
 
+        echo -e "${GREEN}Updated explanation.md with retry confirmation${NC}"
+        echo -e "${BLUE}Sending Slack notification about confirmed deterministic failure...${NC}"
         send_retry_notification "$(printf ':x: *Retry also failed with the same error.* Deterministic failure confirmed.\n\nFirst failure: <%s|link>\nRetry failure: <%s|link>' "$FAILING_RUN_URL" "$RETRY_JOB_URL")"
         
     else
