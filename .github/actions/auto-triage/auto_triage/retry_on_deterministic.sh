@@ -104,7 +104,7 @@ else
     fi
 
     # Check for expensive hardware that should NOT be retried
-    if echo "$JOB_NAME_LOWER" | grep -qiE '(galaxy|t3k|t3000|p100a)'; then
+    if echo "$JOB_NAME_LOWER" | grep -qiE '(galaxy|t3k|t3000)'; then
         echo -e "${YELLOW}Job '$JOB_NAME' contains expensive hardware (galaxy/T3K/p100), skipping retry${NC}"
         exit 0
     fi
