@@ -245,14 +245,52 @@ fi
 # Parse run ID and job ID from URL
 # Format: https://github.com/tenstorrent/tt-metal/actions/runs/RUN_ID/job/JOB_ID
 RUN_ID=$(echo "$FAILING_RUN_URL" | sed -n 's#.*/runs/\([0-9]\+\)/job/.*#\1#p')
-JOB_ID=$(echo "$FAILING_RUN_URL" | sed -n 's#.*/job/\([0-9]\+\).*#\1#p')
+ORIGINAL_JOB_ID=$(echo "$FAILING_RUN_URL" | sed -n 's#.*/job/\([0-9]\+\).*#\1#p')
 
-if [ -z "$RUN_ID" ] || [ -z "$JOB_ID" ]; then
+if [ -z "$RUN_ID" ] || [ -z "$ORIGINAL_JOB_ID" ]; then
     echo -e "${RED}Could not parse run_id/job_id from URL: $FAILING_RUN_URL${NC}"
     exit 0
 fi
 
-echo -e "${BLUE}Run ID: $RUN_ID, Job ID: $JOB_ID${NC}"
+echo -e "${BLUE}Run ID: $RUN_ID, Original Job ID: $ORIGINAL_JOB_ID${NC}"
+
+# Get the current run_attempt BEFORE triggering rerun
+RUN_INFO_BEFORE=$(gh api "repos/${OWNER}/${REPO}/actions/runs/${RUN_ID}" 2>/dev/null || echo "{}")
+OLD_ATTEMPT=$(echo "$RUN_INFO_BEFORE" | jq -r '.run_attempt // 1')
+echo -e "${BLUE}Current run_attempt: ${OLD_ATTEMPT}${NC}"
+
+# ============================================================================
+# Find the job ID from the CURRENT attempt (GitHub only allows re-running
+# jobs from the current attempt, not older attempts)
+# ============================================================================
+JOB_ID="$ORIGINAL_JOB_ID"
+
+if [ "$OLD_ATTEMPT" -gt 1 ]; then
+    echo -e "${BLUE}Run has been retried before (attempt ${OLD_ATTEMPT}), finding job in current attempt...${NC}"
+    
+    # Get jobs from the current attempt
+    CURRENT_JOBS=$(gh api "repos/${OWNER}/${REPO}/actions/runs/${RUN_ID}/attempts/${OLD_ATTEMPT}/jobs?per_page=100" 2>/dev/null || echo '{"jobs":[]}')
+    
+    # Find the job matching our job name (case-insensitive, handle unicode dashes)
+    JOB_NAME_LOWER=$(echo "$JOB_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[–—−‐‑‒]/-/g')
+    CURRENT_JOB_ID=$(echo "$CURRENT_JOBS" | jq -r --arg name "$JOB_NAME_LOWER" '
+        def normalize: ascii_downcase | gsub("[–—−‐‑‒]"; "-");
+        .jobs // [] | 
+        map(select((.name | normalize) == $name or (.name | normalize | contains($name)) or ($name | contains(.name | normalize)))) | 
+        first | 
+        .id // empty
+    ' 2>/dev/null || echo "")
+    
+    if [ -n "$CURRENT_JOB_ID" ] && [ "$CURRENT_JOB_ID" != "null" ]; then
+        echo -e "${GREEN}Found job in current attempt: ${CURRENT_JOB_ID}${NC}"
+        JOB_ID="$CURRENT_JOB_ID"
+    else
+        echo -e "${YELLOW}Could not find job in current attempt by name, using original job ID${NC}"
+        echo -e "${YELLOW}(This may fail with 403 if attempt > 2)${NC}"
+    fi
+fi
+
+echo -e "${BLUE}Using Job ID: $JOB_ID${NC}"
 
 # Save the original error message for comparison
 ORIGINAL_ERROR=""
@@ -272,11 +310,6 @@ echo "$ORIGINAL_ERROR" > "${DATA_DIR}/original_error.txt"
 
 # Re-run the specific failed job (not all failed jobs)
 echo -e "${GREEN}Re-running specific job ${JOB_ID}...${NC}"
-
-# Get the current run_attempt BEFORE triggering rerun
-RUN_INFO_BEFORE=$(gh api "repos/${OWNER}/${REPO}/actions/runs/${RUN_ID}" 2>/dev/null || echo "{}")
-OLD_ATTEMPT=$(echo "$RUN_INFO_BEFORE" | jq -r '.run_attempt // 1')
-echo -e "${BLUE}Current run_attempt before rerun: ${OLD_ATTEMPT}${NC}"
 
 # GitHub API to re-run a SPECIFIC job (not all failed jobs)
 # POST /repos/{owner}/{repo}/actions/jobs/{job_id}/rerun
