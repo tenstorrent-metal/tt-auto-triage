@@ -120,8 +120,7 @@ else
     fi
     
     # Check for inclusion: must contain both "deterministic" and "commit"
-    if [[ "$SCENARIO_LOWER" != *"deterministic"* ]] || \
-       [[ "$SCENARIO_LOWER" != *"commit"* ]]; then
+    if [[ "$SCENARIO_LOWER" != "deterministic"* ]]
         echo -e "${YELLOW}Not a Case 1/4 scenario, skipping retry${NC}"
         echo -e "${YELLOW}(Scenario was: ${SCENARIO})${NC}"
         exit 0
