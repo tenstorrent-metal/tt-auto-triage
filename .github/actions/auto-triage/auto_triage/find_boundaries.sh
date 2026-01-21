@@ -13,6 +13,44 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# ============================================================================
+# TESTING: COMMIT CUTOFF FILTER
+# Set this to a commit SHA to ignore all runs on commits NEWER than this one.
+# This is useful for testing retry logic on older failures when newer runs
+# have already passed.
+# Leave empty ("") for normal behavior (no filtering).
+# Can be set via environment variable CUTOFF_COMMIT or passed as input to the action.
+# Example: CUTOFF_COMMIT="abc123def456"
+# ============================================================================
+# Default to empty if not set via environment variable
+CUTOFF_COMMIT="${CUTOFF_COMMIT:-}"
+# ============================================================================
+
+# Function to check if commit A is newer than commit B (A is descendant of B)
+# Returns 0 (true) if A is strictly newer than B, 1 (false) otherwise
+is_commit_newer() {
+    local commit_a="$1"
+    local commit_b="$2"
+    
+    # If either commit is empty, can't compare
+    if [ -z "$commit_a" ] || [ -z "$commit_b" ]; then
+        return 1
+    fi
+    
+    # If commits are the same, A is not "newer"
+    if [ "$commit_a" = "$commit_b" ]; then
+        return 1
+    fi
+    
+    # Check if commit_a is a descendant of commit_b (i.e., A came after B)
+    # git merge-base --is-ancestor returns 0 if $commit_b is an ancestor of $commit_a
+    if git merge-base --is-ancestor "$commit_b" "$commit_a" 2>/dev/null; then
+        return 0  # A is newer than B
+    else
+        return 1  # A is not newer than B (or error)
+    fi
+}
+
 # Check arguments
 if [ $# -lt 2 ]; then
     echo -e "${RED}Error: Missing required arguments${NC}"
@@ -71,6 +109,14 @@ rm -f "$SUMMARY_JSON_PATH" "$RUNS_JSON_PATH"
 
 echo -e "${BLUE}Searching for workflow: ${GREEN}${WORKFLOW_NAME}${NC}"
 echo -e "${BLUE}Looking for subjob: ${GREEN}${SUBJOB_NAME}${NC}"
+
+# Show cutoff notice if set
+if [ -n "$CUTOFF_COMMIT" ]; then
+    echo -e "${YELLOW}========================================${NC}"
+    echo -e "${YELLOW}TESTING MODE: Cutoff commit filter active${NC}"
+    echo -e "${YELLOW}Ignoring all runs on commits newer than: ${CUTOFF_COMMIT}${NC}"
+    echo -e "${YELLOW}========================================${NC}"
+fi
 echo ""
 
 # First, find the workflow ID (support both .yaml and .yml)
@@ -179,6 +225,15 @@ while true; do
         RUN_URL="${BASE_URL}/actions/runs/${RUN_ID}"
 
         PROCESSED=$((PROCESSED + 1))
+        
+        # TESTING: Skip runs newer than cutoff commit if set
+        if [ -n "$CUTOFF_COMMIT" ]; then
+            if is_commit_newer "$RUN_COMMIT" "$CUTOFF_COMMIT"; then
+                echo -e "[${PROCESSED}] Checking run ${RUN_ID} (${RUN_COMPLETED_AT})... ${YELLOW}SKIPPED (commit ${RUN_COMMIT:0:8} is newer than cutoff ${CUTOFF_COMMIT:0:8})${NC}"
+                continue
+            fi
+        fi
+        
         echo -n "[${PROCESSED}] Checking run ${RUN_ID} (${RUN_COMPLETED_AT})... "
 
         # Collect completed job attempts for this run across all workflow run attempts
