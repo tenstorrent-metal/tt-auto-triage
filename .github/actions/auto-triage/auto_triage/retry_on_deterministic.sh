@@ -965,22 +965,39 @@ EOF
         # ========================================
         echo -e "${YELLOW}Retry failed with DIFFERENT error - both failures appear non-deterministic${NC}"
         
+        # Get the LLM-extracted retry error from the comparison JSON (much better than our grep extraction)
+        RETRY_ERROR_FROM_LLM=""
+        if [ -f "$COMPARISON_FILE" ]; then
+            RETRY_ERROR_FROM_LLM=$(jq -r '.retry_error_extracted // ""' "$COMPARISON_FILE")
+        fi
+        
+        # Use LLM-extracted error if available, otherwise fall back to our extraction
+        if [ -n "$RETRY_ERROR_FROM_LLM" ] && [ "$RETRY_ERROR_FROM_LLM" != "null" ]; then
+            echo -e "${GREEN}Using LLM-extracted retry error${NC}"
+            RETRY_ERR_FOR_NOTES="$RETRY_ERROR_FROM_LLM"
+        else
+            echo -e "${YELLOW}LLM didn't extract retry error, using our extraction${NC}"
+            RETRY_ERR_FOR_NOTES=$(echo "$RETRY_ERROR" | head -c 500)
+        fi
+        
         jq -n --arg result "failed_different" --arg msg "Retry failed with different error, both appear non-deterministic" \
-            --arg retry_url "$RETRY_JOB_URL" --arg retry_error "$RETRY_ERROR" \
+            --arg retry_url "$RETRY_JOB_URL" --arg retry_error "$RETRY_ERR_FOR_NOTES" \
             '{result: $result, message: $msg, retry_url: $retry_url, retry_error: $retry_error}' > "$RETRY_RESULT_FILE"
         
         # Update original slack message to Case 3
         # IMPORTANT: Preserve existing notes and append retry info
-        ORIGINAL_FAILURE_MSG=$(jq -r '.failure_message // "Unknown error"' "$SLACK_MSG_PATH")
+        # NOTE: Original error is already in failure_message field, so only show retry error
         EXISTING_NOTES=$(jq -r '.notes // ""' "$SLACK_MSG_PATH")
         
-        # Build the retry note (truncate error messages if too long for notes)
-        ORIG_ERR_TRUNCATED=$(echo "$ORIGINAL_ERROR" | head -c 500)
-        RETRY_ERR_TRUNCATED=$(echo "$RETRY_ERROR" | head -c 500)
-        
-        RETRY_NOTE="*RETRY FAILED WITH DIFFERENT ERROR - CONVERTED TO CASE 3:* Two consecutive failures with DIFFERENT error messages suggest non-deterministic issues rather than a code regression.
-- Original failure: ${FAILING_RUN_URL}
-- Retry failure: ${RETRY_JOB_URL}"
+        # Build the retry note - only show retry error since original is already in failure_message
+        RETRY_NOTE="*RETRY FAILED WITH DIFFERENT ERROR - CONVERTED TO CASE 3:*
+The retry failed with a *different* error than the original failure, suggesting non-deterministic issues rather than a code regression.
+
+*Retry error:*
+\`\`\`
+${RETRY_ERR_FOR_NOTES}
+\`\`\`
+Retry link: ${RETRY_JOB_URL}"
         
         # Combine existing notes with retry note
         if [ -n "$EXISTING_NOTES" ] && [ "$EXISTING_NOTES" != "null" ]; then

@@ -57,11 +57,16 @@ Write a JSON file to `./auto_triage/data/error_comparison.json` with exactly thi
 {
   "original_error_summary": "<1-2 sentence summary of original error>",
   "retry_error_summary": "<1-2 sentence summary of retry error>",
+  "retry_error_extracted": "<the actual retry error message you found, up to 500 chars - this will be shown to users>",
   "same_failure": true | false,
   "reasoning": "<brief explanation of why you concluded they are the same or different>",
   "searched_logs": true | false
 }
 ```
+
+IMPORTANT: The `retry_error_extracted` field should contain the ACTUAL error text you found for the retry 
+(the specific exception, assertion failure, or error message). This is critical because the retry error 
+is often hard to extract programmatically, and your extraction will be used to show users what went wrong.
 
 Important Rules
 ---------------
@@ -77,6 +82,7 @@ Example Output (same failure)
 {
   "original_error_summary": "AssertionError in test_reduce_max: max mismatch expected=0.0, actual=0.125",
   "retry_error_summary": "AssertionError in test_reduce_max: max mismatch expected=0.0, actual=0.125",
+  "retry_error_extracted": "FAILED tests/ttnn/unit_tests/test_ops.py::test_reduce_max - AssertionError: max mismatch expected=0.0, actual=0.125",
   "same_failure": true,
   "reasoning": "Both runs failed with identical AssertionError in the same test function with the same assertion message, indicating a deterministic failure.",
   "searched_logs": false
@@ -89,6 +95,7 @@ Example Output (different failure)
 {
   "original_error_summary": "AssertionError in test_reduce_max: max mismatch expected=0.0, actual=0.125",
   "retry_error_summary": "TimeoutError: Job exceeded maximum runtime of 3600 seconds",
+  "retry_error_extracted": "TimeoutError: Job exceeded maximum runtime of 3600 seconds. The job was terminated.",
   "same_failure": false,
   "reasoning": "The original run failed due to an assertion error in the test logic, while the retry failed due to a timeout. These are different failure modes.",
   "searched_logs": true
@@ -101,6 +108,7 @@ Example Output (could not find retry error)
 {
   "original_error_summary": "AssertionError in test_reduce_max: max mismatch expected=0.0, actual=0.125",
   "retry_error_summary": "Could not determine - only found generic 'exit code 1' in logs",
+  "retry_error_extracted": "Process exited with code 1 (no detailed error found in logs)",
   "same_failure": false,
   "reasoning": "Unable to extract the actual retry error message from logs. Cannot confirm if failures are the same without seeing the actual error.",
   "searched_logs": true
