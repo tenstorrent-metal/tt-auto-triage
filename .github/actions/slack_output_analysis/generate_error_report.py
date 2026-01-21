@@ -119,6 +119,85 @@ def extract_commit_hash(error_message: str) -> Optional[str]:
     
     return None
 
+def extract_job_id_from_url(job_url: str) -> Optional[int]:
+    """Extract job ID from GitHub Actions job URL.
+    
+    Args:
+        job_url: GitHub Actions job URL (e.g., https://github.com/owner/repo/actions/runs/RUN_ID/job/JOB_ID)
+    
+    Returns:
+        Job ID as integer, or None if not found
+    """
+    if not job_url:
+        return None
+    
+    try:
+        # Pattern: /job/{job_id} at the end of the URL
+        match = re.search(r'/job/(\d+)(?:/|$)', job_url)
+        if match:
+            return int(match.group(1))
+    except (ValueError, AttributeError):
+        pass
+    
+    return None
+
+def get_job_name_from_github_api(job_url: str, github_token: str, job_name_cache: Dict[str, str]) -> Optional[str]:
+    """Fetch job name from GitHub API using job URL.
+    
+    Args:
+        job_url: GitHub Actions job URL
+        github_token: GitHub token for API access
+        job_name_cache: Dictionary to cache job names (key: job_url, value: job_name)
+    
+    Returns:
+        Job name string, or None if not found
+    """
+    if not job_url or not github_token:
+        return None
+    
+    # Check cache first
+    if job_url in job_name_cache:
+        return job_name_cache[job_url]
+    
+    try:
+        # Extract job ID from URL
+        job_id = extract_job_id_from_url(job_url)
+        if not job_id:
+            return None
+        
+        # Extract repo owner and name from URL
+        repo_match = re.search(r'github\.com/([^/]+)/([^/]+)/actions', job_url)
+        if not repo_match:
+            return None
+        
+        repo_owner = repo_match.group(1)
+        repo_name = repo_match.group(2)
+        
+        # Fetch job details from GitHub API
+        url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/actions/jobs/{job_id}"
+        headers = {
+            "Authorization": f"token {github_token}",
+            "Accept": "application/vnd.github.v3+json"
+        }
+        
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        job_data = response.json()
+        
+        # Get the job name
+        job_name = job_data.get("name")
+        if job_name:
+            # Cache the result
+            job_name_cache[job_url] = job_name
+            return job_name
+        
+    except Exception as e:
+        print(f"  ⚠ Warning: Could not fetch job name for {job_url}: {e}")
+        # Cache None to avoid repeated failed API calls
+        job_name_cache[job_url] = None
+    
+    return None
+
 
 def get_slack_message_link(timestamp_str: str, channel_id: str, slack_token: Optional[str] = None) -> Optional[str]:
     """Construct Slack message link from timestamp and channel ID.
@@ -322,23 +401,26 @@ def find_oldest_run_in_centroid(entry: Dict[str, Any], all_errors: List[List], u
     return oldest_run
 
 def load_secrets():
-    """Load configuration from secrets.json file."""
+    """Load configuration from secrets.json file, with fallback to environment variables."""
     SECRETS_FILE = os.path.join(SCRIPT_DIR, "secrets.json")
+    secrets = {}
     try:
         with open(SECRETS_FILE, 'r') as f:
             secrets = json.load(f)
-        return {
-            "GITHUB_REPO_OWNER": secrets.get("github_repo_owner", ""),
-            "GITHUB_REPO_NAME": secrets.get("github_repo_name", ""),
-            "GITHUB_TOKEN": secrets.get("github_token", ""),
-            "CHANNEL_ID": secrets.get("channel_id", ""),
-        }
     except FileNotFoundError:
-        print(f"ERROR: secrets.json not found at {SECRETS_FILE}")
-        sys.exit(1)
+        print(f"⚠ Warning: secrets.json not found at {SECRETS_FILE}, using environment variables")
     except json.JSONDecodeError as e:
-        print(f"ERROR: Invalid JSON in {SECRETS_FILE}: {e}")
-        sys.exit(1)
+        print(f"⚠ Warning: Invalid JSON in {SECRETS_FILE}: {e}, using environment variables")
+    
+    # Use environment variables as fallback
+    github_token = secrets.get("github_token", "") or os.environ.get("GITHUB_TOKEN", "")
+    
+    return {
+        "GITHUB_REPO_OWNER": secrets.get("github_repo_owner", ""),
+        "GITHUB_REPO_NAME": secrets.get("github_repo_name", ""),
+        "GITHUB_TOKEN": github_token,
+        "CHANNEL_ID": secrets.get("channel_id", ""),
+    }
 
 def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
     """
@@ -508,6 +590,7 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
     report_entries = []
     matched_count = 0
     unmatched_count = 0
+    job_name_cache: Dict[str, str] = {}  # Cache for job names to avoid duplicate API calls
     
     for idx, error_entry in enumerate(recent_errors, 1):
         if idx % 50 == 0 or idx == len(recent_errors):
@@ -607,28 +690,74 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
         oldest_run_commit_hash = oldest_run.get("commit_hash") if oldest_run else None
         oldest_run_error_message = oldest_run.get("error_message") if oldest_run else None
         
+        # Extract job IDs from URLs
+        github_job_id = extract_job_id_from_url(job_url)
+        centroid_job_id = extract_job_id_from_url(centroid_run_url) if centroid_run_url else None
+        oldest_job_id = extract_job_id_from_url(oldest_run_url) if oldest_run_url else None
+        
+        # Fetch job names from GitHub API (with caching)
+        job_name = None
+        centroid_job_name = None
+        oldest_job_name = None
+        
+        if github_token:
+            if job_url:
+                job_name = get_job_name_from_github_api(job_url, github_token, job_name_cache)
+            if centroid_run_url:
+                centroid_job_name = get_job_name_from_github_api(centroid_run_url, github_token, job_name_cache)
+            if oldest_run_url:
+                oldest_job_name = get_job_name_from_github_api(oldest_run_url, github_token, job_name_cache)
+        
+        # Use fallback if job name is not available
+        if not job_name:
+            if github_job_id:
+                job_name = f"Job-{github_job_id}"
+            else:
+                # Fallback if we can't extract job ID from URL
+                job_name = "Unknown-Job"
+        if not centroid_job_name:
+            if centroid_job_id:
+                centroid_job_name = f"Job-{centroid_job_id}"
+            else:
+                centroid_job_name = None  # Can be None if no centroid
+        if not oldest_job_name:
+            if oldest_job_id:
+                oldest_job_name = f"Job-{oldest_job_id}"
+            else:
+                oldest_job_name = None  # Can be None if no oldest run
+        
+        # Transform to JobFailureCluster format
         report_entry = {
-            "job_url": job_url,
-            "error_message": error_message,
+            # Job-specific fields
+            "github_job_id": github_job_id,
+            "github_job_link": job_url,
+            "job_name": job_name,
+            "job_error_message": error_message,
+            "job_slack_ts": timestamp_utc,
+            "job_commit_hash": commit_hash,
             "is_nd": is_nd,
-            "timestamp_utc": timestamp_utc,
-            "commit_hash": commit_hash,
             "slack_message_link": slack_message_link,
-            "centroid_run_url": centroid_run_url,
-            "centroid_error_message": centroid_error_message,
-            "centroid_timestamp_utc": centroid_timestamp_utc,
-            "centroid_commit_hash": centroid_commit_hash,
-            "oldest_run_url": oldest_run_url,
-            "oldest_run_timestamp_utc": oldest_run_timestamp_utc,
-            "oldest_run_commit_hash": oldest_run_commit_hash,
-            "oldest_run_error_message": oldest_run_error_message,
+            # Centroid fields
+            "centroid_job_id": centroid_job_id,
+            "centroid_job_link": centroid_run_url,
+            "centroid_job_name": centroid_job_name,
+            "centroid_job_error_message": centroid_error_message,
+            "centroid_job_slack_ts": centroid_timestamp_utc,
+            "centroid_job_commit_hash": centroid_commit_hash,
+            # Oldest job fields
+            "oldest_job_id": oldest_job_id,
+            "oldest_job_link": oldest_run_url,
+            "oldest_job_name": oldest_job_name,
+            "oldest_job_error_message": oldest_run_error_message,
+            "oldest_job_slack_ts": oldest_run_timestamp_utc,
+            "oldest_job_commit_hash": oldest_run_commit_hash,
         }
         report_entries.append(report_entry)
     
     print(f"\n  ✓ Generated {len(report_entries)} report entries")
     print(f"    - Matched to centroids: {matched_count}")
     print(f"    - Unmatched: {unmatched_count}")
-    print(f"    - With centroid run URLs: {sum(1 for e in report_entries if e['centroid_run_url'])}")
+    print(f"    - With centroid run URLs: {sum(1 for e in report_entries if e['centroid_job_link'])}")
     
     # Check GitHub API rate limit at end
     end_rate_limit = None
@@ -650,7 +779,7 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
     print("\nGenerating markdown summary...")
     total_errors = len(report_entries)
     nd_errors = sum(1 for entry in report_entries if entry["is_nd"])
-    errors_with_centroid = sum(1 for entry in report_entries if entry["centroid_run_url"])
+    errors_with_centroid = sum(1 for entry in report_entries if entry["centroid_job_link"])
     
     nd_percentage = (nd_errors/total_errors*100) if total_errors > 0 else 0
     centroid_percentage = (errors_with_centroid/total_errors*100) if total_errors > 0 else 0
@@ -676,13 +805,13 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
 
 ### ND Errors by Status
 
-- **ND Errors with Centroid Runs**: {sum(1 for e in report_entries if e['is_nd'] and e['centroid_run_url'])}
-- **ND Errors without Centroid Runs**: {sum(1 for e in report_entries if e['is_nd'] and not e['centroid_run_url'])}
+- **ND Errors with Centroid Runs**: {sum(1 for e in report_entries if e['is_nd'] and e['centroid_job_link'])}
+- **ND Errors without Centroid Runs**: {sum(1 for e in report_entries if e['is_nd'] and not e['centroid_job_link'])}
 
 ### Non-ND Errors by Status
 
-- **Non-ND Errors with Centroid Runs**: {sum(1 for e in report_entries if not e['is_nd'] and e['centroid_run_url'])}
-- **Non-ND Errors without Centroid Runs**: {sum(1 for e in report_entries if not e['is_nd'] and not e['centroid_run_url'])}
+- **Non-ND Errors with Centroid Runs**: {sum(1 for e in report_entries if not e['is_nd'] and e['centroid_job_link'])}
+- **Non-ND Errors without Centroid Runs**: {sum(1 for e in report_entries if not e['is_nd'] and not e['centroid_job_link'])}
 
 ## Sample Errors
 
@@ -691,13 +820,13 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
     # Add sample entries (first 10)
     for i, entry in enumerate(report_entries[:10], 1):
         nd_badge = "🟡 ND" if entry["is_nd"] else "⚪"
-        centroid_link = f"[Centroid Run]({entry['centroid_run_url']})" if entry["centroid_run_url"] else "*No centroid run*"
-        job_link = f"[Job URL]({entry['job_url']})" if entry["job_url"] else "*No job URL*"
+        centroid_link = f"[Centroid Run]({entry['centroid_job_link']})" if entry["centroid_job_link"] else "*No centroid run*"
+        job_link = f"[Job URL]({entry['github_job_link']})" if entry["github_job_link"] else "*No job URL*"
         
-        error_preview = entry["error_message"][:100].replace("\n", " ") + "..." if len(entry["error_message"]) > 100 else entry["error_message"]
+        error_preview = entry["job_error_message"][:100].replace("\n", " ") + "..." if len(entry["job_error_message"]) > 100 else entry["job_error_message"]
         centroid_preview = ""
-        if entry.get("centroid_error_message"):
-            centroid_msg = entry["centroid_error_message"]
+        if entry.get("centroid_job_error_message"):
+            centroid_msg = entry["centroid_job_error_message"]
             centroid_preview = centroid_msg[:100].replace("\n", " ") + "..." if len(centroid_msg) > 100 else centroid_msg
             centroid_preview = f"\n- **Centroid Error Message**: `{centroid_preview}`"
         
