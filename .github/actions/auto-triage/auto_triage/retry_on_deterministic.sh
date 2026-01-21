@@ -113,14 +113,39 @@ else
     
     # Check for exclusion patterns first (non-deterministic)
     if [[ "$SCENARIO_LOWER" == *"non-deterministic"* ]] || \
-       [[ "$SCENARIO_LOWER" == *"non deterministic"* ]]; then
-        echo -e "${YELLOW}Not a Case 1/4 scenario (non-deterministic), skipping retry${NC}"
+       [[ "$SCENARIO_LOWER" == *"non deterministic"* ]] || \
+       [[ "$SCENARIO_LOWER" == *"outside tt-metal"* ]] || \
+       [[ "$SCENARIO_LOWER" == *"case 3"* ]]; then
+        echo -e "${YELLOW}Not a Case 1/4 scenario (non-deterministic/Case 3), skipping retry${NC}"
         echo -e "${YELLOW}(Scenario was: ${SCENARIO})${NC}"
         exit 0
     fi
     
-    # Check for inclusion: must contain both "deterministic" and "commit"
-    if [[ "$SCENARIO_LOWER" != "deterministic"* ]]; then
+    # Check for inclusion - multiple ways to detect Case 1/4:
+    # 1. Scenario contains "deterministic" or "culprit" or "identified"
+    # 2. OR the slack_message has commits with confidence scores
+    IS_CASE_1_OR_4="false"
+    
+    # Method 1: Check scenario string
+    if [[ "$SCENARIO_LOWER" == *"deterministic"* ]] || \
+       [[ "$SCENARIO_LOWER" == *"culprit"* ]] || \
+       [[ "$SCENARIO_LOWER" == *"identified"* ]] || \
+       [[ "$SCENARIO_LOWER" == *"case 1"* ]] || \
+       [[ "$SCENARIO_LOWER" == *"case 4"* ]]; then
+        echo -e "${GREEN}Detected Case 1/4 from scenario string${NC}"
+        IS_CASE_1_OR_4="true"
+    fi
+    
+    # Method 2: Check if there are commits with confidence scores in slack_message.json
+    if [ "$IS_CASE_1_OR_4" = "false" ] && [ -f "$SLACK_MSG_PATH" ]; then
+        HAS_CONFIDENCE=$(jq -r '.commits // [] | map(select(.confidence != null and .confidence > 0)) | length' "$SLACK_MSG_PATH" 2>/dev/null || echo "0")
+        if [ "$HAS_CONFIDENCE" -gt 0 ]; then
+            echo -e "${GREEN}Detected Case 1/4 from commits with confidence scores (found ${HAS_CONFIDENCE} commits)${NC}"
+            IS_CASE_1_OR_4="true"
+        fi
+    fi
+    
+    if [ "$IS_CASE_1_OR_4" = "false" ]; then
         echo -e "${YELLOW}Not a Case 1/4 scenario, skipping retry${NC}"
         echo -e "${YELLOW}(Scenario was: ${SCENARIO})${NC}"
         exit 0
