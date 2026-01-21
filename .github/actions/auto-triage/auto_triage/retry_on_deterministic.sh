@@ -252,11 +252,46 @@ if [ -z "$RUN_ID" ] || [ -z "$ORIGINAL_JOB_ID" ]; then
 fi
 
 echo -e "${BLUE}Run ID: $RUN_ID, Original Job ID: $ORIGINAL_JOB_ID${NC}"
+echo -e "${BLUE}Failing run URL from slack_message: ${FAILING_RUN_URL}${NC}"
 
 # Get the current run_attempt BEFORE triggering rerun
+# NOTE: The API's run_attempt may be stale if only specific jobs were re-run
 RUN_INFO_BEFORE=$(gh api "repos/${OWNER}/${REPO}/actions/runs/${RUN_ID}" 2>/dev/null || echo "{}")
-OLD_ATTEMPT=$(echo "$RUN_INFO_BEFORE" | jq -r '.run_attempt // 1')
-echo -e "${BLUE}Current run_attempt: ${OLD_ATTEMPT}${NC}"
+API_ATTEMPT=$(echo "$RUN_INFO_BEFORE" | jq -r '.run_attempt // 1')
+RUN_STATUS=$(echo "$RUN_INFO_BEFORE" | jq -r '.status // "unknown"')
+RUN_CONCLUSION=$(echo "$RUN_INFO_BEFORE" | jq -r '.conclusion // "unknown"')
+echo -e "${BLUE}API reports run_attempt: ${API_ATTEMPT} (status: ${RUN_STATUS}, conclusion: ${RUN_CONCLUSION})${NC}"
+
+# The API's run_attempt can be stale when only specific jobs are re-run
+# Find the ACTUAL latest attempt by probing higher attempt numbers
+echo -e "${BLUE}Probing for higher attempt numbers...${NC}"
+OLD_ATTEMPT="$API_ATTEMPT"
+PROBE_ATTEMPT=$((API_ATTEMPT + 1))
+MAX_PROBE=10  # Don't probe forever
+
+while [ $PROBE_ATTEMPT -le $((API_ATTEMPT + MAX_PROBE)) ]; do
+    PROBE_RESULT=$(gh api "repos/${OWNER}/${REPO}/actions/runs/${RUN_ID}/attempts/${PROBE_ATTEMPT}/jobs?per_page=1" 2>/dev/null || echo "NOT_FOUND")
+    
+    if echo "$PROBE_RESULT" | jq -e '.jobs | length > 0' >/dev/null 2>&1; then
+        echo -e "${GREEN}Found attempt ${PROBE_ATTEMPT} exists!${NC}"
+        OLD_ATTEMPT="$PROBE_ATTEMPT"
+        PROBE_ATTEMPT=$((PROBE_ATTEMPT + 1))
+    else
+        # No more attempts
+        break
+    fi
+done
+
+if [ "$OLD_ATTEMPT" != "$API_ATTEMPT" ]; then
+    echo -e "${GREEN}Actual latest attempt: ${OLD_ATTEMPT} (API reported ${API_ATTEMPT})${NC}"
+else
+    echo -e "${BLUE}Confirmed latest attempt: ${OLD_ATTEMPT}${NC}"
+fi
+
+# Also check the original job's attempt to understand the situation
+ORIG_JOB_CHECK=$(gh api "repos/${OWNER}/${REPO}/actions/jobs/${ORIGINAL_JOB_ID}" 2>/dev/null || echo "{}")
+ORIG_JOB_RUN_ATTEMPT=$(echo "$ORIG_JOB_CHECK" | jq -r '.run_attempt // "unknown"')
+echo -e "${BLUE}Original job ${ORIGINAL_JOB_ID} is from run_attempt: ${ORIG_JOB_RUN_ATTEMPT}${NC}"
 
 # ============================================================================
 # Find the job ID from the CURRENT attempt (GitHub only allows re-running
@@ -270,8 +305,18 @@ if [ "$OLD_ATTEMPT" -gt 1 ]; then
     # Get jobs from the current attempt
     CURRENT_JOBS=$(gh api "repos/${OWNER}/${REPO}/actions/runs/${RUN_ID}/attempts/${OLD_ATTEMPT}/jobs?per_page=100" 2>/dev/null || echo '{"jobs":[]}')
     
+    # Debug: Show how many jobs we found and list them
+    JOBS_COUNT=$(echo "$CURRENT_JOBS" | jq '.jobs | length' 2>/dev/null || echo "0")
+    echo -e "${BLUE}Found ${JOBS_COUNT} jobs in attempt ${OLD_ATTEMPT}${NC}"
+    
     # Find the job matching our job name (case-insensitive, handle unicode dashes)
     JOB_NAME_LOWER=$(echo "$JOB_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[–—−‐‑‒]/-/g')
+    echo -e "${BLUE}Looking for job name (normalized): ${JOB_NAME_LOWER}${NC}"
+    
+    # Debug: Show all job names in this attempt
+    echo -e "${BLUE}Jobs in attempt ${OLD_ATTEMPT}:${NC}"
+    echo "$CURRENT_JOBS" | jq -r '.jobs // [] | .[].name' 2>/dev/null | head -20 || echo "(none)"
+    
     CURRENT_JOB_ID=$(echo "$CURRENT_JOBS" | jq -r --arg name "$JOB_NAME_LOWER" '
         def normalize: ascii_downcase | gsub("[–—−‐‑‒]"; "-");
         .jobs // [] | 
@@ -286,6 +331,12 @@ if [ "$OLD_ATTEMPT" -gt 1 ]; then
     else
         echo -e "${YELLOW}Could not find job in current attempt by name, using original job ID${NC}"
         echo -e "${YELLOW}(This may fail with 403 if attempt > 2)${NC}"
+        
+        # Debug: Check what attempt the original job is from
+        ORIG_JOB_INFO=$(gh api "repos/${OWNER}/${REPO}/actions/jobs/${ORIGINAL_JOB_ID}" 2>/dev/null || echo "{}")
+        ORIG_JOB_ATTEMPT=$(echo "$ORIG_JOB_INFO" | jq -r '.run_attempt // "unknown"')
+        ORIG_JOB_NAME=$(echo "$ORIG_JOB_INFO" | jq -r '.name // "unknown"')
+        echo -e "${YELLOW}Original job ${ORIGINAL_JOB_ID} is from attempt ${ORIG_JOB_ATTEMPT}, name: ${ORIG_JOB_NAME}${NC}"
     fi
 fi
 
