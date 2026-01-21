@@ -787,35 +787,67 @@ elif [ "$RETRY_JOB_CONCLUSION" = "failure" ]; then
     RETRY_LOGS_DIR="${LOGS_DIR}/retry_job_${RETRY_JOB_ID}"
     mkdir -p "$RETRY_LOGS_DIR"
     
-    # Get annotations for retry job
+    # Always fetch both annotations AND logs - logs often have better error details
     echo -e "${BLUE}Fetching retry job annotations...${NC}"
     "${ROOT}/get_annotations.sh" "$RETRY_JOB_URL" "${RETRY_LOGS_DIR}/annotations.json" 2>/dev/null || true
     
-    # Extract error message from retry
-    RETRY_ERROR=""
-    if [ -f "${RETRY_LOGS_DIR}/annotations.json" ]; then
-        # Annotation levels might be capitalized or lowercase
-        RETRY_ERROR=$(jq -r '
-            [.[] | select((.annotation_level | ascii_downcase) == "failure" or (.annotation_level | ascii_downcase) == "error")] |
-            map(.message // .raw_details // "") |
-            map(select(. != "")) |
-            first // ""
-        ' "${RETRY_LOGS_DIR}/annotations.json" 2>/dev/null || echo "")
-    fi
+    echo -e "${BLUE}Fetching retry job logs...${NC}"
+    "${ROOT}/get_logs.sh" "$RETRY_JOB_URL" "${LOGS_DIR}/retry" 2>/dev/null || true
     
-    # If no error from annotations, try to get from logs
-    if [ -z "$RETRY_ERROR" ]; then
-        echo -e "${YELLOW}No annotations found, trying logs...${NC}"
-        "${ROOT}/get_logs.sh" "$RETRY_JOB_URL" "${LOGS_DIR}/retry" 2>/dev/null || true
-        # Try to extract error from logs (simplified)
-        if [ -d "${LOGS_DIR}/retry/job_${RETRY_JOB_ID}" ]; then
-            RETRY_ERROR=$(find "${LOGS_DIR}/retry/job_${RETRY_JOB_ID}" -name "*.txt" -exec grep -h -A5 -E "(ERROR|FAIL|Exception|AssertionError)" {} \; 2>/dev/null | head -20 || echo "")
+    # Extract error from logs FIRST (usually has better details than annotations)
+    RETRY_ERROR=""
+    RETRY_ERROR_FROM_LOGS=""
+    RETRY_ERROR_FROM_ANNOTATIONS=""
+    
+    # Try to get error from logs
+    LOG_DIR_PATH="${LOGS_DIR}/retry/job_${RETRY_JOB_ID}"
+    if [ -d "$LOG_DIR_PATH" ]; then
+        echo -e "${BLUE}Searching logs in: ${LOG_DIR_PATH}${NC}"
+        # Look for common error patterns in log files
+        RETRY_ERROR_FROM_LOGS=$(find "$LOG_DIR_PATH" -name "*.txt" -exec grep -h -B2 -A10 -E "(FAILED|ERROR:|Exception:|AssertionError|pytest.*failed|collection.*error|ModuleNotFoundError|ImportError|TypeError:|ValueError:|RuntimeError:)" {} \; 2>/dev/null | head -50 || echo "")
+        
+        # If that didn't work, try a broader search
+        if [ -z "$RETRY_ERROR_FROM_LOGS" ]; then
+            RETRY_ERROR_FROM_LOGS=$(find "$LOG_DIR_PATH" -name "*.txt" -exec grep -h -E "(fail|error|exception)" {} \; 2>/dev/null | head -30 || echo "")
         fi
     fi
     
+    # Also try the full logs directory
+    if [ -z "$RETRY_ERROR_FROM_LOGS" ] && [ -d "${LOGS_DIR}/retry/full" ]; then
+        echo -e "${BLUE}Searching full logs directory...${NC}"
+        RETRY_ERROR_FROM_LOGS=$(find "${LOGS_DIR}/retry/full" -name "*.txt" -exec grep -h -B2 -A10 -E "(FAILED|ERROR:|Exception:|AssertionError|pytest.*failed|collection.*error)" {} \; 2>/dev/null | head -50 || echo "")
+    fi
+    
+    # Get error from annotations as fallback
+    if [ -f "${RETRY_LOGS_DIR}/annotations.json" ]; then
+        RETRY_ERROR_FROM_ANNOTATIONS=$(jq -r '
+            [.[] | select((.annotation_level | ascii_downcase) == "failure" or (.annotation_level | ascii_downcase) == "error")] |
+            map(.message // .raw_details // "") |
+            map(select(. != "")) |
+            join("\n") // ""
+        ' "${RETRY_LOGS_DIR}/annotations.json" 2>/dev/null || echo "")
+    fi
+    
+    # Prefer logs over annotations (logs usually have more detail)
+    # But if logs only have generic output, use annotations
+    if [ -n "$RETRY_ERROR_FROM_LOGS" ] && [ ${#RETRY_ERROR_FROM_LOGS} -gt 50 ]; then
+        echo -e "${GREEN}Using error from logs (${#RETRY_ERROR_FROM_LOGS} chars)${NC}"
+        RETRY_ERROR="$RETRY_ERROR_FROM_LOGS"
+    elif [ -n "$RETRY_ERROR_FROM_ANNOTATIONS" ]; then
+        echo -e "${YELLOW}Using error from annotations (${#RETRY_ERROR_FROM_ANNOTATIONS} chars)${NC}"
+        RETRY_ERROR="$RETRY_ERROR_FROM_ANNOTATIONS"
+    elif [ -n "$RETRY_ERROR_FROM_LOGS" ]; then
+        echo -e "${YELLOW}Using short error from logs (${#RETRY_ERROR_FROM_LOGS} chars)${NC}"
+        RETRY_ERROR="$RETRY_ERROR_FROM_LOGS"
+    fi
+    
     if [ -z "$RETRY_ERROR" ]; then
+        echo -e "${RED}Could not extract error from retry job${NC}"
         RETRY_ERROR="Could not extract error message from retry job"
     fi
+    
+    echo -e "${BLUE}Retry error preview (first 200 chars):${NC}"
+    echo "${RETRY_ERROR:0:200}"
     
     # Save retry error for comparison
     echo "$RETRY_ERROR" > "${DATA_DIR}/retry_error.txt"
