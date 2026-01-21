@@ -500,7 +500,8 @@ while [ $WAITED -lt $((MAX_WAIT_MINUTES * 60)) ]; do
         fi
     fi
     
-    if [ "$STATUS" = "completed" ]; then
+    # Check if job is done - either status is completed, or conclusion is set (cancelled can appear while status is still in_progress)
+    if [ "$STATUS" = "completed" ] || [ "$CONCLUSION" = "cancelled" ] || [ "$CONCLUSION" = "failure" ] || [ "$CONCLUSION" = "success" ]; then
         if [ "$CONCLUSION" = "cancelled" ]; then
             echo -e "${YELLOW}Retry job was cancelled${NC}"
         else
