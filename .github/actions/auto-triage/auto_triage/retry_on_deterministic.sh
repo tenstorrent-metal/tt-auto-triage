@@ -340,28 +340,9 @@ if [ "$RERUN_HTTP_CODE" != "201" ] && [ "$RERUN_HTTP_CODE" != "200" ]; then
         echo -e "${YELLOW}Add 'permissions: actions: write' to your workflow file${NC}"
     fi
     
-    # Fallback: try re-running just failed jobs (will re-run all failed, but better than nothing)
-    echo -e "${YELLOW}Falling back to re-run-failed-jobs (will re-run ALL failed jobs)...${NC}"
-    RERUN_RESPONSE=$(gh api \
-        --method POST \
-        "repos/${OWNER}/${REPO}/actions/runs/${RUN_ID}/rerun-failed-jobs" \
-        -i 2>&1 || echo "API_ERROR")
-    
-    RERUN_HTTP_CODE=$(echo "$RERUN_RESPONSE" | head -1 | awk '{print $2}')
-    RERUN_HTTP_CODE="${RERUN_HTTP_CODE:-000}"
-    
-    echo -e "${BLUE}Rerun-failed-jobs API response code: ${RERUN_HTTP_CODE}${NC}"
-    
-    if [ "$RERUN_HTTP_CODE" != "201" ] && [ "$RERUN_HTTP_CODE" != "200" ]; then
-        echo -e "${RED}Failed to re-run failed jobs (HTTP ${RERUN_HTTP_CODE})${NC}"
-        if [ "$RERUN_HTTP_CODE" = "403" ]; then
-            echo -e "${YELLOW}NOTE: 403 Forbidden - GITHUB_TOKEN needs 'actions: write' permission${NC}"
-        fi
-        echo -e "${YELLOW}Proceeding without retry${NC}"
-        
-        # No retry was triggered, so no notification needed - just proceed with original analysis
-        exit 0
-    fi
+    # Don't fallback to rerun-failed-jobs - just proceed with original analysis
+    echo -e "${YELLOW}Proceeding without retry${NC}"
+    exit 0
 fi
 
 echo -e "${GREEN}Re-run triggered successfully${NC}"
