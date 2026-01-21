@@ -600,12 +600,7 @@ def format_issue_body(group_data: Dict[str, Any], group_name: str) -> str:
     body_parts.append(f"**Number of Occurrences:** {count}")
     body_parts.append("")
     
-    # Add centroid link at the top (first URL in failing_runs)
-    if centroid.get("url"):
-        body_parts.append(f"**Centroid Run:** [{centroid['url']}]({centroid['url']})")
-        body_parts.append("")
-    
-    # Add centroid error as the main description
+    # Add centroid error as the main description (no link, just error message)
     body_parts.append("## Error Message\n")
     body_parts.append("```")
     body_parts.append(centroid["error"])
@@ -622,7 +617,7 @@ def format_issue_body(group_data: Dict[str, Any], group_name: str) -> str:
     url_list = []
     centroid_url = centroid.get("url", "")
     
-    # Add all errors including centroid
+    # Add all errors including centroid (for fetching commit hashes)
     all_errors = [centroid] + errors
     
     # Fetch commit hashes for all URLs (if not already present)
@@ -643,17 +638,19 @@ def format_issue_body(group_data: Dict[str, Any], group_name: str) -> str:
         is_nd = error.get("is_nd", False)
         error_message = error.get("error", "")
         
-        # Skip if no URL or already seen (avoid duplicates)
+        # Skip if no URL or already seen
         if not url or url in seen_urls:
             continue
         
         seen_urls.add(url)
         
-        # Mark if this is the centroid
+        # Check if this is the centroid
         is_centroid = (url == centroid_url)
+        
+        # Build label - add [CENTROID] prefix if this is the centroid
         label = timestamp if timestamp else "Link"
         if is_centroid:
-            label = f"Centroid ({label})" if timestamp else "Centroid"
+            label = f"[CENTROID] {label}"
         
         # Add ND marker if applicable
         if is_nd:

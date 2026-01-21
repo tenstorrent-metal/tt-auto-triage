@@ -355,6 +355,38 @@ def extract_centroid_error(issue_body: str) -> str:
     
     return ""
 
+def extract_centroid_metadata(issue_body: str) -> Dict[str, Optional[str]]:
+    """Extract centroid URL, commit hash, and timestamp from the issue body.
+    
+    Parses format from chronological list: "1. [[CENTROID] timestamp](url) - workflow / job (commit: abc1234...)"
+    The centroid is marked with [CENTROID] prefix in the label.
+    
+    Returns:
+        Dictionary with 'url', 'commit_hash', and 'timestamp' keys
+    """
+    # Pattern to match numbered list entry with [CENTROID] flag
+    # Format: "1. [[CENTROID] timestamp](url) - workflow / job (commit: abc1234...)"
+    line_pattern = r"^\d+\.\s+\[\[CENTROID\]\s+([^\]]+)\]\(([^)]+)\)(?:\s*-\s*[^(]+)?(?:\s*\(commit:\s*([a-fA-F0-9]+)\))?"
+    
+    # Split body into lines for processing
+    lines = issue_body.split('\n')
+    
+    for line in lines:
+        match = re.match(line_pattern, line)
+        if match:
+            timestamp, url, commit_hash = match.groups()
+            return {
+                "url": url.strip() if url else None,
+                "commit_hash": commit_hash.strip() if commit_hash else None,
+                "timestamp": timestamp.strip() if timestamp else None
+            }
+    
+    return {
+        "url": None,
+        "commit_hash": None,
+        "timestamp": None
+    }
+
 def extract_failing_runs(issue_body: str) -> List[str]:
     """Extract all failing run URLs from the issue body."""
     urls = set()
@@ -393,6 +425,7 @@ def extract_run_metadata(issue_body: str) -> Dict[str, Dict[str, Any]]:
     run_metadata = {}
     
     # Pattern to match lines like: "1. [label](url) - workflow / job (commit: abc1234...)"
+    # Also handles [CENTROID] prefix: "1. [[CENTROID] label](url) - workflow / job (commit: abc1234...)"
     line_pattern = r"^\d+\.\s+\[([^\]]+)\]\(([^)]+)\)(?:\s*-\s*([^(]+))?(?:\s*\(commit:\s*([a-fA-F0-9]+)\))?"
     
     # Split body into lines for processing
@@ -485,6 +518,21 @@ def parse_issue(issue: Dict[str, Any]) -> Dict[str, Any]:
     centroid_error = extract_centroid_error(issue_body)
     failing_runs = extract_failing_runs(issue_body)
     run_metadata = extract_run_metadata(issue_body)
+    centroid_metadata = extract_centroid_metadata(issue_body)
+    
+    # If centroid metadata was found, ensure it's stored in run_metadata for the centroid URL
+    centroid_url = centroid_metadata.get("url")
+    if centroid_url and centroid_url not in run_metadata:
+        run_metadata[centroid_url] = {}
+    
+    if centroid_url and centroid_url in run_metadata:
+        # Update run_metadata with centroid commit hash and timestamp if found
+        if centroid_metadata.get("commit_hash"):
+            run_metadata[centroid_url]["commit_hash"] = centroid_metadata["commit_hash"]
+        if centroid_metadata.get("timestamp"):
+            # Store timestamp in a way that can be used later
+            # Note: We don't have a "timestamp" field in run_metadata, but we can store it
+            # For now, we'll rely on the timestamp being in the centroid line format
     
     return {
         "issue_number": issue_number,
@@ -494,6 +542,7 @@ def parse_issue(issue: Dict[str, Any]) -> Dict[str, Any]:
         "centroid_error": centroid_error,
         "failing_runs": failing_runs,
         "run_metadata": run_metadata,
+        "centroid_metadata": centroid_metadata,
         "num_occurrences": len(failing_runs)
     }
 

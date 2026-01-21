@@ -655,13 +655,7 @@ def format_issue_body(centroid_error: str, failing_runs: List[str], timestamps: 
     body_parts.append(f"**Number of Occurrences:** {count}")
     body_parts.append("")
     
-    # Add centroid link at the top (first URL in failing_runs)
-    if failing_runs:
-        centroid_url = failing_runs[0]
-        body_parts.append(f"**Centroid Run:** [{centroid_url}]({centroid_url})")
-        body_parts.append("")
-    
-    # Add centroid error as the main description
+    # Add centroid error as the main description (no link, just error message)
     body_parts.append("## Error Message\n")
     body_parts.append("```")
     body_parts.append(centroid_error)
@@ -675,9 +669,18 @@ def format_issue_body(centroid_error: str, failing_runs: List[str], timestamps: 
     
     # Create list with timestamps and metadata for sorting
     url_list = []
+    centroid_url = failing_runs[0] if failing_runs else None
+    
     for url in failing_runs:
         timestamp = timestamps.get(url, "")
+        
+        # Check if this is the centroid
+        is_centroid = (url == centroid_url)
+        
+        # Build label - add [CENTROID] prefix if this is the centroid
         label = timestamp if timestamp else "Link"
+        if is_centroid:
+            label = f"[CENTROID] {label}"
         
         # Get job/workflow info, ND flag, commit hash, and error message if available
         job_workflow_suffix = ""

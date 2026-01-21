@@ -98,12 +98,14 @@ def extract_commit_hash(error_message: str) -> Optional[str]:
     - "commit abc1234"
     - "abc1234"
     - "abc1234567890abcdef..."
+    
+    Note: Must contain at least one letter (a-f) to avoid matching pure numbers like "6291456"
     """
     if not error_message:
         return None
     
-    # Pattern for commit hash: 7-40 hex characters, possibly prefixed with "commit" or similar
-    # Look for standalone hex strings of 7+ characters
+    # Pattern for commit hash: 7-40 hex characters, must contain at least one letter
+    # Look for standalone hex strings of 7+ characters that contain letters
     patterns = [
         r'\bcommit\s+([a-fA-F0-9]{7,40})\b',  # "commit abc1234"
         r'\b([a-fA-F0-9]{7,40})\b',  # Standalone hash
@@ -113,8 +115,8 @@ def extract_commit_hash(error_message: str) -> Optional[str]:
         match = re.search(pattern, error_message)
         if match:
             commit_hash = match.group(1)
-            # Prefer shorter hashes (7 chars) as they're more likely to be commit SHAs
-            if 7 <= len(commit_hash) <= 40:
+            # Must be 7-40 chars AND contain at least one letter (to avoid matching pure numbers)
+            if 7 <= len(commit_hash) <= 40 and re.search(r'[a-fA-F]', commit_hash):
                 return commit_hash
     
     return None
@@ -609,13 +611,20 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
         timestamp_utc = parse_timestamp_to_utc(timestamp_str) if timestamp_str else None
         
         # Get commit hash from issue_dump (already extracted from issue body by download_issue_dump.py)
-        # No need to fetch from GitHub API - commit hashes are stored in the issue body when we create/update issues
+        # Fallback to GitHub API if not found in issue_dump
         commit_hash = None
         if job_url in url_to_entry:
             entry = url_to_entry[job_url]
             run_metadata = entry.get("run_metadata", {})
             if job_url in run_metadata:
                 commit_hash = run_metadata[job_url].get("commit_hash", "") or None
+        
+        # Fetch from GitHub API if still missing
+        if not commit_hash and job_url and github_token:
+            from github_api_utils import get_commit_hash_from_github
+            commit_hash = get_commit_hash_from_github(job_url, github_token)
+            if commit_hash:
+                print(f"    ✓ Fetched commit hash from GitHub API for {job_url[:60]}...")
         
         # Get Slack message link - try multiple URL formats
         slack_message_link = None
@@ -653,20 +662,42 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
             entry = url_to_entry[job_url]
             centroid_error_message = entry.get("centroid_error", "")
             
-            # Get centroid run URL (first URL in failing_runs list)
+            # Get centroid run URL from centroid_metadata (extracted from [CENTROID] flag in issue)
+            # Fallback to first URL in failing_runs if centroid_metadata not available
             failing_runs = entry.get("failing_runs", [])
-            if failing_runs:
-                # Use the first URL as the centroid run URL
+            centroid_metadata = entry.get("centroid_metadata", {})
+            centroid_run_url = centroid_metadata.get("url") if centroid_metadata else None
+            
+            # Fallback to first URL in failing_runs if centroid_metadata doesn't have URL
+            if not centroid_run_url and failing_runs:
                 centroid_run_url = failing_runs[0]
-                # Get timestamp for centroid run
-                centroid_timestamp_str = url_to_timestamp.get(centroid_run_url, "")
+            
+            if centroid_run_url:
+                # Get commit hash and timestamp from centroid_metadata
+                centroid_commit_hash = centroid_metadata.get("commit_hash") if centroid_metadata else None
+                centroid_timestamp_str = centroid_metadata.get("timestamp") if centroid_metadata else None
+                
+                # Fallback to run_metadata if centroid_metadata not available
+                run_metadata = entry.get("run_metadata", {})
+                if not centroid_commit_hash and centroid_run_url in run_metadata:
+                    centroid_commit_hash = run_metadata[centroid_run_url].get("commit_hash", "") or None
+                
+                # Fallback to url_to_timestamp if centroid_metadata timestamp not available
+                if not centroid_timestamp_str:
+                    centroid_timestamp_str = url_to_timestamp.get(centroid_run_url, "")
+                
+                # Parse timestamp if available
                 if centroid_timestamp_str:
                     centroid_timestamp_utc = parse_timestamp_to_utc(centroid_timestamp_str)
+                else:
+                    centroid_timestamp_utc = None
                 
-                # Get commit hash for centroid run from issue_dump (already stored in issue body)
-                run_metadata = entry.get("run_metadata", {})
-                if centroid_run_url in run_metadata:
-                    centroid_commit_hash = run_metadata[centroid_run_url].get("commit_hash", "") or None
+                # Fetch commit hash from GitHub API if still missing
+                if not centroid_commit_hash and github_token:
+                    from github_api_utils import get_commit_hash_from_github
+                    centroid_commit_hash = get_commit_hash_from_github(centroid_run_url, github_token)
+                    if centroid_commit_hash:
+                        print(f"    ✓ Fetched centroid commit hash from GitHub API for {centroid_run_url[:60]}...")
             
             # Find oldest run in this centroid group
             oldest_run = find_oldest_run_in_centroid(entry, all_errors, url_to_timestamp, url_to_error_message)
@@ -674,13 +705,22 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
             # Get commit hash for oldest run from issue_dump (already stored in issue body)
             if oldest_run and oldest_run.get("run_url"):
                 oldest_url = oldest_run["run_url"]
+                oldest_commit_hash = None
                 if oldest_url in url_to_entry:
                     entry = url_to_entry[oldest_url]
                     run_metadata = entry.get("run_metadata", {})
                     if oldest_url in run_metadata:
-                        oldest_commit_hash = run_metadata[oldest_url].get("commit_hash", "")
-                        if oldest_commit_hash:
-                            oldest_run["commit_hash"] = oldest_commit_hash
+                        oldest_commit_hash = run_metadata[oldest_url].get("commit_hash", "") or None
+                
+                # Fetch from GitHub API if still missing
+                if not oldest_commit_hash and oldest_url and github_token:
+                    from github_api_utils import get_commit_hash_from_github
+                    oldest_commit_hash = get_commit_hash_from_github(oldest_url, github_token)
+                    if oldest_commit_hash:
+                        print(f"    ✓ Fetched oldest run commit hash from GitHub API for {oldest_url[:60]}...")
+                
+                if oldest_commit_hash:
+                    oldest_run["commit_hash"] = oldest_commit_hash
         else:
             unmatched_count += 1
         
