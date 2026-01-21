@@ -358,6 +358,8 @@ if [ "$RERUN_HTTP_CODE" != "201" ] && [ "$RERUN_HTTP_CODE" != "200" ]; then
             echo -e "${YELLOW}NOTE: 403 Forbidden - GITHUB_TOKEN needs 'actions: write' permission${NC}"
         fi
         echo -e "${YELLOW}Proceeding without retry${NC}"
+        
+        # No retry was triggered, so no notification needed - just proceed with original analysis
         exit 0
     fi
 fi
@@ -529,89 +531,164 @@ while [ $WAITED -lt $((MAX_WAIT_MINUTES * 60)) ]; do
     
     if [ "$STATUS" = "unknown" ]; then
         echo -e "${RED}Failed to get status${NC}"
+        send_retry_notification "$(printf ':warning: *Retry status check failed.*\n\nCould not get job/run status. Proceeding with original analysis.')"
         exit 0
     fi
 done
 
 if [ "$STATUS" != "completed" ]; then
-    echo -e "${RED}Timeout waiting for retry job to complete${NC}"
+    echo -e "${RED}Timeout waiting for retry job to complete (${MAX_WAIT_MINUTES} minutes)${NC}"
+    send_retry_notification "$(printf ':hourglass: *Retry timed out.*\n\nJob did not complete within %d minutes.\nProceeding with original analysis.\n\n_Check the retry run:_ <%s|link>' "$MAX_WAIT_MINUTES" "$NEW_RUN_URL")"
+    
+    # Add note to slack message
+    if [ -f "$SLACK_MSG_PATH" ]; then
+        EXISTING_NOTES=$(jq -r '.notes // ""' "$SLACK_MSG_PATH")
+        RETRY_NOTE="*NOTE:* An automatic retry was triggered but timed out before completing. The analysis below is based on the original failure only."
+        if [ -n "$EXISTING_NOTES" ] && [ "$EXISTING_NOTES" != "null" ]; then
+            COMBINED_NOTES="${EXISTING_NOTES}
+
+---
+
+${RETRY_NOTE}"
+        else
+            COMBINED_NOTES="${RETRY_NOTE}"
+        fi
+        jq --arg notes "$COMBINED_NOTES" '.notes = $notes' "$SLACK_MSG_PATH" > "${SLACK_MSG_PATH}.tmp"
+        mv "${SLACK_MSG_PATH}.tmp" "$SLACK_MSG_PATH"
+    fi
+    
     exit 0
 fi
 
-# Find the specific job in the retry attempt
+# ============================================================================
+# Find the specific retry job results
+# IMPORTANT: Use the job ID we've been tracking to avoid comparing wrong jobs
+# ============================================================================
 echo -e "${BLUE}Finding retry job results...${NC}"
-RETRY_JOBS=$(gh api "repos/${OWNER}/${REPO}/actions/runs/${RUN_ID}/attempts/${NEW_ATTEMPT}/jobs?per_page=100" 2>&1 || echo "{}")
 
-# Debug: Check what we got back
-echo -e "${BLUE}API response type check...${NC}"
-RESPONSE_TYPE=$(echo "$RETRY_JOBS" | jq -r 'type' 2>/dev/null || echo "invalid")
-echo -e "${BLUE}Response type: ${RESPONSE_TYPE}${NC}"
+RETRY_JOB=""
+RETRY_JOB_ID=""
+RETRY_JOB_CONCLUSION=""
 
-if [ "$RESPONSE_TYPE" = "invalid" ] || [ "$RESPONSE_TYPE" = "string" ]; then
-    echo -e "${RED}API returned invalid response or error: ${RETRY_JOBS}${NC}"
-    echo -e "${YELLOW}Proceeding with original analysis${NC}"
-    exit 0
+# FIRST: If we have a tracked job ID from polling, use it directly
+# This is the SAFEST approach - we know this is the exact job we retried
+if [ -n "$POLL_JOB_ID" ] && [ "$POLL_JOB_ID" != "null" ]; then
+    echo -e "${GREEN}Using tracked job ID from polling: ${POLL_JOB_ID}${NC}"
+    RETRY_JOB=$(gh api "repos/${OWNER}/${REPO}/actions/jobs/${POLL_JOB_ID}" 2>/dev/null || echo "{}")
+    RETRY_JOB_ID="$POLL_JOB_ID"
+    RETRY_JOB_CONCLUSION=$(echo "$RETRY_JOB" | jq -r '.conclusion // "unknown"')
+    RETRY_JOB_NAME=$(echo "$RETRY_JOB" | jq -r '.name // "unknown"')
+    echo -e "${GREEN}Confirmed job: ${RETRY_JOB_NAME}${NC}"
+    echo -e "${GREEN}Conclusion: ${RETRY_JOB_CONCLUSION}${NC}"
 fi
 
-# Check if jobs array exists
-JOBS_COUNT=$(echo "$RETRY_JOBS" | jq '.jobs | length' 2>/dev/null || echo "0")
-echo -e "${BLUE}Found ${JOBS_COUNT} jobs in retry attempt${NC}"
-
-if [ "$JOBS_COUNT" = "0" ]; then
-    echo -e "${YELLOW}No jobs found in retry attempt, checking main jobs endpoint...${NC}"
-    # Try the main jobs endpoint instead
-    RETRY_JOBS=$(gh api "repos/${OWNER}/${REPO}/actions/runs/${RUN_ID}/jobs?per_page=100" 2>&1 || echo "{}")
+# SECOND: If we don't have a tracked job ID, search by name (but be strict)
+if [ -z "$RETRY_JOB_ID" ] || [ "$RETRY_JOB_ID" = "null" ]; then
+    echo -e "${YELLOW}No tracked job ID, searching by name...${NC}"
+    
+    RETRY_JOBS=$(gh api "repos/${OWNER}/${REPO}/actions/runs/${RUN_ID}/attempts/${NEW_ATTEMPT}/jobs?per_page=100" 2>&1 || echo "{}")
+    
+    # Debug: Check what we got back
+    RESPONSE_TYPE=$(echo "$RETRY_JOBS" | jq -r 'type' 2>/dev/null || echo "invalid")
+    
+    if [ "$RESPONSE_TYPE" = "invalid" ] || [ "$RESPONSE_TYPE" = "string" ]; then
+        echo -e "${RED}API returned invalid response or error: ${RETRY_JOBS}${NC}"
+        echo -e "${YELLOW}Proceeding with original analysis${NC}"
+        send_retry_notification "$(printf ':warning: *Could not get retry results.*\n\nAPI returned invalid response. Proceeding with original analysis.')"
+        exit 0
+    fi
+    
     JOBS_COUNT=$(echo "$RETRY_JOBS" | jq '.jobs | length' 2>/dev/null || echo "0")
-    echo -e "${BLUE}Found ${JOBS_COUNT} jobs from main endpoint${NC}"
-fi
-
-# Normalize the job name for matching (handle unicode dashes, lowercase)
-normalize_name() {
-    echo "$1" | tr '[:upper:]' '[:lower:]' | sed 's/[–—−‐‑‒]/-/g'
-}
-
-JOB_NAME_NORMALIZED=$(normalize_name "$JOB_NAME")
-echo -e "${BLUE}Looking for job matching: ${JOB_NAME_NORMALIZED}${NC}"
-
-# Find the matching job by name - try exact match first, then partial
-RETRY_JOB=$(echo "$RETRY_JOBS" | jq --arg name "$JOB_NAME_NORMALIZED" '
-    def normalize: ascii_downcase | gsub("[–—−‐‑‒]"; "-");
-    .jobs // [] | 
-    map(select((.name | normalize) == $name or (.name | normalize | contains($name)) or ($name | contains(.name | normalize)))) |
-    sort_by(.status == "completed" | not) |
-    first // null
-' 2>/dev/null || echo "null")
-
-if [ "$RETRY_JOB" = "null" ] || [ -z "$RETRY_JOB" ]; then
-    echo -e "${YELLOW}Could not find job by name match, trying to find any failed job...${NC}"
-    # Try to find any failed job in the retry attempt
-    RETRY_JOB=$(echo "$RETRY_JOBS" | jq '
+    echo -e "${BLUE}Found ${JOBS_COUNT} jobs in retry attempt${NC}"
+    
+    if [ "$JOBS_COUNT" = "0" ]; then
+        echo -e "${YELLOW}No jobs found in retry attempt, checking main jobs endpoint...${NC}"
+        RETRY_JOBS=$(gh api "repos/${OWNER}/${REPO}/actions/runs/${RUN_ID}/jobs?per_page=100" 2>&1 || echo "{}")
+        JOBS_COUNT=$(echo "$RETRY_JOBS" | jq '.jobs | length' 2>/dev/null || echo "0")
+        echo -e "${BLUE}Found ${JOBS_COUNT} jobs from main endpoint${NC}"
+    fi
+    
+    # Normalize the job name for matching (handle unicode dashes, lowercase)
+    normalize_name() {
+        echo "$1" | tr '[:upper:]' '[:lower:]' | sed 's/[–—−‐‑‒]/-/g'
+    }
+    
+    JOB_NAME_NORMALIZED=$(normalize_name "$JOB_NAME")
+    echo -e "${BLUE}Looking for job matching: ${JOB_NAME_NORMALIZED}${NC}"
+    
+    # List all job names for debugging
+    echo -e "${BLUE}All jobs in response:${NC}"
+    echo "$RETRY_JOBS" | jq -r '.jobs // [] | .[].name' 2>/dev/null || echo "(none)"
+    
+    # Find the matching job by name - try exact match first, then partial
+    RETRY_JOB=$(echo "$RETRY_JOBS" | jq --arg name "$JOB_NAME_NORMALIZED" '
+        def normalize: ascii_downcase | gsub("[–—−‐‑‒]"; "-");
         .jobs // [] | 
-        map(select(.status == "completed" and .conclusion == "failure")) |
+        map(select((.name | normalize) == $name or (.name | normalize | contains($name)) or ($name | contains(.name | normalize)))) |
+        sort_by(.status == "completed" | not) |
         first // null
     ' 2>/dev/null || echo "null")
+    
+    # REMOVED: Dangerous fallback to "any failed job" - this caused comparing wrong jobs!
+    # If we can't find the specific job by name, we should NOT proceed with comparison
+    
+    if [ "$RETRY_JOB" = "null" ] || [ -z "$RETRY_JOB" ]; then
+        echo -e "${RED}ERROR: Could not find retry job by name match${NC}"
+        echo -e "${RED}Job name we're looking for: ${JOB_NAME}${NC}"
+        echo -e "${RED}This is a safety check to prevent comparing wrong jobs${NC}"
+        echo -e "${YELLOW}Proceeding with original analysis (no retry comparison)${NC}"
+        
+        # Send notification that we couldn't determine retry result
+        send_retry_notification "$(printf ':warning: *Retry was triggered but could not verify results.*\n\nCould not find the specific job in retry attempt.\nProceeding with original analysis.\n\n_Job name:_ %s' "$JOB_NAME")"
+        
+        # Add note to slack message
+        if [ -f "$SLACK_MSG_PATH" ]; then
+            EXISTING_NOTES=$(jq -r '.notes // ""' "$SLACK_MSG_PATH")
+            RETRY_NOTE="*NOTE:* An automatic retry was triggered but we could not verify the results (job not found in retry attempt). The analysis below is based on the original failure only."
+            if [ -n "$EXISTING_NOTES" ] && [ "$EXISTING_NOTES" != "null" ]; then
+                COMBINED_NOTES="${EXISTING_NOTES}
+
+---
+
+${RETRY_NOTE}"
+            else
+                COMBINED_NOTES="${RETRY_NOTE}"
+            fi
+            jq --arg notes "$COMBINED_NOTES" '.notes = $notes' "$SLACK_MSG_PATH" > "${SLACK_MSG_PATH}.tmp"
+            mv "${SLACK_MSG_PATH}.tmp" "$SLACK_MSG_PATH"
+        fi
+        
+        exit 0
+    fi
+    
+    RETRY_JOB_ID=$(echo "$RETRY_JOB" | jq -r '.id // ""')
+    RETRY_JOB_CONCLUSION=$(echo "$RETRY_JOB" | jq -r '.conclusion // "unknown"')
+    RETRY_JOB_NAME=$(echo "$RETRY_JOB" | jq -r '.name // "unknown"')
+    echo -e "${GREEN}Found job by name: ${RETRY_JOB_NAME} (ID: ${RETRY_JOB_ID})${NC}"
 fi
-
-if [ "$RETRY_JOB" = "null" ] || [ -z "$RETRY_JOB" ]; then
-    echo -e "${YELLOW}No failed jobs found, trying any completed job...${NC}"
-    # Fall back to any completed job
-    RETRY_JOB=$(echo "$RETRY_JOBS" | jq '
-        .jobs // [] | 
-        map(select(.status == "completed")) |
-        first // null
-    ' 2>/dev/null || echo "null")
-fi
-
-# List all job names for debugging
-echo -e "${BLUE}All jobs in response:${NC}"
-echo "$RETRY_JOBS" | jq -r '.jobs // [] | .[].name' 2>/dev/null || echo "(none)"
-
-RETRY_JOB_ID=$(echo "$RETRY_JOB" | jq -r '.id // ""')
-RETRY_JOB_CONCLUSION=$(echo "$RETRY_JOB" | jq -r '.conclusion // "unknown"')
 
 if [ -z "$RETRY_JOB_ID" ] || [ "$RETRY_JOB_ID" = "null" ]; then
     echo -e "${RED}Could not find retry job ID${NC}"
     echo -e "${YELLOW}Proceeding with original analysis${NC}"
+    send_retry_notification "$(printf ':warning: *Could not verify retry results.*\n\nJob ID not found. Proceeding with original analysis.')"
+    
+    # Add note to slack message
+    if [ -f "$SLACK_MSG_PATH" ]; then
+        EXISTING_NOTES=$(jq -r '.notes // ""' "$SLACK_MSG_PATH")
+        RETRY_NOTE="*NOTE:* An automatic retry was triggered but we could not verify the results. The analysis below is based on the original failure only."
+        if [ -n "$EXISTING_NOTES" ] && [ "$EXISTING_NOTES" != "null" ]; then
+            COMBINED_NOTES="${EXISTING_NOTES}
+
+---
+
+${RETRY_NOTE}"
+        else
+            COMBINED_NOTES="${RETRY_NOTE}"
+        fi
+        jq --arg notes "$COMBINED_NOTES" '.notes = $notes' "$SLACK_MSG_PATH" > "${SLACK_MSG_PATH}.tmp"
+        mv "${SLACK_MSG_PATH}.tmp" "$SLACK_MSG_PATH"
+    fi
+    
     exit 0
 fi
 
