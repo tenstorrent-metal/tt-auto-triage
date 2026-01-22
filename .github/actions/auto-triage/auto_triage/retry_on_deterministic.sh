@@ -78,6 +78,40 @@ echo -e "  EXPLANATION_PATH: ${EXPLANATION_PATH}"
 OWNER="tenstorrent"
 REPO="tt-metal"
 
+# ============================================================================
+# Send Slack notification helper function
+# Defined early so it can be used for error notifications
+# ============================================================================
+send_retry_notification() {
+    local message="$1"
+    local payload
+    
+    if [ -n "$SLACK_TS" ]; then
+        payload=$(jq -n --arg text "$message" --arg ts "$SLACK_TS" '{text: $text, thread_ts: $ts}')
+    else
+        payload=$(jq -n --arg text "$message" '{text: $text}')
+    fi
+    
+    if [ -n "${SLACK_BOT_TOKEN:-}" ] && [ -n "${SLACK_CHANNEL_ID:-}" ]; then
+        echo -e "${BLUE}Sending Slack notification...${NC}"
+        SLACK_RESPONSE=$(curl -s -X POST "https://slack.com/api/chat.postMessage" \
+            -H "Authorization: Bearer ${SLACK_BOT_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "$(echo "$payload" | jq --arg channel "$SLACK_CHANNEL_ID" '. + {channel: $channel}')" \
+            2>&1)
+        
+        SLACK_OK=$(echo "$SLACK_RESPONSE" | jq -r '.ok // false' 2>/dev/null || echo "false")
+        if [ "$SLACK_OK" = "true" ]; then
+            echo -e "${GREEN}Slack notification sent successfully${NC}"
+        else
+            SLACK_ERROR=$(echo "$SLACK_RESPONSE" | jq -r '.error // "unknown"' 2>/dev/null || echo "unknown")
+            echo -e "${YELLOW}Warning: Slack notification failed: ${SLACK_ERROR}${NC}"
+        fi
+    else
+        echo -e "${YELLOW}Slack credentials not set, skipping notification${NC}"
+    fi
+}
+
 # Initialize retry result
 echo '{"result": "no_retry", "message": ""}' > "$RETRY_RESULT_FILE"
 
@@ -417,6 +451,7 @@ if [ "$RERUN_HTTP_CODE" != "201" ] && [ "$RERUN_HTTP_CODE" != "200" ]; then
     
     # Don't fallback to rerun-failed-jobs - just proceed with original analysis
     echo -e "${YELLOW}Proceeding without retry${NC}"
+    send_retry_notification "$(printf ':warning: *Auto-retry failed to trigger.*\n\nJob: %s\nWorkflow: %s\nHTTP code: %s\n\n_Proceeding with original analysis._' "$JOB_NAME" "$WORKFLOW_NAME" "$RERUN_HTTP_CODE")"
     exit 0
 fi
 
@@ -440,6 +475,7 @@ done
 if [ "$NEW_ATTEMPT" = "$OLD_ATTEMPT" ]; then
     echo -e "${RED}New run attempt did not start within ${MAX_WAIT_FOR_START}s${NC}"
     echo -e "${YELLOW}Proceeding without retry${NC}"
+    send_retry_notification "$(printf ':warning: *Auto-retry failed to start.*\n\nJob: %s\nWorkflow: %s\n\n_New run attempt did not start within %ds. Proceeding with original analysis._' "$JOB_NAME" "$WORKFLOW_NAME" "$MAX_WAIT_FOR_START")"
     exit 0
 fi
 
@@ -478,37 +514,6 @@ if [ "$EARLY_JOBS_COUNT" != "0" ]; then
 else
     echo -e "${YELLOW}No jobs found yet in new attempt, using run URL${NC}"
 fi
-
-# Send quick Slack notification about the retry
-send_retry_notification() {
-    local message="$1"
-    local payload
-    
-    if [ -n "$SLACK_TS" ]; then
-        payload=$(jq -n --arg text "$message" --arg ts "$SLACK_TS" '{text: $text, thread_ts: $ts}')
-    else
-        payload=$(jq -n --arg text "$message" '{text: $text}')
-    fi
-    
-    if [ -n "${SLACK_BOT_TOKEN:-}" ] && [ -n "${SLACK_CHANNEL_ID:-}" ]; then
-        echo -e "${BLUE}Sending Slack notification...${NC}"
-        SLACK_RESPONSE=$(curl -s -X POST "https://slack.com/api/chat.postMessage" \
-            -H "Authorization: Bearer ${SLACK_BOT_TOKEN}" \
-            -H "Content-Type: application/json" \
-            -d "$(echo "$payload" | jq --arg channel "$SLACK_CHANNEL_ID" '. + {channel: $channel}')" \
-            2>&1)
-        
-        SLACK_OK=$(echo "$SLACK_RESPONSE" | jq -r '.ok // false' 2>/dev/null || echo "false")
-        if [ "$SLACK_OK" = "true" ]; then
-            echo -e "${GREEN}Slack notification sent successfully${NC}"
-        else
-            SLACK_ERROR=$(echo "$SLACK_RESPONSE" | jq -r '.error // "unknown"' 2>/dev/null || echo "unknown")
-            echo -e "${YELLOW}Warning: Slack notification failed: ${SLACK_ERROR}${NC}"
-        fi
-    else
-        echo -e "${YELLOW}Slack credentials not set, skipping notification${NC}"
-    fi
-}
 
 # Send notification about retry - use specific job URL if found
 # Use printf to create actual newlines (not literal \n)
