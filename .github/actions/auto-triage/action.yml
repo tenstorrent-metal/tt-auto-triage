@@ -272,10 +272,9 @@ runs:
           "${{ inputs.slack_ts }}"
       env:
         COPILOT_GITHUB_TOKEN: ${{ inputs.copilot-pat }}
-        # Use PAT for gh CLI calls - needed for re-running jobs which requires broader permissions
-        # than the default github.token provides
-        GH_TOKEN: ${{ inputs.copilot-pat }}
-        GITHUB_TOKEN: ${{ inputs.copilot-pat }}
+        # Use github.token for gh CLI calls - requires 'permissions: actions: write' in calling workflow
+        GH_TOKEN: ${{ github.token }}
+        GITHUB_TOKEN: ${{ github.token }}
         SLACK_BOT_TOKEN: ${{ env.SLACK_BOT_TOKEN }}
         SLACK_CHANNEL_ID: ${{ env.SLACK_CHANNEL_ID }}
 
