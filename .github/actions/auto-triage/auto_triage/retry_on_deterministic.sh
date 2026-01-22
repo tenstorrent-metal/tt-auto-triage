@@ -154,7 +154,7 @@ else
     # Check if job name contains supported hardware (N150, N300, P150, P300)
     # Case-insensitive check
     JOB_NAME_LOWER=$(echo "$JOB_NAME" | tr '[:upper:]' '[:lower:]')
-    if ! echo "$JOB_NAME_LOWER" | grep -qiE '(n150|n300|p150|p300|p100a)'; then
+    if ! echo "$JOB_NAME_LOWER" | grep -qiE '(n150|n300|p150|p300|p100)'; then
         echo -e "${YELLOW}Job '$JOB_NAME' does not contain N150/N300/P150/P300/P100A, skipping retry${NC}"
         echo -e "${YELLOW}(Jobs with galaxy, T3K, or are too expensive for automatic retries)${NC}"
         exit 0
