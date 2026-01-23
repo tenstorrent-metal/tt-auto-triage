@@ -470,6 +470,7 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
         issue_dump = []
     
     # Build reverse lookup: URL -> issue entry (much faster than similarity matching)
+    # issue_dump is now built from repository issues, so it contains all open issues
     print(f"\nBuilding URL to issue mapping...")
     url_to_entry = {}
     existing_urls = set()

@@ -550,38 +550,79 @@ def parse_issue(issue: Dict[str, Any]) -> Dict[str, Any]:
 # Main Function
 # ============================================================================
 
+def get_repository_issues() -> List[Dict[str, Any]]:
+    """Get all open issues from the repository."""
+    if not GITHUB_REPO_OWNER or not GITHUB_REPO_NAME:
+        print("ERROR: github_repo_owner or github_repo_name not found in secrets.json")
+        return []
+    
+    url = f"https://api.github.com/repos/{GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}/issues"
+    headers = {
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+    
+    all_issues = []
+    page = 1
+    per_page = 100
+    
+    print(f"Fetching open issues from repository {GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}...")
+    
+    while True:
+        params = {
+            "state": "open",  # Only fetch open issues
+            "per_page": per_page,
+            "page": page
+        }
+        
+        try:
+            response = requests.get(url, headers=headers, params=params)
+            response.raise_for_status()
+            issues = response.json()
+            
+            # Filter out pull requests
+            actual_issues = [issue for issue in issues if "pull_request" not in issue]
+            all_issues.extend(actual_issues)
+            
+            print(f"  Page {page}: Found {len(actual_issues)} issue(s)")
+            
+            if len(issues) < per_page:
+                break
+            
+            page += 1
+            time.sleep(0.5)  # Rate limiting
+            
+        except Exception as e:
+            print(f"ERROR: Failed to fetch repository issues: {e}")
+            break
+    
+    return all_issues
+
 def main():
     """Main function."""
     print("="*80)
-    print("Downloading issues from GitHub project")
+    print("Downloading issues from GitHub repository")
     print("="*80)
     
     if not GITHUB_TOKEN:
         print("ERROR: GITHUB_TOKEN not found in secrets.json")
         sys.exit(1)
     
-    if not PROJECT_OWNER or not PROJECT_NAME:
-        print("⚠ Warning: project_owner or project_name not found in secrets.json")
-        print("  Skipping project download. Issue dump will not be refreshed from project.")
-        print("  This is OK if you're running without a GitHub project configured.")
-        print("  The sync will use the existing issue_dump.json file if it exists.")
-        return
+    if not GITHUB_REPO_OWNER or not GITHUB_REPO_NAME:
+        print("ERROR: github_repo_owner or github_repo_name not found in secrets.json")
+        sys.exit(1)
     
-    print(f"Downloading issues from project '{PROJECT_NAME}'")
-    
-    # Find the project
-    print(f"\nFinding project '{PROJECT_NAME}' in organization '{PROJECT_OWNER}'...")
-    project = find_project_by_name(PROJECT_NAME)
-    project_id = project["id"]
-    project_number = project["number"]
-    
-    # Get all issues from the project
-    print(f"\nFetching all issues from project...")
-    issues = get_project_items(project_id)
-    print(f"Found {len(issues)} issue(s)")
+    # Get all open issues from the repository
+    print(f"\nFetching all open issues from repository...")
+    issues = get_repository_issues()
+    print(f"Found {len(issues)} open issue(s)")
     
     if len(issues) == 0:
-        print("No issues found in project.")
+        print("No open issues found in repository.")
+        # Still create empty file to avoid errors downstream
+        with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
+            json.dump([], f, indent=2, ensure_ascii=False)
+        print(f"Created empty {OUTPUT_FILE}")
         return
     
     # Parse each issue
