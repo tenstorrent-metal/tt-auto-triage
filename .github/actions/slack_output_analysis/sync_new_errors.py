@@ -1211,30 +1211,31 @@ def main():
             if len(error_entry) > 2:
                 all_timestamps[url] = error_entry[2]
     
-    # Build set of existing URLs from issues in the PROJECT BOARD only
-    # This uses issue_dump (from project) not all repo issues
-    # Issues in the repo but NOT in the project board are ignored
-    print(f"\nBuilding set of existing URLs from PROJECT BOARD issues...")
+    # Build set of existing URLs from ALL OPEN REPOSITORY ISSUES
+    # This ensures we catch duplicates even if issues aren't in the project board
+    print(f"\nBuilding set of existing URLs from OPEN REPOSITORY ISSUES...")
     existing_urls = set()
-    total_urls_in_project = 0
+    total_urls_in_repo = 0
+    open_repo_issues = [issue for issue in issues if issue.get("state") != "closed"]
     
-    for entry in issue_dump:
-        failing_runs = entry.get("failing_runs", [])
-        for url in failing_runs:
+    for issue in open_repo_issues:
+        issue_body = issue.get("body", "")
+        urls = extract_urls_from_issue_body(issue_body)
+        for url in urls:
             if url:
                 existing_urls.add(url)
-                total_urls_in_project += 1
+                total_urls_in_repo += 1
     
-    print(f"  Issues in project board: {len(issue_dump)}")
-    print(f"  Total URLs in project board issues: {total_urls_in_project}")
+    print(f"  Open issues in repository: {len(open_repo_issues)}")
+    print(f"  Total URLs in open repo issues: {total_urls_in_repo}")
     print(f"  Unique URLs: {len(existing_urls)}")
     
-    # Also report orphan issues (in repo but not in project)
-    open_repo_issues = sum(1 for issue in issues if issue.get("state") != "closed")
-    orphan_count = open_repo_issues - len(centroid_to_issue)
+    # Also report issues in repo but not in project board (for informational purposes)
+    issues_in_project = len(issue_dump)
+    orphan_count = len(open_repo_issues) - issues_in_project
     if orphan_count > 0:
-        print(f"  ⚠ Warning: {orphan_count} open issue(s) in repo are NOT in the project board")
-        print(f"    Consider closing or adding them to the project")
+        print(f"  Note: {orphan_count} open issue(s) in repo are NOT in the project board")
+        print(f"    They will still be tracked for duplicate detection")
     
     # Parse date range filters
     date_range_start = parse_date_to_datetime(DATE_RANGE_START)
@@ -1284,8 +1285,8 @@ def main():
         print(f"  Skipped (outside date range): {skipped_date_range}")
     print(f"  New errors to process: {len(new_errors)}")
     
-    if skipped_existing == 0 and len(all_errors) > 0:
-        print(f"  ⚠ Warning: No existing URLs found - issue_dump might be empty or out of sync")
+    if skipped_existing == 0 and len(all_errors) > 0 and len(open_repo_issues) == 0:
+        print(f"  ⚠ Warning: No open issues found in repository - all errors will be treated as new")
     
     # Process new errors if any
     new_count = 0
