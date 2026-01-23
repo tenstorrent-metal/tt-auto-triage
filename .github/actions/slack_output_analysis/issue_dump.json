@@ -1,0 +1,2822 @@
+[
+  {
+    "centroid_error": "Physical Discovery found 1 missing channel connections:\n  - PhysicalChannelEndpoint{hostname='fe9bd61e4eff', tray_id=1, asic_channel=AsicChannel{asic_location=8, channel_id=8}} <-> PhysicalChannelEndpoint{hostname='fe9bd61e4eff', tray_id=3, asic_channel=AsicChannel{asic_location=8, channel_id=8}}\n\nterminate called after throwing an instance of 'std::runtime_error'\n  what():  Connection mismatch detected. Check console output for details.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21291394610/job/61286945929"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21291394610/job/61286945929": {
+        "job_name": "galaxy-quick-test / quick-wh-glx-quick",
+        "workflow_name": "galaxy-quick",
+        "is_nd": true,
+        "commit_hash": "239706d5ce5d82e5f21c0465f3600adcf7beab9e",
+        "error_message": "Physical Discovery found 1 missing channel connections:\n- PhysicalChannelEndpoint{hostname='fe9bd61e4eff', tray_id=1, asic_channel=AsicChannel{asic_location=8, channel_id=8}} <-> PhysicalChannelEndpoint{hostname='fe9bd61e4eff', tray_id=3, asic_channel=AsicChannel{asic_location=8, channel_id=8}}\n\nterminate called after throwing an instance of 'std::runtime_error'\nwhat():  Connection mismatch detected. Check console output for details.",
+        "timestamp": "January 23rd, 4:21pm, 27.93 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21291394610/job/61286945929",
+      "commit_hash": "239706d5ce5d82e5f21c0465f3600adcf7beab9e",
+      "timestamp": "January 23rd, 4:21pm, 27.93 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "Physical Discovery found 7 missing channel connections and 4 missing port/cable connections. terminate called after throwing an instance of 'std::runtime_error' what(): Connection mismatch detected. Check console output for details. ./build/tools/scaleout/run_cluster_validation (aborted, exit code 134)",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21292556364/job/61290656545"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21292556364/job/61290656545": {
+        "job_name": "galaxy-quick-test / quick-bh-glx-health",
+        "workflow_name": "galaxy-quick",
+        "is_nd": true,
+        "commit_hash": "239706d5ce5d82e5f21c0465f3600adcf7beab9e",
+        "error_message": "Physical Discovery found 7 missing channel connections and 4 missing port/cable connections. terminate called after throwing an instance of 'std::runtime_error' what(): Connection mismatch detected. Check console output for details. ./build/tools/scaleout/run_cluster_validation (aborted, exit code 134)",
+        "timestamp": "January 23rd, 4:46pm, 34.36 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21292556364/job/61290656545",
+      "commit_hash": "239706d5ce5d82e5f21c0465f3600adcf7beab9e",
+      "timestamp": "January 23rd, 4:46pm, 34.36 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "RuntimeError: Timed out after waiting 300000ms ms for arc core (0, 10) to start\nTT_THROW: TIMEOUT: device timeout, potential hang detected, the device is unrecoverable",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21153831191/job/60835269311"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21153831191/job/60835269311": {
+        "job_name": "fd-nightly / Nightly CIv2-compatible N150 gemma-3-4b-it",
+        "workflow_name": "fast-dispatch-full-regressions-and-models",
+        "is_nd": true,
+        "commit_hash": "4d537c4f95c05fc4c88670ec013935bbdb197fcb",
+        "error_message": "RuntimeError: Timed out after waiting 300000ms ms for arc core (0, 10) to start\nTT_THROW: TIMEOUT: device timeout, potential hang detected, the device is unrecoverable",
+        "timestamp": "January 20th, 12:56am, 33.05 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21153831191/job/60835269311",
+      "commit_hash": "4d537c4f95c05fc4c88670ec013935bbdb197fcb",
+      "timestamp": "January 20th, 12:56am, 33.05 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "Performance regression test failed with 0.145% deviation (threshold: 0.05%). Expected speedup within 0.0005 but observed 0.0014533. This is a marginal deviation on a performance test with only 1 occurrence and visible runner instability (multiple disconnection errors).",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21155019747/job/60838722032"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21155019747/job/60838722032": {
+        "job_name": "metalium-smoke-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": false,
+        "commit_hash": "",
+        "error_message": "Performance regression test failed with 0.145% deviation (threshold: 0.05%). Expected speedup within 0.0005 but observed 0.0014533. This is a marginal deviation on a performance test with only 1 occurrence and visible runner instability (multiple disconnection errors).",
+        "timestamp": "January 20th, 1:27am, 2.59 seconds"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21155019747/job/60838722032",
+      "commit_hash": null,
+      "timestamp": "January 20th, 1:27am, 2.59 seconds"
+    }
+  },
+  {
+    "centroid_error": "TorusAllToAllMulticast [FAIL]\nTT_THROW @ test_tt_fabric.cpp:318: tt::exception\ninfo: Some tests failed golden comparison validation.\nterminate called after throwing an instance of 'std::runtime_error'",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21155106481/job/60838792069"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21155106481/job/60838792069": {
+        "job_name": "galaxy-quick-test / quick-wh-glx-health",
+        "workflow_name": "galaxy-quick",
+        "is_nd": true,
+        "commit_hash": "042abfccd5555d0d4d91080b6ba095596daeba51",
+        "error_message": "TorusAllToAllMulticast [FAIL]\nTT_THROW @ test_tt_fabric.cpp:318: tt::exception\ninfo: Some tests failed golden comparison validation.\nterminate called after throwing an instance of 'std::runtime_error'",
+        "timestamp": "January 20th, 1:23am, 17.36 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21155106481/job/60838792069",
+      "commit_hash": "042abfccd5555d0d4d91080b6ba095596daeba51",
+      "timestamp": "January 20th, 1:23am, 17.36 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "ERROR | models.perf.device_perf_utils:check_device_perf:214 - AVG DEVICE KERNEL SAMPLES/S 1631.715657229571 is outside of expected range (1631.8, 1648.1999999999998)",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21157729545/job/60846178986"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21157729545/job/60846178986": {
+        "job_name": "device-perf / N300 WH B0 Set 1 device perf",
+        "workflow_name": "perf-device-models",
+        "is_nd": false,
+        "commit_hash": "2fa02201a395cd0a9d0a29f087b303c8982c6b58",
+        "error_message": "ERROR | models.perf.device_perf_utils:check_device_perf:214 - AVG DEVICE KERNEL SAMPLES/S 1631.715657229571 is outside of expected range (1631.8, 1648.1999999999998)",
+        "timestamp": "January 20th, 4:22am, 5.01 seconds"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21157729545/job/60846178986",
+      "commit_hash": "2fa02201a395cd0a9d0a29f087b303c8982c6b58",
+      "timestamp": "January 20th, 4:22am, 5.01 seconds"
+    }
+  },
+  {
+    "centroid_error": "##[error]Unable to reset board successfully.\nError: unable to reset board\n##[error]This runner will now shutdown and refuse to run further jobs.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21159324546/job/60850938248"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21159324546/job/60850938248": {
+        "job_name": "galaxy-quick-test / quick-bh-glx-health",
+        "workflow_name": "galaxy-quick",
+        "is_nd": true,
+        "commit_hash": "2fa02201a395cd0a9d0a29f087b303c8982c6b58",
+        "error_message": "##[error]Unable to reset board successfully.\nError: unable to reset board\n##[error]This runner will now shutdown and refuse to run further jobs.",
+        "timestamp": "January 20th, 4:39am, 19.87 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21159324546/job/60850938248",
+      "commit_hash": "2fa02201a395cd0a9d0a29f087b303c8982c6b58",
+      "timestamp": "January 20th, 4:39am, 19.87 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "Error:Test BM_pgm_dispatch_vary_slow_cycles/256_bytes_brisc_only_all_processors_trace/5000/manual_time expected value 4.48us but got 36.29us (710.40% worse)",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21159364756/job/60851087879"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21159364756/job/60851087879": {
+        "job_name": "fd-nightly / BH P150 pgm dispatch nightly",
+        "workflow_name": "fast-dispatch-frequent-tests",
+        "is_nd": true,
+        "commit_hash": "2fa02201a395cd0a9d0a29f087b303c8982c6b58",
+        "error_message": "Error:Test BM_pgm_dispatch_vary_slow_cycles/256_bytes_brisc_only_all_processors_trace/5000/manual_time expected value 4.48us but got 36.29us (710.40% worse)",
+        "timestamp": "January 20th, 5:11am, 3.74 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21159364756/job/60851087879",
+      "commit_hash": "2fa02201a395cd0a9d0a29f087b303c8982c6b58",
+      "timestamp": "January 20th, 5:11am, 3.74 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "C++ exception with description \"Timeout waiting for Ethernet core service remote IO request.\" thrown in SetUp().\n[  FAILED  ] MeshDevice1x4Fabric2DUDMFixture.TestWidthReduction2D_Medium\nC++ exception with description \"Timeout waiting for Ethernet core service remote IO request flush.\" thrown in SetUp().\n[  FAILED  ] MeshDevice1x4Fabric2DUDMFixture.TestWidthReduction2D_Large",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21159403095/job/60851204753"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21159403095/job/60851204753": {
+        "job_name": "t3000-unit-tests / t3k_ttnn_udm_tests",
+        "workflow_name": "t3000-unit-tests",
+        "is_nd": true,
+        "commit_hash": "2fa02201a395cd0a9d0a29f087b303c8982c6b58",
+        "error_message": "C++ exception with description \"Timeout waiting for Ethernet core service remote IO request.\" thrown in SetUp().\n[  FAILED  ] MeshDevice1x4Fabric2DUDMFixture.TestWidthReduction2D_Medium\nC++ exception with description \"Timeout waiting for Ethernet core service remote IO request flush.\" thrown in SetUp().\n[  FAILED  ] MeshDevice1x4Fabric2DUDMFixture.TestWidthReduction2D_Large",
+        "timestamp": "January 20th, 5:22am, 21.17 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21159403095/job/60851204753",
+      "commit_hash": "2fa02201a395cd0a9d0a29f087b303c8982c6b58",
+      "timestamp": "January 20th, 5:22am, 21.17 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "##[warning]tt-smi timed out, trying again in 5 seconds ...\n##[error]Unable to reset board successfully.\nError: unable to reset board\n##[error]This runner will now shutdown and refuse to run further jobs.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21155288062/job/60839291647",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21163907645/job/60864603911"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21163907645/job/60864603911": {
+        "job_name": "galaxy-quick-test / quick-bh-glx-health",
+        "workflow_name": "galaxy-quick",
+        "is_nd": true,
+        "commit_hash": "aa358b37193410fbe5dc729124bf0f33016346a0",
+        "error_message": "##[warning]tt-smi timed out, trying again in 5 seconds ...\n##[error]Unable to reset board successfully.\nError: unable to reset board\n##[error]This runner will now shutdown and refuse to run further jobs."
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21155288062/job/60839291647": {
+        "job_name": "galaxy-nightly-tests / BH Galaxy CCL tests",
+        "workflow_name": "galaxy-nightly-tests",
+        "is_nd": true,
+        "commit_hash": "042abfccd5555d0d4d91080b6ba095596daeba51",
+        "error_message": "##[warning]tt-smi timed out, trying again in 5 seconds ...\n##[error]Unable to reset board successfully.\nError: unable to reset board\n##[error]This runner will now shutdown and refuse to run further jobs.",
+        "timestamp": "January 20th, 2:09am, 36.65 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21155288062/job/60839291647",
+      "commit_hash": "042abfccd5555d0d4d91080b6ba095596daeba51",
+      "timestamp": "January 20th, 2:09am, 36.65 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "RuntimeError: TT_FATAL @ /project/tt_metal/impl/allocator/bank_manager.cpp:403: num_shards.value() <= num_compute_banks - Expected number of shards 114 to be less than or equal to total number of L1 banks 110 in compute cores (from models/demos/deepseek_v3_b1/tests/unit_tests/test_mcast.py)",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21162680370/job/60860751267"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21162680370/job/60860751267": {
+        "job_name": "ops-unit-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": false,
+        "commit_hash": "",
+        "error_message": "RuntimeError: TT_FATAL @ /project/tt_metal/impl/allocator/bank_manager.cpp:403: num_shards.value() <= num_compute_banks - Expected number of shards 114 to be less than or equal to total number of L1 banks 110 in compute cores (from models/demos/deepseek_v3_b1/tests/unit_tests/test_mcast.py)",
+        "timestamp": "January 20th, 9:11am, 45.11 seconds"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21162680370/job/60860751267",
+      "commit_hash": null,
+      "timestamp": "January 20th, 9:11am, 45.11 seconds"
+    }
+  },
+  {
+    "centroid_error": "UnitMeshCQSingleCardProgramFixture.TestSimpleL1Read\n/work/tests/tt_metal/tt_metal/api/test_core_local_mem_api.cpp:103: Failure\nExpected: (std::abs(speedup - 1.0)) < (0.0005), actual: 0.0019092690944850776 vs 0.0005",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21162680370/job/60860742677"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21162680370/job/60860742677": {
+        "job_name": "metalium-smoke-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "UnitMeshCQSingleCardProgramFixture.TestSimpleL1Read\n/work/tests/tt_metal/tt_metal/api/test_core_local_mem_api.cpp:103: Failure\nExpected: (std::abs(speedup - 1.0)) < (0.0005), actual: 0.0019092690944850776 vs 0.0005",
+        "timestamp": "January 20th, 9:11am, 38.30 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21162680370/job/60860742677",
+      "commit_hash": null,
+      "timestamp": "January 20th, 9:11am, 38.30 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "Output: Max ATOL Delta: 7.340506553649902, Max RTOL Delta: inf, PCC: 0.956613614545461, PCC check failed\nFalcon Model End-to-End Failed!\nassert False",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21164047869/job/60865058660"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21164047869/job/60865058660": {
+        "job_name": "t3000-unit-tests / t3k_llama3.2-90b_tests",
+        "workflow_name": "t3000-unit-tests",
+        "is_nd": true,
+        "commit_hash": "aa358b37193410fbe5dc729124bf0f33016346a0",
+        "error_message": "Output: Max ATOL Delta: 7.340506553649902, Max RTOL Delta: inf, PCC: 0.956613614545461, PCC check failed\nFalcon Model End-to-End Failed!\nassert False",
+        "timestamp": "January 20th, 9:22am, 45.27 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21164047869/job/60865058660",
+      "commit_hash": "aa358b37193410fbe5dc729124bf0f33016346a0",
+      "timestamp": "January 20th, 9:22am, 45.27 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "The action 't3k_tttv2_fast_unit_tests' has timed out after 10 minutes.\nTests were passing when timeout occurred.\nBoth successful and failed runs on same commit aa358b37193410fbe5dc729124bf0f33016346a0.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21167485016/job/60876428200"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21167485016/job/60876428200": {
+        "job_name": "t3000-unit-tests / t3k_tttv2_fast_unit_tests",
+        "workflow_name": "t3000-unit-tests",
+        "is_nd": true,
+        "commit_hash": "aa358b37193410fbe5dc729124bf0f33016346a0",
+        "error_message": "The action 't3k_tttv2_fast_unit_tests' has timed out after 10 minutes.\nTests were passing when timeout occurred.\nBoth successful and failed runs on same commit aa358b37193410fbe5dc729124bf0f33016346a0.",
+        "timestamp": "January 20th, 11:18am, 7.68 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21167485016/job/60876428200",
+      "commit_hash": "aa358b37193410fbe5dc729124bf0f33016346a0",
+      "timestamp": "January 20th, 11:18am, 7.68 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "C++ exception with description \"Device is incorrectly initialized. If this is a harvested Wormhole machine, it is likely that NOC Translation Tables are not enabled on device. These need to be enabled for the silicon driver to run.\"",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21164098419/job/60865109285"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21164098419/job/60865109285": {
+        "job_name": "galaxy-unit-tests / galaxy-umd-tests",
+        "workflow_name": "galaxy-unit-tests",
+        "is_nd": false,
+        "commit_hash": "",
+        "error_message": "C++ exception with description \"Device is incorrectly initialized. If this is a harvested Wormhole machine, it is likely that NOC Translation Tables are not enabled on device. These need to be enabled for the silicon driver to run.\"",
+        "timestamp": "January 20th, 2:51pm, 36.78 seconds"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21164098419/job/60865109285",
+      "commit_hash": null,
+      "timestamp": "January 20th, 2:51pm, 36.78 seconds"
+    }
+  },
+  {
+    "centroid_error": "TorusAllToAllMulticast [FAIL] - Number of test results (4) does not match number of golden entries (252). The fabric routing test is generating far fewer test configurations than expected, causing the golden comparison validation to fail.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21176251370/job/60906591033"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21176251370/job/60906591033": {
+        "job_name": "galaxy-quick-test / quick-wh-glx-health",
+        "workflow_name": "galaxy-quick",
+        "is_nd": false,
+        "commit_hash": "41cbee7f71fb375a1c3077ea0e67d7e71267207d",
+        "error_message": "TorusAllToAllMulticast [FAIL] - Number of test results (4) does not match number of golden entries (252). The fabric routing test is generating far fewer test configurations than expected, causing the golden comparison validation to fail.",
+        "timestamp": "January 20th, 3:46pm, 26.42 seconds"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21176251370/job/60906591033",
+      "commit_hash": "41cbee7f71fb375a1c3077ea0e67d7e71267207d",
+      "timestamp": "January 20th, 3:46pm, 26.42 seconds"
+    }
+  },
+  {
+    "centroid_error": "terminate called after throwing an instance of 'std::runtime_error'\n  what():  TT_THROW @ /work/tests/tt_metal/tt_metal/perf_microbenchmark/routing/test_tt_fabric.cpp:318: tt::exception\ninfo:\nSome tests failed golden comparison validation. See summary above.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21179393490/job/60919764186"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21179393490/job/60919764186": {
+        "job_name": "galaxy-quick-test / quick-wh-glx-health",
+        "workflow_name": "galaxy-quick",
+        "is_nd": true,
+        "commit_hash": "5d39ec2545dbc1cad57fc05e4f5a0a9bd1605329",
+        "error_message": "terminate called after throwing an instance of 'std::runtime_error'\nwhat():  TT_THROW @ /work/tests/tt_metal/tt_metal/perf_microbenchmark/routing/test_tt_fabric.cpp:318: tt::exception\ninfo:\nSome tests failed golden comparison validation. See summary above.",
+        "timestamp": "January 20th, 5:25pm, 50.69 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21179393490/job/60919764186",
+      "commit_hash": "5d39ec2545dbc1cad57fc05e4f5a0a9bd1605329",
+      "timestamp": "January 20th, 5:25pm, 50.69 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "ssh: Could not resolve hostname ***: No address associated with hostname\nConnection closed.\nProcess completed with exit code 255.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21190369424/job/60955921385"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21190369424/job/60955921385": {
+        "job_name": "galaxy-quick-test / quick-wh-glx-health",
+        "workflow_name": "galaxy-quick",
+        "is_nd": true,
+        "commit_hash": "c2f0d81fc227377cfe7048684564dd378352573d",
+        "error_message": "ssh: Could not resolve hostname ***: No address associated with hostname\nConnection closed.\nProcess completed with exit code 255.",
+        "timestamp": "January 20th, 11:57pm, 15.56 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21190369424/job/60955921385",
+      "commit_hash": "c2f0d81fc227377cfe7048684564dd378352573d",
+      "timestamp": "January 20th, 11:57pm, 15.56 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "WARNING | models.demos.utils.llm_demo_utils:verify_perf:179 - decode_t/s (318.0663850439608) is lower than expected 330.0\nWARNING | models.demos.utils.llm_demo_utils:verify_perf:179 - decode_t/s/u (318.0663850439608) is lower than expected 330.0\nWARNING | models.demos.utils.llm_demo_utils:verify_perf:189 - Perf Check Failed!\nAssertionError: Prefill or decode perf is either lower or higher than {'prefill_time_to_token': 0.05, 'decode_t/s/u': 330.0, 'decode_t/s': 330.0}",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21192173085/job/60961297856"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21192173085/job/60961297856": {
+        "job_name": "blackhole-demo-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": false,
+        "commit_hash": "",
+        "error_message": "WARNING | models.demos.utils.llm_demo_utils:verify_perf:179 - decode_t/s (318.0663850439608) is lower than expected 330.0\nWARNING | models.demos.utils.llm_demo_utils:verify_perf:179 - decode_t/s/u (318.0663850439608) is lower than expected 330.0\nWARNING | models.demos.utils.llm_demo_utils:verify_perf:189 - Perf Check Failed!\nAssertionError: Prefill or decode perf is either lower or higher than {'prefill_time_to_token': 0.05, 'decode_t/s/u': 330.0, 'decode_t/s': 330.0}",
+        "timestamp": "January 21st, 1:37am, 2.80 seconds"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21192173085/job/60961297856",
+      "commit_hash": null,
+      "timestamp": "January 21st, 1:37am, 2.80 seconds"
+    }
+  },
+  {
+    "centroid_error": "ERROR collecting tests/ttnn/unit_tests/base_functionality/test_reshape.py - In test_reshape_sharded_rm: function uses no argument 'input_shape'",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21186274987/job/60942396363",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21187946099/job/60957741758",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21192173085/job/60961304677"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21192173085/job/60961304677": {
+        "job_name": "ttnn-unit-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": false,
+        "commit_hash": "",
+        "error_message": "ERROR tests/ttnn/unit_tests/base_functionality/test_reshape.py - Failed: In test_reshape_sharded_rm: function uses no argument 'input_shape'"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21186274987/job/60942396363": {
+        "job_name": "ttnn-unit-tests",
+        "workflow_name": "all-post-commit-workflows",
+        "is_nd": false,
+        "commit_hash": "",
+        "error_message": "ERROR collecting tests/ttnn/unit_tests/base_functionality/test_reshape.py - In test_reshape_sharded_rm: function uses no argument 'input_shape'",
+        "timestamp": "January 21st, 1:33am, 11.70 seconds"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21187946099/job/60957741758": {
+        "job_name": "ttnn-unit-tests",
+        "workflow_name": "all-post-commit-workflows",
+        "is_nd": false,
+        "commit_hash": "",
+        "error_message": "ERROR collecting tests/ttnn/unit_tests/base_functionality/test_reshape.py - In test_reshape_sharded_rm: function uses no argument 'input_shape'"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21186274987/job/60942396363",
+      "commit_hash": null,
+      "timestamp": "January 21st, 1:33am, 11.70 seconds"
+    }
+  },
+  {
+    "centroid_error": "Action '' download has timed out.\nError: The request was canceled due to the configured HttpClient.Timeout of 100 seconds elapsing.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21192173085/job/60961304672"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21192173085/job/60961304672": {
+        "job_name": "ttnn-unit-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "Action '' download has timed out.\nError: The request was canceled due to the configured HttpClient.Timeout of 100 seconds elapsing.",
+        "timestamp": "January 21st, 1:27am, 3.59 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21192173085/job/60961304672",
+      "commit_hash": null,
+      "timestamp": "January 21st, 1:27am, 3.59 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "AssertionError: One or more ops did not meet performance targets. Check logs for details.\nWarning: MeshDeviceOperationAdapter<ttnn::prim::MatmulDeviceOperation>_0 not found in perf_targets",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21192542972/job/60962277599"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21192542972/job/60962277599": {
+        "job_name": "t3000-perf-tests / t3k_ViT_Gemma3_perf_tests",
+        "workflow_name": "t3000-perf-tests",
+        "is_nd": false,
+        "commit_hash": "bede94c817a1a774816d4ff9d9b328457c8fb7cb",
+        "error_message": "AssertionError: One or more ops did not meet performance targets. Check logs for details.\nWarning: MeshDeviceOperationAdapter<ttnn::prim::MatmulDeviceOperation>_0 not found in perf_targets",
+        "timestamp": "January 21st, 12:37pm, 3.99 seconds"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21192542972/job/60962277599",
+      "commit_hash": "bede94c817a1a774816d4ff9d9b328457c8fb7cb",
+      "timestamp": "January 21st, 12:37pm, 3.99 seconds"
+    }
+  },
+  {
+    "centroid_error": "Number of test results (4) does not match number of golden entries (252). Total failed tests: 1. Failed tests: TorusAllToAllMulticast [FAIL]. TT_THROW: Some tests failed golden comparison validation.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21213308687/job/61028196431"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21213308687/job/61028196431": {
+        "job_name": "galaxy-quick-test / quick-wh-glx-health",
+        "workflow_name": "galaxy-quick",
+        "is_nd": true,
+        "commit_hash": "97005dacadbcbc3442777b02dc24a74d81ed9cb9",
+        "error_message": "Number of test results (4) does not match number of golden entries (252). Total failed tests: 1. Failed tests: TorusAllToAllMulticast [FAIL]. TT_THROW: Some tests failed golden comparison validation.",
+        "timestamp": "January 21st, 3:08pm, 36.32 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21213308687/job/61028196431",
+      "commit_hash": "97005dacadbcbc3442777b02dc24a74d81ed9cb9",
+      "timestamp": "January 21st, 3:08pm, 36.32 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "RuntimeError: Invalid input shape in ttnn.core.create_sharded_memory_config() at line 261. A shape parameter is being passed that is not a list, tuple, or ttnn.Shape object.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21212782020/job/61026390709"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21212782020/job/61026390709": {
+        "job_name": "fd-nightly / Nightly N300 swin_s",
+        "workflow_name": "fast-dispatch-full-regressions-and-models",
+        "is_nd": false,
+        "commit_hash": "4188f694040a323164ca893130a590737a2e6104",
+        "error_message": "RuntimeError: Invalid input shape in ttnn.core.create_sharded_memory_config() at line 261. A shape parameter is being passed that is not a list, tuple, or ttnn.Shape object.",
+        "timestamp": "January 21st, 4:16pm, 30.02 seconds"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21212782020/job/61026390709",
+      "commit_hash": "4188f694040a323164ca893130a590737a2e6104",
+      "timestamp": "January 21st, 4:16pm, 30.02 seconds"
+    }
+  },
+  {
+    "centroid_error": "AssertionError: width sharded memory test failed\\nassert False",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21216560054/job/61039970793"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21216560054/job/61039970793": {
+        "job_name": "ttnn-unit-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": false,
+        "commit_hash": "",
+        "error_message": "AssertionError: width sharded memory test failed\\nassert False",
+        "timestamp": "January 21st, 7:08pm, 8.65 seconds"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21216560054/job/61039970793",
+      "commit_hash": null,
+      "timestamp": "January 21st, 7:08pm, 8.65 seconds"
+    }
+  },
+  {
+    "centroid_error": "2026-01-21 17:19:16.237 | error    |            Test | Total failed tests: 1\\n2026-01-21 17:19:16.237 | error    |            Test |   - TorusAllToAllMulticast [FAIL]\\n2026-01-21 17:19:16.237 | critical |          Always | TT_THROW: Some tests failed golden comparison validation.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21173804009/job/60897967780",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21218355700/job/61046771466"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21218355700/job/61046771466": {
+        "job_name": "galaxy-quick-test / quick-wh-glx-health",
+        "workflow_name": "galaxy-quick",
+        "is_nd": true,
+        "commit_hash": "36252a3cb15ed33e4e9ba145a603896d6b664830",
+        "error_message": "2026-01-21 17:19:16.237 | error    |            Test | Total failed tests: 1\\n2026-01-21 17:19:16.237 | error    |            Test |   - TorusAllToAllMulticast [FAIL]\\n2026-01-21 17:19:16.237 | critical |          Always | TT_THROW: Some tests failed golden comparison validation."
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21173804009/job/60897967780": {
+        "job_name": "galaxy-quick-test / quick-wh-glx-health",
+        "workflow_name": "galaxy-quick",
+        "is_nd": true,
+        "commit_hash": "14fede4226401e1ea1705f05da61e940c30265f0",
+        "error_message": "2026-01-20 14:08:15.327 | error | Total failed tests: 1\n2026-01-20 14:08:15.327 | error | Failed tests:\n2026-01-20 14:08:15.327 | error |   - TorusAllToAllMulticast [FAIL]\n2026-01-20 14:08:15.327 | critical | TT_THROW: Some tests failed golden comparison validation.",
+        "timestamp": "January 20th, 2:32pm, 8.54 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21173804009/job/60897967780",
+      "commit_hash": "14fede4226401e1ea1705f05da61e940c30265f0",
+      "timestamp": "January 20th, 2:32pm, 8.54 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "RuntimeError: Invalid input shape in ttnn.create_sharded_memory_config_. The ttnn.pad_to_tile_shape() function returns a VectorUInt32 object instead of a Python list, causing a type mismatch. This is likely caused by nanobind module registration order changes or type resolution conflicts.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21212782020/job/61026390660",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21220795059/job/61055420302"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21220795059/job/61055420302": {
+        "job_name": "single-card-demo-tests / swin_s-N150-func",
+        "workflow_name": "single-card-demo-tests",
+        "is_nd": false,
+        "commit_hash": "36252a3cb15ed33e4e9ba145a603896d6b664830",
+        "error_message": "RuntimeError: Invalid input shape in ttnn.create_sharded_memory_config_. The ttnn.pad_to_tile_shape() function returns a VectorUInt32 object instead of a Python list, causing a type mismatch. This is likely caused by nanobind module registration order changes or type resolution conflicts."
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21212782020/job/61026390660": {
+        "job_name": "fd-nightly / Nightly N150 swin_s",
+        "workflow_name": "fast-dispatch-full-regressions-and-models",
+        "is_nd": false,
+        "commit_hash": "4188f694040a323164ca893130a590737a2e6104",
+        "error_message": "RuntimeError: Invalid input shape at ttnn/core.py:261 during ttnn.create_sharded_memory_config call. The isinstance check for ttnn.Shape fails due to incomplete module initialization caused by changes to nanobind module loading order.",
+        "timestamp": "January 21st, 4:15pm, 21.27 seconds"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21212782020/job/61026390660",
+      "commit_hash": "4188f694040a323164ca893130a590737a2e6104",
+      "timestamp": "January 21st, 4:15pm, 21.27 seconds"
+    }
+  },
+  {
+    "centroid_error": "Physical Discovery found missing channel/port connections\nterminate called after throwing an instance of 'std::runtime_error'\n  what():  Connection mismatch detected. Check console output for details.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21223985137/job/61066557543"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21223985137/job/61066557543": {
+        "job_name": "galaxy-quick-test / quick-bh-glx-health",
+        "workflow_name": "galaxy-quick",
+        "is_nd": true,
+        "commit_hash": "a4c598cfb24827110c33e8af140c71b68d8ecd47",
+        "error_message": "Physical Discovery found missing channel/port connections\nterminate called after throwing an instance of 'std::runtime_error'\nwhat():  Connection mismatch detected. Check console output for details.",
+        "timestamp": "January 21st, 8:24pm, 27.72 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21223985137/job/61066557543",
+      "commit_hash": "a4c598cfb24827110c33e8af140c71b68d8ecd47",
+      "timestamp": "January 21st, 8:24pm, 27.72 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "Error: Unsuccessful board reset, trying again in 5 seconds ...\nError: Unable to reset board successfully, rebooting\n##[error]The runner has received a shutdown signal.\n##[error]The operation was canceled.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21226614470/job/61075731472"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21226614470/job/61075731472": {
+        "job_name": "galaxy-quick-test / quick-wh-glx-health",
+        "workflow_name": "galaxy-quick",
+        "is_nd": true,
+        "commit_hash": "fae2b11f8fa8a27ec3d3259605fc39fd318c27a8",
+        "error_message": "Error: Unsuccessful board reset, trying again in 5 seconds ...\nError: Unable to reset board successfully, rebooting\n##[error]The runner has received a shutdown signal.\n##[error]The operation was canceled.",
+        "timestamp": "January 21st, 10:08pm, 10.10 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21226614470/job/61075731472",
+      "commit_hash": "fae2b11f8fa8a27ec3d3259605fc39fd318c27a8",
+      "timestamp": "January 21st, 10:08pm, 10.10 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "terminate called after throwing an instance of 'std::runtime_error'\n  what():  Connection mismatch detected. Check console output for details.\n\nPhysical Discovery found 7 missing channel connections and 4 missing port/cable connections between Galaxy trays.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21230597334/job/61088514241"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21230597334/job/61088514241": {
+        "job_name": "galaxy-quick-test / quick-bh-glx-health",
+        "workflow_name": "galaxy-quick",
+        "is_nd": true,
+        "commit_hash": "eac953d1a25e5c632a2e712187d722d3647a87e8",
+        "error_message": "terminate called after throwing an instance of 'std::runtime_error'\nwhat():  Connection mismatch detected. Check console output for details.\n\nPhysical Discovery found 7 missing channel connections and 4 missing port/cable connections between Galaxy trays.",
+        "timestamp": "January 22nd, 12:54am, 3.09 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21230597334/job/61088514241",
+      "commit_hash": "eac953d1a25e5c632a2e712187d722d3647a87e8",
+      "timestamp": "January 22nd, 12:54am, 3.09 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "Exception: PCC = 99.9610 % >= 99.9996 %",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21230467977/job/61088138489"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21230467977/job/61088138489": {
+        "job_name": "t3000-integration-tests / t3k_flux1_tests",
+        "workflow_name": "t3000-integration-tests",
+        "is_nd": false,
+        "commit_hash": "eac953d1a25e5c632a2e712187d722d3647a87e8",
+        "error_message": "Exception: PCC = 99.9610 % >= 99.9996 %",
+        "timestamp": "January 22nd, 1:40am, 30.35 seconds"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21230467977/job/61088138489",
+      "commit_hash": "eac953d1a25e5c632a2e712187d722d3647a87e8",
+      "timestamp": "January 22nd, 1:40am, 30.35 seconds"
+    }
+  },
+  {
+    "centroid_error": "ERROR: AVG DEVICE KERNEL SAMPLES/S 1075603.1360553934 is outside of expected range (988224.0, 1070576.0)",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21205522545/job/61001637306",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21239492867/job/61114559559"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21239492867/job/61114559559": {
+        "job_name": "device-perf / N300 WH B0 not yet ported device perf",
+        "workflow_name": "perf-device-models",
+        "is_nd": false,
+        "commit_hash": "851bc8fadffa1f9f39f7dcea8a999155d38f5581",
+        "error_message": "ERROR: AVG DEVICE KERNEL SAMPLES/S 1075603.1360553934 is outside of expected range (988224.0, 1070576.0)"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21205522545/job/61001637306": {
+        "job_name": "device-perf / P150 BH device perf",
+        "workflow_name": "perf-device-models",
+        "is_nd": false,
+        "commit_hash": "896edcccea53d7b37e8028d73e45d589c0b32620",
+        "error_message": "AVG DEVICE KERNEL SAMPLES/S 2859.8264979011556 is outside of expected range (2861.1225, 2889.8774999999996)",
+        "timestamp": "January 21st, 11:24am, 40.93 seconds"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21205522545/job/61001637306",
+      "commit_hash": "896edcccea53d7b37e8028d73e45d589c0b32620",
+      "timestamp": "January 21st, 11:24am, 40.93 seconds"
+    }
+  },
+  {
+    "centroid_error": "AssertionError: Prefill or decode perf is either lower or higher than {'prefill_time_to_token': 0.05, 'decode_t/s/u': 330.0, 'decode_t/s': 330.0}. See earlier warnings for more details.\nWARNING: decode_t/s (328.27741662216164) is lower than expected 330.0\nWARNING: decode_t/s/u (328.27741662216164) is lower than expected 330.0",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21239451774/job/61114651459",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21240732320/job/61118354219"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21239451774/job/61114651459": {
+        "job_name": "blackhole-demo-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": false,
+        "commit_hash": "",
+        "error_message": "WARNING: decode_t/s (284.51) is lower than expected 310.0\nWARNING: decode_t/s/u (284.51) is lower than expected 310.0\nAssertionError: Prefill or decode perf is either lower or higher than {'prefill_time_to_token': 0.06, 'decode_t/s/u': 310.0, 'decode_t/s': 310.0}",
+        "timestamp": "January 22nd, 9:12am, 40.37 seconds"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21240732320/job/61118354219": {
+        "job_name": "blackhole-demo-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "AssertionError: Prefill or decode perf is either lower or higher than {'prefill_time_to_token': 0.05, 'decode_t/s/u': 330.0, 'decode_t/s': 330.0}. See earlier warnings for more details.\nWARNING: decode_t/s (328.27741662216164) is lower than expected 330.0\nWARNING: decode_t/s/u (328.27741662216164) is lower than expected 330.0"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21239451774/job/61114651459",
+      "commit_hash": null,
+      "timestamp": "January 22nd, 9:12am, 40.37 seconds"
+    }
+  },
+  {
+    "centroid_error": "Device 0: functional_workers [4-2 (3,0)]: trisc0/1/2: Failed to halt core.\nRuntimeError: TT_THROW @ /project/tt_metal/impl/context/metal_context.cpp:1781: tt::exception\nDevice 0 init: failed to initialize FW! Try resetting the board.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21239451774/job/61114656559",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21239451774/job/61114656565"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21239451774/job/61114656559": {
+        "job_name": "ttnn-unit-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "RuntimeError: TT_THROW @ /project/tt_metal/impl/context/metal_context.cpp:1781: tt::exception\ninfo:\nDevice 0 init: failed to initialize FW! Try resetting the board.",
+        "timestamp": "January 22nd, 9:10am, 30.74 seconds (marked as ND)"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21239451774/job/61114656565": {
+        "job_name": "ttnn-unit-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "Device 0: functional_workers [4-2 (3,0)]: trisc0/1/2: Failed to halt core.\nRuntimeError: TT_THROW @ /project/tt_metal/impl/context/metal_context.cpp:1781: tt::exception\nDevice 0 init: failed to initialize FW! Try resetting the board."
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21239451774/job/61114656559",
+      "commit_hash": null,
+      "timestamp": "January 22nd, 9:10am, 30.74 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "TT_FATAL: Physical chip id not found for eth coord (assert.hpp:104)\n--------------------------------------------------------------------------\nprterun noticed that process rank 1 with PID 778 on node 12e6e8217ccb exited on\nsignal 6 (Aborted).\n--------------------------------------------------------------------------",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21240850819/job/61118828179"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21240850819/job/61118828179": {
+        "job_name": "t3000-unit-tests / t3k_tt_metal_multiprocess_tests",
+        "workflow_name": "t3000-unit-tests",
+        "is_nd": true,
+        "commit_hash": "62713b645ab893d971864d4986499217222efcfe",
+        "error_message": "TT_FATAL: Physical chip id not found for eth coord (assert.hpp:104)\n--------------------------------------------------------------------------\nprterun noticed that process rank 1 with PID 778 on node 12e6e8217ccb exited on\nsignal 6 (Aborted).\n--------------------------------------------------------------------------",
+        "timestamp": "January 22nd, 9:40am, 32.11 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21240850819/job/61118828179",
+      "commit_hash": "62713b645ab893d971864d4986499217222efcfe",
+      "timestamp": "January 22nd, 9:40am, 32.11 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "TT_THROW: Fabric Router Sync: Timeout after 10000 ms. Device 0: Expected status 0xa2b2c2d2, got 0xa1b1c1d1",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21155182426/job/60838990251",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21155182426/job/60838990318",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21240732320/job/61118354314",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21240834396/job/61118765966",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21240834396/job/61118766053"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21240834396/job/61118766053": {
+        "job_name": "blackhole-multi-card-unit-tests",
+        "workflow_name": "blackhole-nightly-tests",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "Fabric Router Sync: Timeout after 10000 ms. Device 0: Expected status 0xa2b2c2d2, got 0xa1b1c1d1"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21240834396/job/61118765966": {
+        "job_name": "blackhole-multi-card-unit-tests",
+        "workflow_name": "blackhole-nightly-tests",
+        "is_nd": false,
+        "commit_hash": "",
+        "error_message": "TT_THROW: Fabric Router Sync: Timeout after 10000 ms. Device 0: Expected status 0xa2b2c2d2, got 0xa1b1c1d1"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21240732320/job/61118354314": {
+        "job_name": "blackhole-multi-card-post-commit-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "TT_THROW: Fabric Router Sync: Timeout after 10000 ms. Device 2: Expected status 0xa2b2c2d2, got 0xa1b1c1d1\nDevice 2: Virtual core (x=31,y=25), Port status: 0x1, Retrain count: 0x2, Rx link up: 0x0\nTT_THROW: Device 2: Timed out while waiting for active ethernet core (x=31,y=25) to become active again. Try resetting the board. Minimum tt-firmware version is 18.10.0"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21155182426/job/60838990251": {
+        "job_name": "bh-nightly",
+        "workflow_name": "blackhole-nightly-tests",
+        "is_nd": false,
+        "commit_hash": "",
+        "error_message": "Fabric Router Sync: Timeout after 10000 ms. Device 2: Expected status 0xa2b2c2d2, got 0xa1b1c1d1",
+        "timestamp": "January 20th, 4:01am, 12.64 seconds"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21155182426/job/60838990318": {
+        "job_name": "blackhole-multi-card-unit-tests",
+        "workflow_name": "blackhole-nightly-tests",
+        "is_nd": false,
+        "commit_hash": "",
+        "error_message": "Fabric Router Sync: Timeout after 10000 ms. Device 2: Expected status 0xa2b2c2d2, got 0xa1b1c1d1"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21155182426/job/60838990251",
+      "commit_hash": null,
+      "timestamp": "January 20th, 4:01am, 12.64 seconds"
+    }
+  },
+  {
+    "centroid_error": "AssertionError: Warning: total_time is outside of the tolerance range. Expected: 22, Actual: 22.1264975\nassert False",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21231146398/job/61090280865"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21231146398/job/61090280865": {
+        "job_name": "t3000-perf-tests / t3k_DiT_Flux.1-dev_model_perf_tests",
+        "workflow_name": "t3000-perf-tests",
+        "is_nd": true,
+        "commit_hash": "eac953d1a25e5c632a2e712187d722d3647a87e8",
+        "error_message": "AssertionError: Warning: total_time is outside of the tolerance range. Expected: 22, Actual: 22.1264975\nassert False",
+        "timestamp": "January 22nd, 11:32am, 54.53 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21231146398/job/61090280865",
+      "commit_hash": "eac953d1a25e5c632a2e712187d722d3647a87e8",
+      "timestamp": "January 22nd, 11:32am, 54.53 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "Job marked as failure at workflow level, but all 4130 conv tests passed successfully.\nNo test-level errors found in execution logs.\nLikely infrastructure or required job failure elsewhere in workflow.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21237952797/job/61110212145"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21237952797/job/61110212145": {
+        "job_name": "tt-metal-l2-tests",
+        "workflow_name": "tt-metal-l2-nightly",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "Job marked as failure at workflow level, but all 4130 conv tests passed successfully.\nNo test-level errors found in execution logs.\nLikely infrastructure or required job failure elsewhere in workflow.",
+        "timestamp": "January 22nd, 1:39pm, 24.93 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21237952797/job/61110212145",
+      "commit_hash": null,
+      "timestamp": "January 22nd, 1:39pm, 24.93 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "terminate called after throwing an instance of 'std::runtime_error'\n  what():  Connection mismatch detected. Check console output for details.\n[container] *** Process received signal ***\n[container] Signal: Aborted (6)",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21247750348/job/61141789540"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21247750348/job/61141789540": {
+        "job_name": "galaxy-quick-test / quick-bh-glx-health",
+        "workflow_name": "galaxy-quick",
+        "is_nd": true,
+        "commit_hash": "09f5ef4fe924efea965e0bca2fb632ad64d2c372",
+        "error_message": "terminate called after throwing an instance of 'std::runtime_error'\nwhat():  Connection mismatch detected. Check console output for details.\n[container] *** Process received signal ***\n[container] Signal: Aborted (6)",
+        "timestamp": "January 22nd, 12:43pm, 46.40 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21247750348/job/61141789540",
+      "commit_hash": "09f5ef4fe924efea965e0bca2fb632ad64d2c372",
+      "timestamp": "January 22nd, 12:43pm, 46.40 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "RuntimeError: Invalid input shape (at ttnn/core.py:261 in create_sharded_memory_config_)",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21212698684/job/61026145147",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21250046637/job/61149712997"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21250046637/job/61149712997": {
+        "job_name": "single-card-demo-tests / bert-N300-func",
+        "workflow_name": "single-card-demo-tests",
+        "is_nd": true,
+        "commit_hash": "09f5ef4fe924efea965e0bca2fb632ad64d2c372",
+        "error_message": "RuntimeError: Invalid input shape (at ttnn/core.py:261 in create_sharded_memory_config_)"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21212698684/job/61026145147": {
+        "job_name": "models-perf / other_magic_env N300 WH B0",
+        "workflow_name": "perf-models",
+        "is_nd": false,
+        "commit_hash": "4a6b1743164b6c4169dbfa3c804f9f31f8954372",
+        "error_message": "RuntimeError: Invalid input shape at ttnn.create_sharded_memory_config_() - VectorUInt32 type not accepted",
+        "timestamp": "January 21st, 3:17pm, 33.11 seconds"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21212698684/job/61026145147",
+      "commit_hash": "4a6b1743164b6c4169dbfa3c804f9f31f8954372",
+      "timestamp": "January 21st, 3:17pm, 33.11 seconds"
+    }
+  },
+  {
+    "centroid_error": "remote: Internal Server Error\nfatal: unable to access '': The requested URL returned error: 500\nerror: RPC failed; HTTP 500 curl 22 The requested URL returned error: 500\nfatal: expected flush after ref listing\nCMake Error: Failed to clone repository: ''",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251483949/job/61154246287"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251483949/job/61154246287": {
+        "job_name": "build-sweeps / build",
+        "workflow_name": "merge-gate",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "remote: Internal Server Error\nfatal: unable to access '': The requested URL returned error: 500\nerror: RPC failed; HTTP 500 curl 22 The requested URL returned error: 500\nfatal: expected flush after ref listing\nCMake Error: Failed to clone repository: ''",
+        "timestamp": "January 22nd, 2:42pm, 28.95 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21251483949/job/61154246287",
+      "commit_hash": null,
+      "timestamp": "January 22nd, 2:42pm, 28.95 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "unable to access '': The requested URL returned error: 500\nunable to access '': The requested URL returned error: 500\nunable to access '': The requested URL returned error: 500\nclone of submodules failed\nThe process '/usr/bin/git' failed with exit code 1",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251483758/job/61154062499"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251483758/job/61154062499": {
+        "job_name": "build-artifact /  Build wheel",
+        "workflow_name": "galaxy-quick",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "unable to access '': The requested URL returned error: 500\nunable to access '': The requested URL returned error: 500\nunable to access '': The requested URL returned error: 500\nclone of submodules failed\nThe process '/usr/bin/git' failed with exit code 1",
+        "timestamp": "January 22nd, 2:42pm, 28.29 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21251483758/job/61154062499",
+      "commit_hash": null,
+      "timestamp": "January 22nd, 2:42pm, 28.29 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "remote: Internal Server Error\nfatal: unable to access '': The requested URL returned error: 500\nfatal: clone of '' into submodule path '/__w/tt-metal/tt-metal/tt_metal/third_party/umd' failed",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251483772/job/61154075601"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251483772/job/61154075601": {
+        "job_name": "build /  Build wheel",
+        "workflow_name": "pr-gate",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "remote: Internal Server Error\nfatal: unable to access '': The requested URL returned error: 500\nfatal: clone of '' into submodule path '/__w/tt-metal/tt-metal/tt_metal/third_party/umd' failed",
+        "timestamp": "January 22nd, 2:42pm, 13.05 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21251483772/job/61154075601",
+      "commit_hash": null,
+      "timestamp": "January 22nd, 2:42pm, 13.05 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "fatal: unable to access '': The requested URL returned error: 500\nfatal: clone of '' into submodule path failed\nFailed to clone 'third_party/benchmark' a second time, aborting\nCMake Error: Failed to update submodules in: '/work/.cpmcache/protobuf/98d637ef07dabf50129c78c4943e17de74a984a3'",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251483949/job/61154156670"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251483949/job/61154156670": {
+        "job_name": "build-sweeps / build",
+        "workflow_name": "merge-gate",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "fatal: unable to access '': The requested URL returned error: 500\nfatal: clone of '' into submodule path failed\nFailed to clone 'third_party/benchmark' a second time, aborting\nCMake Error: Failed to update submodules in: '/work/.cpmcache/protobuf/98d637ef07dabf50129c78c4943e17de74a984a3'",
+        "timestamp": "January 22nd, 2:42pm, 10.10 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21251483949/job/61154156670",
+      "commit_hash": null,
+      "timestamp": "January 22nd, 2:42pm, 10.10 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "fatal: unable to access '': The requested URL returned error: 500\nCMake Error: Failed to clone repository: ''\nBuild step for protobuf failed: 1",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251483949/job/61154186067"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251483949/job/61154186067": {
+        "job_name": "build-sweeps / build",
+        "workflow_name": "merge-gate",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "fatal: unable to access '': The requested URL returned error: 500\nCMake Error: Failed to clone repository: ''\nBuild step for protobuf failed: 1",
+        "timestamp": "January 22nd, 2:42pm, 7.73 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21251483949/job/61154186067",
+      "commit_hash": null,
+      "timestamp": "January 22nd, 2:42pm, 7.73 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "remote: Internal Server Error\nfatal: unable to access '': The requested URL returned error: 500\nfatal: clone of '' into submodule path '/work/.cpmcache/protobuf/98d637ef07dabf50129c78c4943e17de74a984a3/third_party/googletest' failed\nFailed to clone 'third_party/googletest' a second time, aborting",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251483949/job/61154167053"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251483949/job/61154167053": {
+        "job_name": "build-sweeps / build",
+        "workflow_name": "merge-gate",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "remote: Internal Server Error\nfatal: unable to access '': The requested URL returned error: 500\nfatal: clone of '' into submodule path '/work/.cpmcache/protobuf/98d637ef07dabf50129c78c4943e17de74a984a3/third_party/googletest' failed\nFailed to clone 'third_party/googletest' a second time, aborting",
+        "timestamp": "January 22nd, 2:41pm, 58.60 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21251483949/job/61154167053",
+      "commit_hash": null,
+      "timestamp": "January 22nd, 2:41pm, 58.60 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "fatal: unable to access '': The requested URL returned error: 500\nfatal: clone of '' into submodule path '/__w/tt-metal/tt-metal/tt_metal/third_party/umd' failed\nfatal: unable to access '': The requested URL returned error: 500\nfatal: clone of '' into submodule path '/work/.cpmcache/nanomsg/28cc32d5bdb6a858fe53b3ccf7e923957e53eada/extern/nng-wolfssl' failed",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251483772/job/61154079719"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251483772/job/61154079719": {
+        "job_name": "asan-build /  Build ASan ubuntu 22.04",
+        "workflow_name": "pr-gate",
+        "is_nd": true,
+        "commit_hash": "d3b9e6efc1003e84b8fa4ded813be1fd7da28259",
+        "error_message": "fatal: unable to access '': The requested URL returned error: 500\nfatal: clone of '' into submodule path '/__w/tt-metal/tt-metal/tt_metal/third_party/umd' failed\nfatal: unable to access '': The requested URL returned error: 500\nfatal: clone of '' into submodule path '/work/.cpmcache/nanomsg/28cc32d5bdb6a858fe53b3ccf7e923957e53eada/extern/nng-wolfssl' failed",
+        "timestamp": "January 22nd, 2:41pm, 40.48 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21251483772/job/61154079719",
+      "commit_hash": "d3b9e6efc1003e84b8fa4ded813be1fd7da28259",
+      "timestamp": "January 22nd, 2:41pm, 40.48 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "remote: Internal Server Error\nfatal: unable to access '': The requested URL returned error: 500\nThe process '/usr/bin/git' failed with exit code 128",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251609739/job/61154428286",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251720531/job/61154823242"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251609739/job/61154428286": {
+        "job_name": "build-artifact / build-docker-image / check-docker-images",
+        "workflow_name": "perf-models",
+        "is_nd": true,
+        "commit_hash": "d3b9e6efc1003e84b8fa4ded813be1fd7da28259",
+        "error_message": "remote: Internal Server Error\nfatal: unable to access '': The requested URL returned error: 500\nThe process '/usr/bin/git' failed with exit code 128",
+        "timestamp": "January 22nd, 2:41pm, 36.47 seconds (marked as ND)"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251720531/job/61154823242": {
+        "job_name": "build-artifact-profiler / build-docker-image / check-docker-images",
+        "workflow_name": "perf-device-models",
+        "is_nd": true,
+        "commit_hash": "d3b9e6efc1003e84b8fa4ded813be1fd7da28259",
+        "error_message": "remote: Internal Server Error\nfatal: unable to access '': The requested URL returned error: 500\nThe process '/usr/bin/git' failed with exit code 128"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21251609739/job/61154428286",
+      "commit_hash": "d3b9e6efc1003e84b8fa4ded813be1fd7da28259",
+      "timestamp": "January 22nd, 2:41pm, 36.47 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "unable to access '': The requested URL returned error: 500\nRPC failed; HTTP 500 curl 22 The requested URL returned error: 500\nclone of '' into submodule path failed",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21250901554/job/61155814156"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21250901554/job/61155814156": {
+        "job_name": "PR Gate Status",
+        "workflow_name": "pr-gate",
+        "is_nd": true,
+        "commit_hash": "95f91319ad0ba7918720bbc292bdac08445df2b9",
+        "error_message": "unable to access '': The requested URL returned error: 500\nRPC failed; HTTP 500 curl 22 The requested URL returned error: 500\nclone of '' into submodule path failed",
+        "timestamp": "January 22nd, 2:41pm, 32.11 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21250901554/job/61155814156",
+      "commit_hash": "95f91319ad0ba7918720bbc292bdac08445df2b9",
+      "timestamp": "January 22nd, 2:41pm, 32.11 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "fatal: unable to access '': The requested URL returned error: 500\nfatal: unable to access '': The requested URL returned error: 500\nfatal: unable to access '': The requested URL returned error: 500\nfatal: unable to access '': The requested URL returned error: 500",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251483758/job/61154062501"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251483758/job/61154062501": {
+        "job_name": "build-artifact /  Build Release ubuntu 22.04",
+        "workflow_name": "galaxy-quick",
+        "is_nd": true,
+        "commit_hash": "d3b9e6efc1003e84b8fa4ded813be1fd7da28259",
+        "error_message": "fatal: unable to access '': The requested URL returned error: 500\nfatal: unable to access '': The requested URL returned error: 500\nfatal: unable to access '': The requested URL returned error: 500\nfatal: unable to access '': The requested URL returned error: 500",
+        "timestamp": "January 22nd, 2:41pm, 26.97 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21251483758/job/61154062501",
+      "commit_hash": "d3b9e6efc1003e84b8fa4ded813be1fd7da28259",
+      "timestamp": "January 22nd, 2:41pm, 26.97 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "RPC failed; HTTP 500 curl 22 The requested URL returned error: 500\nunable to access '': The requested URL returned error: 500\nclone of '' into submodule path failed\nThe process '/usr/bin/git' failed with exit code 128",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21250901766/job/61157288463",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251483709/job/61154094382",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251483949/job/61153979187",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251483949/job/61154091406",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251483949/job/61154136491",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251483949/job/61154171570",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251483949/job/61154183212"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251483949/job/61154183212": {
+        "job_name": "build-sweeps / build",
+        "workflow_name": "merge-gate",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "RPC failed; HTTP 500 curl 22 The requested URL returned error: 500\nunable to access '': The requested URL returned error: 500\nThe process '/usr/bin/git' failed with exit code 128\nclone of '' into submodule path failed"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21250901766/job/61157288463": {
+        "job_name": "Merge Gate Status",
+        "workflow_name": "merge-gate",
+        "is_nd": true,
+        "commit_hash": "95f91319ad0ba7918720bbc292bdac08445df2b9",
+        "error_message": "RPC failed; HTTP 500 curl 22 The requested URL returned error: 500\nunable to access '': The requested URL returned error: 500\nThe process '/usr/bin/git' failed with exit code 128\nclone of submodules failed",
+        "timestamp": "January 22nd, 2:41pm, 39.46 seconds (marked as ND)"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251483709/job/61154094382": {
+        "job_name": "build-artifact /  Build wheel",
+        "workflow_name": "all-post-commit-workflows",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "RPC failed; HTTP 500 curl 22 The requested URL returned error: 500\nfatal: unable to access '': The requested URL returned error: 500\nfatal: clone of '' into submodule path failed"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251483949/job/61153979187": {
+        "job_name": "static-checks / Run Pre-commit Hooks",
+        "workflow_name": "merge-gate",
+        "is_nd": true,
+        "commit_hash": "d3b9e6efc1003e84b8fa4ded813be1fd7da28259",
+        "error_message": "error: RPC failed; HTTP 500 curl 22 The requested URL returned error: 500\nfatal: expected 'packfile'\nThe process '/usr/bin/git' failed with exit code 128"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251483949/job/61154091406": {
+        "job_name": "build / build-docker-image / check-docker-images",
+        "workflow_name": "merge-gate",
+        "is_nd": true,
+        "commit_hash": "d3b9e6efc1003e84b8fa4ded813be1fd7da28259",
+        "error_message": "RPC failed; HTTP 500 curl 22 The requested URL returned error: 500\nunable to access '': The requested URL returned error: 500\nclone of '' into submodule path failed\nThe process '/usr/bin/git' failed with exit code 128"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251483949/job/61154136491": {
+        "job_name": "code-analysis /  Clang Tidy",
+        "workflow_name": "merge-gate",
+        "is_nd": true,
+        "commit_hash": "d3b9e6efc1003e84b8fa4ded813be1fd7da28259",
+        "error_message": "error: RPC failed; HTTP 500 curl 22 The requested URL returned error: 500\nfatal: expected flush after ref listing\nfatal: unable to access '': The requested URL returned error: 500\nThe process '/usr/bin/git' failed with exit code 128"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251483949/job/61154171570": {
+        "job_name": "build-tsan /  Build TSan ubuntu 24.04",
+        "workflow_name": "merge-gate",
+        "is_nd": true,
+        "commit_hash": "d3b9e6efc1003e84b8fa4ded813be1fd7da28259",
+        "error_message": "RPC failed; HTTP 500 curl 22 The requested URL returned error: 500\nunable to access '': The requested URL returned error: 500\nThe process '/usr/bin/git' failed with exit code 128\nclone of '' into submodule path failed"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21250901766/job/61157288463",
+      "commit_hash": "95f91319ad0ba7918720bbc292bdac08445df2b9",
+      "timestamp": "January 22nd, 2:41pm, 39.46 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "unable to access '': The requested URL returned error: 500\nunable to access '': The requested URL returned error: 500\nunable to access '': The requested URL returned error: 500\nRPC failed; HTTP 500 curl 22 The requested URL returned error: 500",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251483709/job/61154094306"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251483709/job/61154094306": {
+        "job_name": "build-artifact /  Build Release ubuntu 22.04",
+        "workflow_name": "all-post-commit-workflows",
+        "is_nd": true,
+        "commit_hash": "d3b9e6efc1003e84b8fa4ded813be1fd7da28259",
+        "error_message": "unable to access '': The requested URL returned error: 500\nunable to access '': The requested URL returned error: 500\nunable to access '': The requested URL returned error: 500\nRPC failed; HTTP 500 curl 22 The requested URL returned error: 500",
+        "timestamp": "January 22nd, 2:40pm, 44.79 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21251483709/job/61154094306",
+      "commit_hash": "d3b9e6efc1003e84b8fa4ded813be1fd7da28259",
+      "timestamp": "January 22nd, 2:40pm, 44.79 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "Exception: Performance checks failed - see above for models with regressions or significant improvements requiring baseline updates\n[FAIL] The following models failed 'Inference Time (sec)' checks:\n  - Falcon_decode_num_devices=4_kv_cache_len=128_seq_len=1_num_layers=32_config=BFLOAT16-L1_SHARDED: measured=0.0667, expected=0.0590, tolerance=[0.0472, 0.0590] (13.1% regression)",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21248016772/job/61142813103"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21248016772/job/61142813103": {
+        "job_name": "t3000-perf-tests / t3k_LLM_falcon7b_model_perf_tests",
+        "workflow_name": "t3000-perf-tests",
+        "is_nd": false,
+        "commit_hash": "09f5ef4fe924efea965e0bca2fb632ad64d2c372",
+        "error_message": "Exception: Performance checks failed - see above for models with regressions or significant improvements requiring baseline updates\n[FAIL] The following models failed 'Inference Time (sec)' checks:\n- Falcon_decode_num_devices=4_kv_cache_len=128_seq_len=1_num_layers=32_config=BFLOAT16-L1_SHARDED: measured=0.0667, expected=0.0590, tolerance=[0.0472, 0.0590] (13.1% regression)",
+        "timestamp": "January 22nd, 3:08pm, 33.20 seconds"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21248016772/job/61142813103",
+      "commit_hash": "09f5ef4fe924efea965e0bca2fb632ad64d2c372",
+      "timestamp": "January 22nd, 3:08pm, 33.20 seconds"
+    }
+  },
+  {
+    "centroid_error": "AssertionError: Warning: denoising_steps_time is outside of the tolerance range. Expected: 11.3, Actual: 11.354993499999999\nassert False",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21248016772/job/61142813056"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21248016772/job/61142813056": {
+        "job_name": "t3000-perf-tests / t3k_DiT_SD3.5_model_perf_tests",
+        "workflow_name": "t3000-perf-tests",
+        "is_nd": true,
+        "commit_hash": "09f5ef4fe924efea965e0bca2fb632ad64d2c372",
+        "error_message": "AssertionError: Warning: denoising_steps_time is outside of the tolerance range. Expected: 11.3, Actual: 11.354993499999999\nassert False",
+        "timestamp": "January 22nd, 3:00pm, 36.29 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21248016772/job/61142813056",
+      "commit_hash": "09f5ef4fe924efea965e0bca2fb632ad64d2c372",
+      "timestamp": "January 22nd, 3:00pm, 36.29 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "RuntimeError: Invalid input shape at ttnn.create_sharded_memory_config_(shape=[1, 384, 64, 96], core_grid=CoreGrid(x=8, y=8), strategy=ShardStrategy.HEIGHT) in models/experimental/swin_s/tt/tt_shifted_window_attention.py:144",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251684451/job/61156240121"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251684451/job/61156240121": {
+        "job_name": "fd-nightly / Nightly CIv2-compatible N300 vadv2",
+        "workflow_name": "fast-dispatch-full-regressions-and-models",
+        "is_nd": false,
+        "commit_hash": "d3b9e6efc1003e84b8fa4ded813be1fd7da28259",
+        "error_message": "RuntimeError: Invalid input shape at ttnn.create_sharded_memory_config_(shape=[1, 384, 64, 96], core_grid=CoreGrid(x=8, y=8), strategy=ShardStrategy.HEIGHT) in models/experimental/swin_s/tt/tt_shifted_window_attention.py:144",
+        "timestamp": "January 22nd, 3:52pm, 36.07 seconds"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21251684451/job/61156240121",
+      "commit_hash": "d3b9e6efc1003e84b8fa4ded813be1fd7da28259",
+      "timestamp": "January 22nd, 3:52pm, 36.07 seconds"
+    }
+  },
+  {
+    "centroid_error": "The self-hosted runner lost communication with the server.\nfatal: unable to access '': The requested URL returned error: 500\nThe process '/usr/bin/git' failed with exit code 128",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251684451/job/61156241019"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251684451/job/61156241019": {
+        "job_name": "fd-nightly / Nightly N300 efficientdetd0",
+        "workflow_name": "fast-dispatch-full-regressions-and-models",
+        "is_nd": true,
+        "commit_hash": "d3b9e6efc1003e84b8fa4ded813be1fd7da28259",
+        "error_message": "The self-hosted runner lost communication with the server.\nfatal: unable to access '': The requested URL returned error: 500\nThe process '/usr/bin/git' failed with exit code 128",
+        "timestamp": "January 22nd, 3:43pm, 0.15 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21251684451/job/61156241019",
+      "commit_hash": "d3b9e6efc1003e84b8fa4ded813be1fd7da28259",
+      "timestamp": "January 22nd, 3:43pm, 0.15 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "The self-hosted runner lost communication with the server.\nunable to access '': The requested URL returned error: 500\nunable to access '': The requested URL returned error: 500",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251684451/job/61156240897"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251684451/job/61156240897": {
+        "job_name": "fd-nightly / Nightly N300 ttt-llama3.2-1B",
+        "workflow_name": "fast-dispatch-full-regressions-and-models",
+        "is_nd": true,
+        "commit_hash": "d3b9e6efc1003e84b8fa4ded813be1fd7da28259",
+        "error_message": "The self-hosted runner lost communication with the server.\nunable to access '': The requested URL returned error: 500\nunable to access '': The requested URL returned error: 500",
+        "timestamp": "January 22nd, 3:42pm, 5.67 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21251684451/job/61156240897",
+      "commit_hash": "d3b9e6efc1003e84b8fa4ded813be1fd7da28259",
+      "timestamp": "January 22nd, 3:42pm, 5.67 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "unable to access '': The requested URL returned error: 500\nclone of '' into submodule path failed\nThe self-hosted runner lost communication with the server.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251684451/job/61154724667",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251684451/job/61156241212"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251684451/job/61156241212": {
+        "job_name": "fd-nightly / Nightly N300 retinanet",
+        "workflow_name": "fast-dispatch-full-regressions-and-models",
+        "is_nd": true,
+        "commit_hash": "d3b9e6efc1003e84b8fa4ded813be1fd7da28259",
+        "error_message": "The self-hosted runner lost communication with the server.\nunable to access '': The requested URL returned error: 500\nclone of '' into submodule path failed"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21251684451/job/61154724667": {
+        "job_name": "build-artifact /  Build Release ubuntu 22.04",
+        "workflow_name": "fast-dispatch-full-regressions-and-models",
+        "is_nd": true,
+        "commit_hash": "d3b9e6efc1003e84b8fa4ded813be1fd7da28259",
+        "error_message": "unable to access '': The requested URL returned error: 500\nclone of '' into submodule path failed\nThe self-hosted runner lost communication with the server.",
+        "timestamp": "January 22nd, 3:40pm, 46.90 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21251684451/job/61154724667",
+      "commit_hash": "d3b9e6efc1003e84b8fa4ded813be1fd7da28259",
+      "timestamp": "January 22nd, 3:40pm, 46.90 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "RuntimeError: TT_THROW @ /project/tt_metal/impl/dispatch/system_memory_manager.cpp:627: tt::exception\\nTIMEOUT: device timeout, potential hang detected, the device is unrecoverable",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20561664549/job/59053286273",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21153831191/job/60835269554",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21155019747/job/60838722029",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21155019747/job/60838722063",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21155019747/job/60838722077",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21155019747/job/60838728028",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21162680370/job/60860750703",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21162680370/job/60860750721",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21163935951/job/60864650249",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21199119321/job/60981418511",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21199119321/job/60981418544",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21237952797/job/61110212106",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21237952797/job/61110212136",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21255520556/job/61169829578"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21255520556/job/61169829578": {
+        "job_name": "ttnn-unit-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": false,
+        "commit_hash": "",
+        "error_message": "RuntimeError: TT_THROW @ /project/tt_metal/impl/dispatch/system_memory_manager.cpp:627: tt::exception\\nTIMEOUT: device timeout, potential hang detected, the device is unrecoverable"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21199119321/job/60981418511": {
+        "job_name": "tt-metal-l2-tests",
+        "workflow_name": "tt-metal-l2-nightly",
+        "is_nd": false,
+        "commit_hash": "",
+        "error_message": "RuntimeError: TT_THROW @ /project/tt_metal/impl/dispatch/system_memory_manager.cpp:627: tt::exception\ninfo: TIMEOUT: device timeout, potential hang detected, the device is unrecoverable\nbacktrace:\n--- tt::tt_metal::buffer_dispatch::copy_completion_queue_data_into_user_space(...)\n--- tt::tt_metal::distributed::FDMeshCommandQueue::read_completion_queue()"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21199119321/job/60981418544": {
+        "job_name": "tt-metal-l2-tests",
+        "workflow_name": "tt-metal-l2-nightly",
+        "is_nd": false,
+        "commit_hash": "",
+        "error_message": "RuntimeError: TT_THROW @ /project/tt_metal/impl/dispatch/system_memory_manager.cpp:627: tt::exception\ninfo:\nTIMEOUT: device timeout, potential hang detected, the device is unrecoverable\ntest: test_gather_long_tensor[input_shape=[1, 151936]-index_shape=[1, 151936]-dim=-1]"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21237952797/job/61110212136": {
+        "job_name": "tt-metal-l2-tests",
+        "workflow_name": "tt-metal-l2-nightly",
+        "is_nd": false,
+        "commit_hash": "",
+        "error_message": "RuntimeError: TT_THROW @ /project/tt_metal/impl/dispatch/system_memory_manager.cpp:627: tt::exception\ninfo:\nTIMEOUT: device timeout, potential hang detected, the device is unrecoverable\nbacktrace:\n--- tt::tt_metal::buffer_dispatch::copy_completion_queue_data_into_user_space(...)\n--- tt::tt_metal::distributed::FDMeshCommandQueue::read_completion_queue()"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21237952797/job/61110212106": {
+        "job_name": "tt-metal-l2-tests",
+        "workflow_name": "tt-metal-l2-nightly",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "RuntimeError: TT_THROW @ /project/tt_metal/impl/dispatch/system_memory_manager.cpp:627: tt::exception\ninfo:\nTIMEOUT: device timeout, potential hang detected, the device is unrecoverable\nThe self-hosted runner lost communication with the server.\nThe job has exceeded the maximum execution time of 6h0m0s"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21162680370/job/60860750703": {
+        "job_name": "ttnn-unit-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": false,
+        "commit_hash": "",
+        "error_message": "RuntimeError: TT_THROW @ /project/tt_metal/impl/dispatch/system_memory_manager.cpp:607: tt::exception\ninfo:\nTIMEOUT: device timeout, potential hang detected, the device is unrecoverable"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21162680370/job/60860750721": {
+        "job_name": "ttnn-unit-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": false,
+        "commit_hash": "",
+        "error_message": "RuntimeError: TT_THROW @ /project/tt_metal/impl/dispatch/system_memory_manager.cpp:607: tt::exception\ninfo:\nTIMEOUT: device timeout, potential hang detected, the device is unrecoverable"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21163935951/job/60864650249": {
+        "job_name": "ttnn-unit-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "RuntimeError: TT_THROW @ /project/tt_metal/impl/dispatch/system_memory_manager.cpp:607: tt::exception\ninfo:\nTIMEOUT: device timeout, potential hang detected, the device is unrecoverable"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/20561664549/job/59053286273": {
+        "job_name": "galaxy-demo-tests / Galaxy Llama3 demo tests",
+        "workflow_name": "galaxy-demo-tests",
+        "is_nd": true,
+        "commit_hash": "2b69650e6ee8a07a9af9c32f12ca2b2360465e0e",
+        "error_message": "RuntimeError: TT_THROW @ /project/tt_metal/impl/dispatch/system_memory_manager.cpp:514: tt::exception\ninfo:\nTIMEOUT: device timeout, potential hang detected, the device is unrecoverable",
+        "timestamp": "January 20th, 2:15am, 57.06 seconds (marked as ND)"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21155019747/job/60838722029": {
+        "job_name": "run-profiler-regression",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": false,
+        "commit_hash": "",
+        "error_message": "RuntimeError: TT_THROW @ /project/tt_metal/impl/dispatch/system_memory_manager.cpp:607: tt::exception\ninfo:\nTIMEOUT: device timeout, potential hang detected, the device is unrecoverable\nbacktrace:\n--- tt::tt_metal::buffer_dispatch::copy_completion_queue_data_into_user_space(...)\n--- tt::tt_metal::distributed::FDMeshCommandQueue::read_completion_queue()"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21155019747/job/60838722063": {
+        "job_name": "blackhole-20-cores-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": false,
+        "commit_hash": "",
+        "error_message": "RuntimeError: TT_THROW @ /project/tt_metal/impl/dispatch/system_memory_manager.cpp:607: tt::exception\ninfo:\nTIMEOUT: device timeout, potential hang detected, the device is unrecoverable"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21155019747/job/60838728028": {
+        "job_name": "ttnn-unit-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": false,
+        "commit_hash": "",
+        "error_message": "RuntimeError: TT_THROW @ /project/tt_metal/impl/dispatch/system_memory_manager.cpp:607: tt::exception\ninfo:\nTIMEOUT: device timeout, potential hang detected, the device is unrecoverable\nbacktrace:\n--- tt::tt_metal::buffer_dispatch::copy_completion_queue_data_into_user_space(...)\n--- tt::tt_metal::distributed::FDMeshCommandQueue::read_completion_queue()"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21155019747/job/60838722077": {
+        "job_name": "tt-cnn-unit-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": false,
+        "commit_hash": "",
+        "error_message": "RuntimeError: TT_THROW @ /project/tt_metal/impl/dispatch/system_memory_manager.cpp:607: tt::exception\ninfo:\nTIMEOUT: device timeout, potential hang detected, the device is unrecoverable\nbacktrace:\n--- tt::tt_metal::buffer_dispatch::copy_completion_queue_data_into_user_space(...)\n--- tt::tt_metal::distributed::FDMeshCommandQueue::read_completion_queue()"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21153831191/job/60835269554": {
+        "job_name": "fd-nightly / Nightly N150 mobilenetv3",
+        "workflow_name": "fast-dispatch-full-regressions-and-models",
+        "is_nd": false,
+        "commit_hash": "4d537c4f95c05fc4c88670ec013935bbdb197fcb",
+        "error_message": "RuntimeError: TT_THROW @ /project/tt_metal/impl/dispatch/system_memory_manager.cpp:607: tt::exception\ninfo:\nTIMEOUT: device timeout, potential hang detected, the device is unrecoverable\nbacktrace:\n--- tt::tt_metal::buffer_dispatch::copy_completion_queue_data_into_user_space\n--- tt::tt_metal::distributed::FDMeshCommandQueue::read_completion_queue()"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/20561664549/job/59053286273",
+      "commit_hash": "2b69650e6ee8a07a9af9c32f12ca2b2360465e0e",
+      "timestamp": "January 20th, 2:15am, 57.06 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "TT_THROW: TIMEOUT: device timeout, potential hang detected, the device is unrecoverable",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21240917638/job/61118996503",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21255654114/job/61170220433"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21255654114/job/61170220433": {
+        "job_name": "t3000-unit-tests / t3k_ttnn_tests",
+        "workflow_name": "t3000-unit-tests",
+        "is_nd": false,
+        "commit_hash": "39aa458dc1d4f6ac6b2f66dc4245d9affdf95fc7",
+        "error_message": "TT_THROW: TIMEOUT: device timeout, potential hang detected, the device is unrecoverable"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21240917638/job/61118996503": {
+        "job_name": "galaxy-unit-tests / Galaxy Multi-Process tests",
+        "workflow_name": "galaxy-unit-tests",
+        "is_nd": false,
+        "commit_hash": "62713b645ab893d971864d4986499217222efcfe",
+        "error_message": "TT_THROW: TIMEOUT: device timeout, potential hang detected, the device is unrecoverable (assert.hpp:104) - Test legitimately takes 5-6 seconds but new timeout threshold is 5 seconds",
+        "timestamp": "January 22nd, 8:50am, 27.58 seconds"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21240917638/job/61118996503",
+      "commit_hash": "62713b645ab893d971864d4986499217222efcfe",
+      "timestamp": "January 22nd, 8:50am, 27.58 seconds"
+    }
+  },
+  {
+    "centroid_error": "PCC: 0.9860343790264618 (below threshold 0.99), Max ATOL Delta: 49.75, Max RTOL Delta: 936.0 at position 8",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21227431254/job/61078594508"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21227431254/job/61078594508": {
+        "job_name": "t3000-unit-tests / t3k_llama3.2-90b_tests",
+        "workflow_name": "t3000-unit-tests",
+        "is_nd": false,
+        "commit_hash": "eac953d1a25e5c632a2e712187d722d3647a87e8",
+        "error_message": "PCC: 0.9860343790264618 (below threshold 0.99), Max ATOL Delta: 49.75, Max RTOL Delta: 936.0 at position 8",
+        "timestamp": "January 22nd, 6:27pm, 18.13 seconds"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21227431254/job/61078594508",
+      "commit_hash": "eac953d1a25e5c632a2e712187d722d3647a87e8",
+      "timestamp": "January 22nd, 6:27pm, 18.13 seconds"
+    }
+  },
+  {
+    "centroid_error": "The self-hosted runner lost communication with the server. Verify the machine is running and has a healthy network connection. Anything in your workflow that terminates the runner process, starves it for CPU/Memory, or blocks its network access can cause this error.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21154868925/job/60838070118",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21162680370/job/60860750717",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21190639762/job/60956598788",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21208927041/job/61012832584",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21208927041/job/61012832585",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21214217087/job/61031647995",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21214217087/job/61031656009",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21214217087/job/61035542399",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21224062192/job/61066874206",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21230467977/job/61088138486",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21230705862/job/61088882106",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21237952797/job/61110212121",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21239451774/job/61114651461",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21247790980/job/61141964103",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21247790980/job/61141972754",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21255520556/job/61169829556",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21255611825/job/61169991756"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21255611825/job/61169991756": {
+        "job_name": "blackhole-multi-card-unit-tests",
+        "workflow_name": "blackhole-nightly-tests",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "The self-hosted runner lost communication with the server. Verify the machine is running and has a healthy network connection. Anything in your workflow that terminates the runner process, starves it for CPU/Memory, or blocks its network access can cause this error."
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21255520556/job/61169829556": {
+        "job_name": "ttnn-unit-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "The self-hosted runner lost communication with the server. Verify the machine is running and has a healthy network connection. Anything in your workflow that terminates the runner process, starves it for CPU/Memory, or blocks its network access can cause this error."
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21247790980/job/61141972754": {
+        "job_name": "ttnn-unit-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "The self-hosted runner lost communication with the server. Verify the machine is running and has a healthy network connection. Anything in your workflow that terminates the runner process, starves it for CPU/Memory, or blocks its network access can cause this error."
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21247790980/job/61141964103": {
+        "job_name": "metalium-smoke-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "The self-hosted runner lost communication with the server. Verify the machine is running and has a healthy network connection. Anything in your workflow that terminates the runner process, starves it for CPU/Memory, or blocks its network access can cause this error."
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21237952797/job/61110212121": {
+        "job_name": "tt-metal-l2-tests",
+        "workflow_name": "tt-metal-l2-nightly",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "The self-hosted runner lost communication with the server. Verify the machine is running and has a healthy network connection. Anything in your workflow that terminates the runner process, starves it for CPU/Memory, or blocks its network access can cause this error."
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21239451774/job/61114651461": {
+        "job_name": "umd-unit-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "The self-hosted runner lost communication with the server. \nVerify the machine is running and has a healthy network connection. \nAnything in your workflow that terminates the runner process, starves it for CPU/Memory, or blocks its network access can cause this error."
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21230705862/job/61088882106": {
+        "job_name": "tt-cnn-unit-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "The self-hosted runner lost communication with the server. Verify the machine is running and has a healthy network connection. Anything in your workflow that terminates the runner process, starves it for CPU/Memory, or blocks its network access can cause this error."
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21230467977/job/61088138486": {
+        "job_name": "t3000-integration-tests / t3k_llama3_tests",
+        "workflow_name": "t3000-integration-tests",
+        "is_nd": true,
+        "commit_hash": "eac953d1a25e5c632a2e712187d722d3647a87e8",
+        "error_message": "The self-hosted runner lost communication with the server. Verify the machine is running and has a healthy network connection. Anything in your workflow that terminates the runner process, starves it for CPU/Memory, or blocks its network access can cause this error."
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21224062192/job/61066874206": {
+        "job_name": "fd-nightly / WH N300 pgm dispatch nightly",
+        "workflow_name": "fast-dispatch-frequent-tests",
+        "is_nd": true,
+        "commit_hash": "a4c598cfb24827110c33e8af140c71b68d8ecd47",
+        "error_message": "The self-hosted runner lost communication with the server. Verify the machine is running and has a healthy network connection. Anything in your workflow that terminates the runner process, starves it for CPU/Memory, or blocks its network access can cause this error."
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21214217087/job/61031647995": {
+        "job_name": "fabric-unit-tests",
+        "workflow_name": "merge-gate",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "The self-hosted runner lost communication with the server. Verify the machine is running and has a healthy network connection. Anything in your workflow that terminates the runner process, starves it for CPU/Memory, or blocks its network access can cause this error."
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21214217087/job/61031656009": {
+        "job_name": "metalium-smoke-tests",
+        "workflow_name": "merge-gate",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "The self-hosted runner lost communication with the server. Verify the machine is running and has a healthy network connection. Anything in your workflow that terminates the runner process, starves it for CPU/Memory, or blocks its network access can cause this error."
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21214217087/job/61035542399": {
+        "job_name": "Merge Gate Status",
+        "workflow_name": "merge-gate",
+        "is_nd": true,
+        "commit_hash": "acbd62355ce41f6cebbb7857d2ba8f099cadc986",
+        "error_message": "The self-hosted runner lost communication with the server. Verify the machine is running and has a healthy network connection. Anything in your workflow that terminates the runner process, starves it for CPU/Memory, or blocks its network access can cause this error."
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21208927041/job/61012832584": {
+        "job_name": "ttnn-unit-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "The self-hosted runner lost communication with the server. Verify the machine is running and has a healthy network connection.\nAnything in your workflow that terminates the runner process, starves it for CPU/Memory, or blocks its network access can cause this error."
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21208927041/job/61012832585": {
+        "job_name": "ttnn-unit-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "The self-hosted runner lost communication with the server. Verify the machine is running and has a healthy network connection. Anything in your workflow that terminates the runner process, starves it for CPU/Memory, or blocks its network access can cause this error."
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21190639762/job/60956598788": {
+        "job_name": "device-perf / N300 WH B0 Set 1 device perf",
+        "workflow_name": "perf-device-models",
+        "is_nd": true,
+        "commit_hash": "c2f0d81fc227377cfe7048684564dd378352573d",
+        "error_message": "The self-hosted runner lost communication with the server. Verify the machine is running and has a healthy network connection. Anything in your workflow that terminates the runner process, starves it for CPU/Memory, or blocks its network access can cause this error."
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21162680370/job/60860750717": {
+        "job_name": "ttnn-unit-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "The self-hosted runner lost communication with the server. Verify the machine is running and has a healthy network connection. Anything in your workflow that terminates the runner process, starves it for CPU/Memory, or blocks its network access can cause this error."
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21154868925/job/60838070118": {
+        "job_name": "t3000-integration-tests / t3k_sd35_large_tests",
+        "workflow_name": "t3000-integration-tests",
+        "is_nd": true,
+        "commit_hash": "4f26e177d25d39b226e28ccd4b207f3d68ed83fa",
+        "error_message": "The self-hosted runner lost communication with the server. Verify the machine is running and has a healthy network connection. Anything in your workflow that terminates the runner process, starves it for CPU/Memory, or blocks its network access can cause this error.",
+        "timestamp": "January 20th, 1:17am, 1.96 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21154868925/job/60838070118",
+      "commit_hash": "4f26e177d25d39b226e28ccd4b207f3d68ed83fa",
+      "timestamp": "January 20th, 1:17am, 1.96 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "[ERROR] Total Time Budget FAILED for Team 'models', SKU 'wh_llmbox'! The sum of test timeouts (277 min) exceeds the allocated budget of 257 min.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21259521541/job/61183854428"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21259521541/job/61183854428": {
+        "job_name": "t3000-unit-tests / load-test-matrix",
+        "workflow_name": "t3000-unit-tests",
+        "is_nd": false,
+        "commit_hash": "191d0eed35ebfd9120841020e65bbac0ee14def5",
+        "error_message": "[ERROR] Total Time Budget FAILED for Team 'models', SKU 'wh_llmbox'! The sum of test timeouts (277 min) exceeds the allocated budget of 257 min.",
+        "timestamp": "January 22nd, 6:46pm, 37.96 seconds"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21259521541/job/61183854428",
+      "commit_hash": "191d0eed35ebfd9120841020e65bbac0ee14def5",
+      "timestamp": "January 22nd, 6:46pm, 37.96 seconds"
+    }
+  },
+  {
+    "centroid_error": "AssertionError: Some performance metrics are outside of expected range - AVG DEVICE KERNEL SAMPLES/S 1075603.1360553934 is outside of expected range (988224.0, 1070576.0)",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21174677309/job/60900872991",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21239492867/job/61114559559"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21239492867/job/61114559559": {
+        "job_name": "device-perf / N300 WH B0 not yet ported device perf",
+        "workflow_name": "perf-device-models",
+        "is_nd": false,
+        "commit_hash": "851bc8fadffa1f9f39f7dcea8a999155d38f5581",
+        "error_message": "AssertionError: Some performance metrics are outside of expected range - AVG DEVICE KERNEL SAMPLES/S 1075603.1360553934 is outside of expected range (988224.0, 1070576.0)"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21174677309/job/60900872991": {
+        "job_name": "device-perf / N300 WH B0 Set 2 device perf",
+        "workflow_name": "perf-device-models",
+        "is_nd": false,
+        "commit_hash": "14fede4226401e1ea1705f05da61e940c30265f0",
+        "error_message": "AVG DEVICE KERNEL SAMPLES/S 19643.51923468849 is outside of expected range (19649.122807017542, 20451.12781954887). AssertionError: Some performance metrics are outside of expected range, see above for details.",
+        "timestamp": "January 20th, 3:29pm, 4.41 seconds"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21174677309/job/60900872991",
+      "commit_hash": "14fede4226401e1ea1705f05da61e940c30265f0",
+      "timestamp": "January 20th, 3:29pm, 4.41 seconds"
+    }
+  },
+  {
+    "centroid_error": "AttributeError: P300x2. Did you mean: 'P300_X2'?",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21259557708/job/61184048725"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21259557708/job/61184048725": {
+        "job_name": "single-card-demo-tests / llama3-N150-func",
+        "workflow_name": "single-card-demo-tests",
+        "is_nd": true,
+        "commit_hash": "191d0eed35ebfd9120841020e65bbac0ee14def5",
+        "error_message": "AttributeError: P300x2. Did you mean: 'P300_X2'?",
+        "timestamp": "January 22nd, 7:55pm, 23.41 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21259557708/job/61184048725",
+      "commit_hash": "191d0eed35ebfd9120841020e65bbac0ee14def5",
+      "timestamp": "January 22nd, 7:55pm, 23.41 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "RuntimeError: Invalid input shape",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21257744492/job/61177820053"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21257744492/job/61177820053": {
+        "job_name": "device-perf / N300 WH B0 Set 2 device perf",
+        "workflow_name": "perf-device-models",
+        "is_nd": false,
+        "commit_hash": "ca72c2632bbb897d17883d2749db95a72a7803cc",
+        "error_message": "RuntimeError: Invalid input shape",
+        "timestamp": "January 22nd, 7:51pm, 27.59 seconds"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21257744492/job/61177820053",
+      "commit_hash": "ca72c2632bbb897d17883d2749db95a72a7803cc",
+      "timestamp": "January 22nd, 7:51pm, 27.59 seconds"
+    }
+  },
+  {
+    "centroid_error": "AttributeError: P300x2. Did you mean: 'P300_X2'? - The code attempts to access ClusterType.P300x2 but the actual enum member is ClusterType.P300_X2 (with underscores, not lowercase 'x'). This is a typo introduced in commit 8f025d87 when adding Ring topology support for P300x2, P150x4, and P150x8 cluster types.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21259557708/job/61184048797",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21259557708/job/61184048837"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21259557708/job/61184048797": {
+        "job_name": "single-card-demo-tests / llama3-N300-func",
+        "workflow_name": "single-card-demo-tests",
+        "is_nd": false,
+        "commit_hash": "191d0eed35ebfd9120841020e65bbac0ee14def5",
+        "error_message": "AttributeError: P300x2. Did you mean: 'P300_X2'? - Python enum attribute mismatch in ClusterType references",
+        "timestamp": "January 22nd, 7:47pm, 23.51 seconds"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21259557708/job/61184048837": {
+        "job_name": "single-card-demo-tests / ds_r1_qwen-N300-func",
+        "workflow_name": "single-card-demo-tests",
+        "is_nd": false,
+        "commit_hash": "191d0eed35ebfd9120841020e65bbac0ee14def5",
+        "error_message": "AttributeError: P300x2. Did you mean: 'P300_X2'? - The code attempts to access ClusterType.P300x2 but the actual enum member is ClusterType.P300_X2 (with underscores, not lowercase 'x'). This is a typo introduced in commit 8f025d87 when adding Ring topology support for P300x2, P150x4, and P150x8 cluster types."
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21259557708/job/61184048797",
+      "commit_hash": "191d0eed35ebfd9120841020e65bbac0ee14def5",
+      "timestamp": "January 22nd, 7:47pm, 23.51 seconds"
+    }
+  },
+  {
+    "centroid_error": "MLPerf mount service found. Command returned with exit code 3. Restarting it so we can ensure MLPerf mount is available\nJob failed. See \"journalctl -xe\" for details.\nProcess completed with exit code 1.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21259557708/job/61184048835"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21259557708/job/61184048835": {
+        "job_name": "single-card-demo-tests / qwen25_vl-N150-func",
+        "workflow_name": "single-card-demo-tests",
+        "is_nd": true,
+        "commit_hash": "191d0eed35ebfd9120841020e65bbac0ee14def5",
+        "error_message": "MLPerf mount service found. Command returned with exit code 3. Restarting it so we can ensure MLPerf mount is available\nJob failed. See \"journalctl -xe\" for details.\nProcess completed with exit code 1.",
+        "timestamp": "January 22nd, 7:39pm, 37.64 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21259557708/job/61184048835",
+      "commit_hash": "191d0eed35ebfd9120841020e65bbac0ee14def5",
+      "timestamp": "January 22nd, 7:39pm, 37.64 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "Failed to mount Mount Weka filesystem MLPerf\nmnt-MLPerf.mount: Failed with result 'exit-code'\nerror: /opt/weka/data/client/container/resources.json.stable: No such file or directory\nJob failed during infrastructure setup before tests could run",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21259557708/job/61184048716",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21259557708/job/61184048762",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21259557708/job/61184048779",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21259557708/job/61184048801",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21259557708/job/61184048821"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21259557708/job/61184048716": {
+        "job_name": "single-card-demo-tests / vgg-N150-func",
+        "workflow_name": "single-card-demo-tests",
+        "is_nd": true,
+        "commit_hash": "191d0eed35ebfd9120841020e65bbac0ee14def5",
+        "error_message": "Failed to mount Mount Weka filesystem MLPerf\nmnt-MLPerf.mount: Failed with result 'exit-code'\nerror: /opt/weka/data/client/container/resources.json.stable: No such file or directory\nJob failed during infrastructure setup before tests could run",
+        "timestamp": "January 22nd, 7:39pm, 12.54 seconds (marked as ND)"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21259557708/job/61184048762": {
+        "job_name": "single-card-demo-tests / resnet-N150-func",
+        "workflow_name": "single-card-demo-tests",
+        "is_nd": true,
+        "commit_hash": "191d0eed35ebfd9120841020e65bbac0ee14def5",
+        "error_message": "mnt-MLPerf.mount: Failed with result 'exit-code'\nerror: /opt/weka/data/client/container/resources.json.stable: No such file or directory\nFailed to mount Mount Weka filesystem MLPerf\nMLPerf mount service found. Command returned with exit code 3"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21259557708/job/61184048779": {
+        "job_name": "single-card-demo-tests / squeezebert-N150-func",
+        "workflow_name": "single-card-demo-tests",
+        "is_nd": true,
+        "commit_hash": "191d0eed35ebfd9120841020e65bbac0ee14def5",
+        "error_message": "MLPerf mount service failed with exit code 3\nerror: /opt/weka/data/client/container/resources.json.stable: No such file or directory\nFailed to mount Mount Weka filesystem MLPerf\nProcess completed with exit code 1"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21259557708/job/61184048801": {
+        "job_name": "single-card-demo-tests / mnist-N150-func",
+        "workflow_name": "single-card-demo-tests",
+        "is_nd": true,
+        "commit_hash": "191d0eed35ebfd9120841020e65bbac0ee14def5",
+        "error_message": "error: /opt/weka/data/client/container/resources.json.stable: No such file or directory\nmnt-MLPerf.mount: Failed with result 'exit-code'.\nFailed to mount Mount Weka filesystem MLPerf."
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21259557708/job/61184048821": {
+        "job_name": "single-card-demo-tests / bert_tiny-N150-func",
+        "workflow_name": "single-card-demo-tests",
+        "is_nd": true,
+        "commit_hash": "191d0eed35ebfd9120841020e65bbac0ee14def5",
+        "error_message": "error: /opt/weka/data/client/container/resources.json.stable: No such file or directory\nmnt-MLPerf.mount: Failed with result 'exit-code'.\nFailed to mount Mount Weka filesystem MLPerf.\nProcess completed with exit code 1."
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21259557708/job/61184048716",
+      "commit_hash": "191d0eed35ebfd9120841020e65bbac0ee14def5",
+      "timestamp": "January 22nd, 7:39pm, 12.54 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "TT_FATAL @ /work/tt_metal/distributed/fd_mesh_command_queue.cpp:148: completion_queue_reads_.empty() - The completion reader queue must be empty when closing devices.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21212758306/job/61026393197",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21216837951/job/61041020685"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21212758306/job/61026393197": {
+        "job_name": "t3000-unit-tests / t3k_ttmetal_tests",
+        "workflow_name": "t3000-unit-tests",
+        "is_nd": false,
+        "commit_hash": "4188f694040a323164ca893130a590737a2e6104",
+        "error_message": "TT_FATAL @ /work/tt_metal/distributed/fd_mesh_command_queue.cpp:148: completion_queue_reads_.empty() - The completion reader queue must be empty when closing devices. Preceded by fabric hang: TIMEOUT: device timeout, potential hang detected, the device is unrecoverable",
+        "timestamp": "January 22nd, 9:18pm, 56.37 seconds"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21216837951/job/61041020685": {
+        "job_name": "t3000-unit-tests / t3k_ttnn_tests",
+        "workflow_name": "t3000-unit-tests",
+        "is_nd": false,
+        "commit_hash": "0d56150bba35b2c4809ae9ab689beb7c4793f44c",
+        "error_message": "TT_FATAL @ /work/tt_metal/distributed/fd_mesh_command_queue.cpp:148: completion_queue_reads_.empty() - The completion reader queue must be empty when closing devices."
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21212758306/job/61026393197",
+      "commit_hash": "4188f694040a323164ca893130a590737a2e6104",
+      "timestamp": "January 22nd, 9:18pm, 56.37 seconds"
+    }
+  },
+  {
+    "centroid_error": "AssertionError: PCC value is lower than 0.99 for some of the outputs. Check Warnings!",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21227431254/job/61078594508"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21227431254/job/61078594508": {
+        "job_name": "t3000-unit-tests / t3k_llama3.2-90b_tests",
+        "workflow_name": "t3000-unit-tests",
+        "is_nd": false,
+        "commit_hash": "eac953d1a25e5c632a2e712187d722d3647a87e8",
+        "error_message": "AssertionError: PCC value is lower than 0.99 for some of the outputs. Check Warnings!",
+        "timestamp": "January 22nd, 9:18pm, 8.57 seconds"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21227431254/job/61078594508",
+      "commit_hash": "eac953d1a25e5c632a2e712187d722d3647a87e8",
+      "timestamp": "January 22nd, 9:18pm, 8.57 seconds"
+    }
+  },
+  {
+    "centroid_error": "TypeError: Transformer.prepare_inputs_prefill() got an unexpected keyword argument 'global_user_id'\n\nmodels/tt_transformers/tt/generator.py:544: TypeError\nFAILED models/tt_transformers/tests/mixtral/test_mixtral_model_prefill.py::test_model_inference",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21263194743/job/61196503050"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21263194743/job/61196503050": {
+        "job_name": "t3000-unit-tests / t3k_mixtral_tests",
+        "workflow_name": "t3000-unit-tests",
+        "is_nd": false,
+        "commit_hash": "08aaa6c46aa747d1c4f9c4f5b1d0d9f6dae787d4",
+        "error_message": "TypeError: Transformer.prepare_inputs_prefill() got an unexpected keyword argument 'global_user_id'\n\nmodels/tt_transformers/tt/generator.py:544: TypeError\nFAILED models/tt_transformers/tests/mixtral/test_mixtral_model_prefill.py::test_model_inference",
+        "timestamp": "January 22nd, 9:17pm, 53.73 seconds"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21263194743/job/61196503050",
+      "commit_hash": "08aaa6c46aa747d1c4f9c4f5b1d0d9f6dae787d4",
+      "timestamp": "January 22nd, 9:17pm, 53.73 seconds"
+    }
+  },
+  {
+    "centroid_error": "RuntimeError: TT_FATAL @ /project/tt_metal/fabric/fabric.cpp:152: forwarding_direction.has_value()\ninfo:\nCould not find any forwarding direction from src (M0, D0) to dst (M0, D3)",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21263194743/job/61196502967",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21263194743/job/61196503008",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21263194743/job/61196503057"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21263194743/job/61196503057": {
+        "job_name": "t3000-unit-tests / t3k_tttv2_fast_unit_tests",
+        "workflow_name": "t3000-unit-tests",
+        "is_nd": false,
+        "commit_hash": "08aaa6c46aa747d1c4f9c4f5b1d0d9f6dae787d4",
+        "error_message": "RuntimeError: TT_FATAL @ /project/tt_metal/fabric/fabric.cpp:152: forwarding_direction.has_value() - Could not find any forwarding direction from src (M0, D0) to dst (M0, D3)"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21263194743/job/61196503008": {
+        "job_name": "t3000-unit-tests / t3k_grok_tests",
+        "workflow_name": "t3000-unit-tests",
+        "is_nd": false,
+        "commit_hash": "08aaa6c46aa747d1c4f9c4f5b1d0d9f6dae787d4",
+        "error_message": "RuntimeError: TT_FATAL @ /project/tt_metal/fabric/fabric.cpp:152: forwarding_direction.has_value() - Could not find any forwarding direction from src (M0, D0) to dst (M0, D3)"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21263194743/job/61196502967": {
+        "job_name": "t3000-unit-tests / t3k_llama3.2-11b_tests",
+        "workflow_name": "t3000-unit-tests",
+        "is_nd": true,
+        "commit_hash": "08aaa6c46aa747d1c4f9c4f5b1d0d9f6dae787d4",
+        "error_message": "RuntimeError: TT_FATAL @ /project/tt_metal/fabric/fabric.cpp:152: forwarding_direction.has_value()\ninfo:\nCould not find any forwarding direction from src (M0, D0) to dst (M0, D3)",
+        "timestamp": "January 22nd, 9:10pm, 2.57 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21263194743/job/61196502967",
+      "commit_hash": "08aaa6c46aa747d1c4f9c4f5b1d0d9f6dae787d4",
+      "timestamp": "January 22nd, 9:10pm, 2.57 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "Test BM_pgm_dispatch/5000_kernel_all_cores_all_processors_32_cbs_trace/4096/manual_time expected value 4.59us but got 20.50us (346.72% worse)",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21247862761/job/61142362587",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21263128146/job/61196301502"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21263128146/job/61196301502": {
+        "job_name": "fd-nightly / BH P150 pgm dispatch nightly",
+        "workflow_name": "fast-dispatch-frequent-tests",
+        "is_nd": true,
+        "commit_hash": "257087cf9464d5dfe7c7f93005073cafe600557a",
+        "error_message": "Test BM_pgm_dispatch/5000_kernel_all_cores_all_processors_32_cbs_trace/4096/manual_time expected value 4.59us but got 20.50us (346.72% worse)"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21247862761/job/61142362587": {
+        "job_name": "fd-nightly / WH N300 pgm dispatch nightly",
+        "workflow_name": "fast-dispatch-frequent-tests",
+        "is_nd": true,
+        "commit_hash": "09f5ef4fe924efea965e0bca2fb632ad64d2c372",
+        "error_message": "Test BM_pgm_dispatch/5000_kernel_all_cores_all_processors_32_cbs_trace/2048/manual_time expected value 6.47us but got 26.29us (306.17% worse)",
+        "timestamp": "January 22nd, 1:16pm, 55.03 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21247862761/job/61142362587",
+      "commit_hash": "09f5ef4fe924efea965e0bca2fb632ad64d2c372",
+      "timestamp": "January 22nd, 1:16pm, 55.03 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "TT_FATAL @ /work/tt_metal/llrt/tt_cluster.cpp:502: false\ninfo:\nPhysical chip id not found for eth coord",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21189001621/job/60951624977",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21266600420/job/61207802441"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21266600420/job/61207802441": {
+        "job_name": "t3000-unit-tests / t3k_tt_metal_multiprocess_tests",
+        "workflow_name": "t3000-unit-tests",
+        "is_nd": true,
+        "commit_hash": "f1f5abc8598426186251ccb7b59fd8ca0a55b1c7",
+        "error_message": "TT_FATAL @ /work/tt_metal/llrt/tt_cluster.cpp:502: false\ninfo:\nPhysical chip id not found for eth coord"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21189001621/job/60951624977": {
+        "job_name": "t3000-unit-tests / t3k_tt_metal_multiprocess_tests",
+        "workflow_name": "t3000-unit-tests",
+        "is_nd": true,
+        "commit_hash": "6107d50e27a5913f3f6426c45750e67cb552c843",
+        "error_message": "TT_FATAL @ /work/tt_metal/llrt/tt_cluster.cpp:502: false\nTT_FATAL: Physical chip id not found for eth coord (assert.hpp:104)\nProcess completed with exit code 134 (Aborted)",
+        "timestamp": "January 21st, 12:48am, 3.59 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21189001621/job/60951624977",
+      "commit_hash": "6107d50e27a5913f3f6426c45750e67cb552c843",
+      "timestamp": "January 21st, 12:48am, 3.59 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "ERROR: AVG DEVICE KERNEL DURATION [ns] 64375835.0 is outside of expected range (61763234.82, 64284183.18)\nAssertionError: Some performance metrics are outside of expected range, see above for details.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21268146799/job/61212694497"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21268146799/job/61212694497": {
+        "job_name": "device-perf / N300 WH B0 Set 1 device perf",
+        "workflow_name": "perf-device-models",
+        "is_nd": true,
+        "commit_hash": "f1f5abc8598426186251ccb7b59fd8ca0a55b1c7",
+        "error_message": "ERROR: AVG DEVICE KERNEL DURATION [ns] 64375835.0 is outside of expected range (61763234.82, 64284183.18)\nAssertionError: Some performance metrics are outside of expected range, see above for details.",
+        "timestamp": "January 23rd, 1:45am, 29.16 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21268146799/job/61212694497",
+      "commit_hash": "f1f5abc8598426186251ccb7b59fd8ca0a55b1c7",
+      "timestamp": "January 23rd, 1:45am, 29.16 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "Physical Discovery found missing channel connections and missing port/cable connections. Connection mismatch detected.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269551606/job/61217068970"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269551606/job/61217068970": {
+        "job_name": "galaxy-quick-test / quick-bh-glx-health",
+        "workflow_name": "galaxy-quick",
+        "is_nd": false,
+        "commit_hash": "b6595177cdbb0bd247c7e1c42a9de6ccac7398fc",
+        "error_message": "Physical Discovery found missing channel connections and missing port/cable connections. Connection mismatch detected.",
+        "timestamp": "January 23rd, 12:50am, 21.78 seconds"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21269551606/job/61217068970",
+      "commit_hash": "b6595177cdbb0bd247c7e1c42a9de6ccac7398fc",
+      "timestamp": "January 23rd, 12:50am, 21.78 seconds"
+    }
+  },
+  {
+    "centroid_error": "RuntimeError: Invalid input shape in ttnn/core.py:261 during swin transformer test execution when processing sharded tensors through reshape operations",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21268113591/job/61212694771"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21268113591/job/61212694771": {
+        "job_name": "fd-nightly / Nightly N150 efficientdetd0",
+        "workflow_name": "fast-dispatch-full-regressions-and-models",
+        "is_nd": false,
+        "commit_hash": "f1f5abc8598426186251ccb7b59fd8ca0a55b1c7",
+        "error_message": "RuntimeError: Invalid input shape in ttnn/core.py:261 during swin transformer test execution when processing sharded tensors through reshape operations",
+        "timestamp": "January 23rd, 2:13am, 12.19 seconds"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21268113591/job/61212694771",
+      "commit_hash": "f1f5abc8598426186251ccb7b59fd8ca0a55b1c7",
+      "timestamp": "January 23rd, 2:13am, 12.19 seconds"
+    }
+  },
+  {
+    "centroid_error": "RuntimeError: Invalid input shape - ttnn.pad_to_tile_shape() returns VectorUInt32 instead of Python list, breaking type check in create_sharded_memory_config_()",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21212698684/job/61026145147",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21212823169/job/61026638347",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21220795059/job/61055420350",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21259557708/job/61184048827",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21263142562/job/61196389349",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21268113591/job/61212694704",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21268113591/job/61212694733"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21268113591/job/61212694704": {
+        "job_name": "fd-nightly / Nightly N150 swin_v2",
+        "workflow_name": "fast-dispatch-full-regressions-and-models",
+        "is_nd": true,
+        "commit_hash": "f1f5abc8598426186251ccb7b59fd8ca0a55b1c7",
+        "error_message": "RuntimeError: Invalid input shape - ttnn.pad_to_tile_shape() now returns VectorUInt32 instead of Python list, causing type check failure in create_sharded_memory_config()"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21268113591/job/61212694733": {
+        "job_name": "fd-nightly / Nightly N150 ufld_v2",
+        "workflow_name": "fast-dispatch-full-regressions-and-models",
+        "is_nd": false,
+        "commit_hash": "f1f5abc8598426186251ccb7b59fd8ca0a55b1c7",
+        "error_message": "RuntimeError: Invalid input shape - ttnn.pad_to_tile_shape() returns VectorUInt32 instead of Python list, breaking type check in create_sharded_memory_config_()"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21263142562/job/61196389349": {
+        "job_name": "models-perf / cnn_javelin N300 WH B0",
+        "workflow_name": "perf-models",
+        "is_nd": true,
+        "commit_hash": "257087cf9464d5dfe7c7f93005073cafe600557a",
+        "error_message": "RuntimeError: Invalid input shape - ttnn.pad_to_tile_shape() returns VectorUInt32 instead of Python list, causing shape validation failure in create_sharded_memory_config_()"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21212698684/job/61026145147": {
+        "job_name": "models-perf / other_magic_env N300 WH B0",
+        "workflow_name": "perf-models",
+        "is_nd": false,
+        "commit_hash": "4a6b1743164b6c4169dbfa3c804f9f31f8954372",
+        "error_message": "RuntimeError: Invalid input shape - ttnn.pad_to_tile_shape() now returns VectorUInt32 wrapper type instead of Python list, causing type validation failure in create_sharded_memory_config_()",
+        "timestamp": "January 22nd, 8:40pm, 56.17 seconds"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21259557708/job/61184048827": {
+        "job_name": "single-card-demo-tests / sdxl-N150-func",
+        "workflow_name": "single-card-demo-tests",
+        "is_nd": false,
+        "commit_hash": "191d0eed35ebfd9120841020e65bbac0ee14def5",
+        "error_message": "RuntimeError: Invalid input shape in ttnn.create_sharded_memory_config_ - ttnn.pad_to_tile_shape() returns VectorUInt32 instead of list/tuple/ttnn.Shape"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21220795059/job/61055420350": {
+        "job_name": "single-card-demo-tests / bert_tiny-N300-func",
+        "workflow_name": "single-card-demo-tests",
+        "is_nd": false,
+        "commit_hash": "36252a3cb15ed33e4e9ba145a603896d6b664830",
+        "error_message": "RuntimeError: Invalid input shape - ttnn.pad_to_tile_shape() returns VectorUInt32 instead of Python list, breaking create_sharded_memory_config_()"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21212823169/job/61026638347": {
+        "job_name": "device-perf / N300 WH B0 Set 2 device perf",
+        "workflow_name": "perf-device-models",
+        "is_nd": false,
+        "commit_hash": "4188f694040a323164ca893130a590737a2e6104",
+        "error_message": "RuntimeError: Invalid input shape - ttnn.pad_to_tile_shape() returning VectorUInt32 instead of Python list, causing isinstance check to fail in create_sharded_memory_config_()"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21212698684/job/61026145147",
+      "commit_hash": "4a6b1743164b6c4169dbfa3c804f9f31f8954372",
+      "timestamp": "January 22nd, 8:40pm, 56.17 seconds"
+    }
+  },
+  {
+    "centroid_error": "TypeError: Transformer.prepare_inputs_prefill() got an unexpected keyword argument 'global_user_id'",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21263094566/job/61195983282",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269805999/job/61217759927"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269805999/job/61217759927": {
+        "job_name": "galaxy-demo-tests / Galaxy Llama3 70B data-parallel demo tests",
+        "workflow_name": "galaxy-demo-tests",
+        "is_nd": false,
+        "commit_hash": "b6595177cdbb0bd247c7e1c42a9de6ccac7398fc",
+        "error_message": "TypeError: Transformer.prepare_inputs_prefill() got an unexpected keyword argument 'global_user_id'"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21263094566/job/61195983282": {
+        "job_name": "blackhole-demo-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": false,
+        "commit_hash": "",
+        "error_message": "TypeError: Transformer.prepare_inputs_prefill() got an unexpected keyword argument 'global_user_id'",
+        "timestamp": "January 22nd, 9:47pm, 40.88 seconds"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21263094566/job/61195983282",
+      "commit_hash": null,
+      "timestamp": "January 22nd, 9:47pm, 40.88 seconds"
+    }
+  },
+  {
+    "centroid_error": "TypeError: Transformer.prepare_inputs_prefill() got an unexpected keyword argument 'global_user_id'\n\nTypeError: ttnn.experimental.all_to_all_async_generic(): incompatible function arguments.\nCalled with: all_to_all_async_generic(ttnn.Tensor, in_dim=2, out_dim=1, cluster_axis=1, topology=Topology.Linear, memory_config=...)\nAvailable signatures: all_to_all_async_generic(input_tensor: ttnn.Tensor, in_dim: int, out_dim: int, *, persistent_output_buffer: ttnn.Tensor | None = None, num_links: int | None = None, memory_config: ttnn.MemoryConfig | None = None, topology: ttnn.ccl.Topology | None = None, subdevice_id: ttnn._ttnn.device.SubDeviceId | None = None, cluster_axis: int | None = None)",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269805999/job/61217759962"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269805999/job/61217759962": {
+        "job_name": "galaxy-demo-tests / Galaxy Motif-Image-6B-Preview demo tests",
+        "workflow_name": "galaxy-demo-tests",
+        "is_nd": false,
+        "commit_hash": "b6595177cdbb0bd247c7e1c42a9de6ccac7398fc",
+        "error_message": "TypeError: Transformer.prepare_inputs_prefill() got an unexpected keyword argument 'global_user_id'\n\nTypeError: ttnn.experimental.all_to_all_async_generic(): incompatible function arguments.\nCalled with: all_to_all_async_generic(ttnn.Tensor, in_dim=2, out_dim=1, cluster_axis=1, topology=Topology.Linear, memory_config=...)\nAvailable signatures: all_to_all_async_generic(input_tensor: ttnn.Tensor, in_dim: int, out_dim: int, *, persistent_output_buffer: ttnn.Tensor | None = None, num_links: int | None = None, memory_config: ttnn.MemoryConfig | None = None, topology: ttnn.ccl.Topology | None = None, subdevice_id: ttnn._ttnn.device.SubDeviceId | None = None, cluster_axis: int | None = None)",
+        "timestamp": "January 23rd, 2:11am, 2.26 seconds"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21269805999/job/61217759962",
+      "commit_hash": "b6595177cdbb0bd247c7e1c42a9de6ccac7398fc",
+      "timestamp": "January 23rd, 2:11am, 2.26 seconds"
+    }
+  },
+  {
+    "centroid_error": "TypeError: ttnn.experimental.all_to_all_async_generic(): incompatible function arguments. Called with topology=Topology.Linear but nanobind rejects the call after PR #36291 changed defaults from typed values to None, breaking type conversion for the optional parameter.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269805999/job/61217759959"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269805999/job/61217759959": {
+        "job_name": "galaxy-demo-tests / Galaxy DeepSeek v3 demo tests",
+        "workflow_name": "galaxy-demo-tests",
+        "is_nd": false,
+        "commit_hash": "b6595177cdbb0bd247c7e1c42a9de6ccac7398fc",
+        "error_message": "TypeError: ttnn.experimental.all_to_all_async_generic(): incompatible function arguments. Called with topology=Topology.Linear but nanobind rejects the call after PR #36291 changed defaults from typed values to None, breaking type conversion for the optional parameter.",
+        "timestamp": "January 23rd, 2:10am, 32.91 seconds"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21269805999/job/61217759959",
+      "commit_hash": "b6595177cdbb0bd247c7e1c42a9de6ccac7398fc",
+      "timestamp": "January 23rd, 2:10am, 32.91 seconds"
+    }
+  },
+  {
+    "centroid_error": "error: /opt/weka/data/client/container/resources.json.stable: No such file or directory\nFailed to mount Mount Weka filesystem MLPerf.\nThe self-hosted runner lost communication with the server.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21268113591/job/61212694678",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21268113591/job/61212694746"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21268113591/job/61212694678": {
+        "job_name": "fd-nightly / Nightly N150 qwen25_vl-3B",
+        "workflow_name": "fast-dispatch-full-regressions-and-models",
+        "is_nd": true,
+        "commit_hash": "f1f5abc8598426186251ccb7b59fd8ca0a55b1c7",
+        "error_message": "error: /opt/weka/data/client/container/resources.json.stable: No such file or directory\nFailed to mount Mount Weka filesystem MLPerf.\nThe self-hosted runner lost communication with the server.",
+        "timestamp": "January 23rd, 2:00am, 28.84 seconds (marked as ND)"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21268113591/job/61212694746": {
+        "job_name": "fd-nightly / Nightly N150 mobilenetv3",
+        "workflow_name": "fast-dispatch-full-regressions-and-models",
+        "is_nd": true,
+        "commit_hash": "f1f5abc8598426186251ccb7b59fd8ca0a55b1c7",
+        "error_message": "error: /opt/weka/data/client/container/resources.json.stable: No such file or directory\nActive: failed (Result: exit-code) since Thu 2026-01-22 23:16:45 UTC\nThe self-hosted runner lost communication with the server."
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21268113591/job/61212694678",
+      "commit_hash": "f1f5abc8598426186251ccb7b59fd8ca0a55b1c7",
+      "timestamp": "January 23rd, 2:00am, 28.84 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "Docker build failed: exec format error\nThe self-hosted runner lost communication with the server.\nERROR: failed to solve: process \"/bin/sh -c apt -y update && apt -y install \" did not complete successfully: exit code: 1",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21268113591/job/61212694709",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21268113591/job/61212694715"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21268113591/job/61212694709": {
+        "job_name": "fd-nightly / Nightly N150 openpdn_mnist",
+        "workflow_name": "fast-dispatch-full-regressions-and-models",
+        "is_nd": true,
+        "commit_hash": "f1f5abc8598426186251ccb7b59fd8ca0a55b1c7",
+        "error_message": "Docker build failed with exec format error\nexec /bin/sh: exec format error\nERROR: failed to solve: process \"/bin/sh -c apt -y update && apt -y install \" did not complete successfully: exit code: 1",
+        "timestamp": "January 23rd, 2:00am, 50.59 seconds (marked as ND)"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21268113591/job/61212694715": {
+        "job_name": "fd-nightly / Nightly N150 vanilla_unet",
+        "workflow_name": "fast-dispatch-full-regressions-and-models",
+        "is_nd": true,
+        "commit_hash": "f1f5abc8598426186251ccb7b59fd8ca0a55b1c7",
+        "error_message": "Docker build failed: exec format error\nThe self-hosted runner lost communication with the server.\nERROR: failed to solve: process \"/bin/sh -c apt -y update && apt -y install \" did not complete successfully: exit code: 1"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21268113591/job/61212694709",
+      "commit_hash": "f1f5abc8598426186251ccb7b59fd8ca0a55b1c7",
+      "timestamp": "January 23rd, 2:00am, 50.59 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "MLPerf mount service failed during setup:\nweka-agent[63279]: ERROR: /opt/weka/data/client/container/resources.json.stable: No such file or directory\nsystemd[1]: mnt-MLPerf.mount: Failed with result 'exit-code'.\nProcess completed with exit code 1.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21268113591/job/61212694655",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21268113591/job/61212694658",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21268113591/job/61212694703",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21268113591/job/61212694706",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21268113591/job/61212694726"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21268113591/job/61212694655": {
+        "job_name": "fd-nightly / Nightly N150 vit",
+        "workflow_name": "fast-dispatch-full-regressions-and-models",
+        "is_nd": true,
+        "commit_hash": "f1f5abc8598426186251ccb7b59fd8ca0a55b1c7",
+        "error_message": "Failed to mount Mount Weka filesystem MLPerf\nerror: /opt/weka/data/client/container/resources.json.stable: No such file or directory\nmnt-MLPerf.mount: Failed with result 'exit-code'",
+        "timestamp": "January 23rd, 2:01am, 1.53 seconds (marked as ND)"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21268113591/job/61212694706": {
+        "job_name": "fd-nightly / Nightly N150 vgg_unet",
+        "workflow_name": "fast-dispatch-full-regressions-and-models",
+        "is_nd": true,
+        "commit_hash": "f1f5abc8598426186251ccb7b59fd8ca0a55b1c7",
+        "error_message": "MLPerf mount service failed with exit code 1\nerror: /opt/weka/data/client/container/resources.json.stable: No such file or directory\nFailed to mount Mount Weka filesystem MLPerf."
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21268113591/job/61212694658": {
+        "job_name": "fd-nightly / Nightly N150 ttt-llama3.2-1B",
+        "workflow_name": "fast-dispatch-full-regressions-and-models",
+        "is_nd": true,
+        "commit_hash": "f1f5abc8598426186251ccb7b59fd8ca0a55b1c7",
+        "error_message": "MLPerf mount service failed during setup:\nweka-agent[63279]: ERROR: /opt/weka/data/client/container/resources.json.stable: No such file or directory\nsystemd[1]: mnt-MLPerf.mount: Failed with result 'exit-code'.\nProcess completed with exit code 1."
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21268113591/job/61212694703": {
+        "job_name": "fd-nightly / Nightly N150 stable_diffusion",
+        "workflow_name": "fast-dispatch-full-regressions-and-models",
+        "is_nd": true,
+        "commit_hash": "f1f5abc8598426186251ccb7b59fd8ca0a55b1c7",
+        "error_message": "error: /opt/weka/data/client/container/resources.json.stable: No such file or directory\nmnt-MLPerf.mount: Failed with result 'exit-code'\nFailed to mount Mount Weka filesystem MLPerf"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21268113591/job/61212694726": {
+        "job_name": "fd-nightly / Nightly N150 vovnet",
+        "workflow_name": "fast-dispatch-full-regressions-and-models",
+        "is_nd": true,
+        "commit_hash": "f1f5abc8598426186251ccb7b59fd8ca0a55b1c7",
+        "error_message": "mnt-MLPerf.mount: Failed with result 'exit-code'.\nFailed to mount Mount Weka filesystem MLPerf.\nerror: /opt/weka/data/client/container/resources.json.stable: No such file or directory"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21268113591/job/61212694655",
+      "commit_hash": "f1f5abc8598426186251ccb7b59fd8ca0a55b1c7",
+      "timestamp": "January 23rd, 2:01am, 1.53 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "RuntimeError: Timeout waiting for Ethernet core service remote IO request flush.\n\n/opt/venv/lib/python3.10/site-packages/ttnn/distributed/distributed.py:677: RuntimeError",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269931550/job/61218217296"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269931550/job/61218217296": {
+        "job_name": "t3000-unit-tests / t3k_gemma3-small_tests",
+        "workflow_name": "t3000-unit-tests",
+        "is_nd": true,
+        "commit_hash": "b6595177cdbb0bd247c7e1c42a9de6ccac7398fc",
+        "error_message": "RuntimeError: Timeout waiting for Ethernet core service remote IO request flush.\n\n/opt/venv/lib/python3.10/site-packages/ttnn/distributed/distributed.py:677: RuntimeError",
+        "timestamp": "January 23rd, 1:59am, 46.76 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21269931550/job/61218217296",
+      "commit_hash": "b6595177cdbb0bd247c7e1c42a9de6ccac7398fc",
+      "timestamp": "January 23rd, 1:59am, 46.76 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "TypeError: Transformer.prepare_inputs_prefill() got an unexpected keyword argument 'global_user_id'. The error occurs during vLLM model warmup when generator.py passes global_user_id to prepare_inputs_prefill(), but the Transformer class in models/tt_transformers/tt/model.py doesn't accept this parameter. PR #34733 added global_user_id to generator.py and updated GPT-OSS model, but failed to update the shared Transformer class used by Llama models.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269772109/job/61217677847"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269772109/job/61217677847": {
+        "job_name": "vllm-tests / [BH-LB][v1] Llama-3.1-8B-Instruct",
+        "workflow_name": "vllm-nightly-tests",
+        "is_nd": false,
+        "commit_hash": "b6595177cdbb0bd247c7e1c42a9de6ccac7398fc",
+        "error_message": "TypeError: Transformer.prepare_inputs_prefill() got an unexpected keyword argument 'global_user_id'. The error occurs during vLLM model warmup when generator.py passes global_user_id to prepare_inputs_prefill(), but the Transformer class in models/tt_transformers/tt/model.py doesn't accept this parameter. PR #34733 added global_user_id to generator.py and updated GPT-OSS model, but failed to update the shared Transformer class used by Llama models.",
+        "timestamp": "January 23rd, 3:05am, 18.72 seconds"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21269772109/job/61217677847",
+      "commit_hash": "b6595177cdbb0bd247c7e1c42a9de6ccac7398fc",
+      "timestamp": "January 23rd, 3:05am, 18.72 seconds"
+    }
+  },
+  {
+    "centroid_error": "TypeError: Transformer.prepare_inputs_prefill() got an unexpected keyword argument 'global_user_id'",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269441763/job/61216896869",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269441763/job/61216896876",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269772109/job/61217677844",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269772109/job/61217677845",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269772109/job/61217677853",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269772109/job/61217677858",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269772109/job/61217677872",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269772109/job/61217677880",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269805999/job/61217759921"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269772109/job/61217677872": {
+        "job_name": "vllm-tests / [BH-DB][v1] Llama-3.1-8B-Instruct",
+        "workflow_name": "vllm-nightly-tests",
+        "is_nd": false,
+        "commit_hash": "b6595177cdbb0bd247c7e1c42a9de6ccac7398fc",
+        "error_message": "TypeError: Transformer.prepare_inputs_prefill() got an unexpected keyword argument 'global_user_id'\nRuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {}"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269772109/job/61217677845": {
+        "job_name": "vllm-tests / [WH-T3K] Llama-3.1-8B-Instruct",
+        "workflow_name": "vllm-nightly-tests",
+        "is_nd": false,
+        "commit_hash": "b6595177cdbb0bd247c7e1c42a9de6ccac7398fc",
+        "error_message": "TypeError: Transformer.prepare_inputs_prefill() got an unexpected keyword argument 'global_user_id'"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269772109/job/61217677880": {
+        "job_name": "vllm-tests / [WH-GLX] Llama-8B DP=16",
+        "workflow_name": "vllm-nightly-tests",
+        "is_nd": false,
+        "commit_hash": "b6595177cdbb0bd247c7e1c42a9de6ccac7398fc",
+        "error_message": "TypeError: Transformer.prepare_inputs_prefill() got an unexpected keyword argument 'global_user_id'"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269772109/job/61217677853": {
+        "job_name": "vllm-tests / [WH-GLX][v1] Llama-8B DP=16",
+        "workflow_name": "vllm-nightly-tests",
+        "is_nd": true,
+        "commit_hash": "b6595177cdbb0bd247c7e1c42a9de6ccac7398fc",
+        "error_message": "TypeError: Transformer.prepare_inputs_prefill() got an unexpected keyword argument 'global_user_id'"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269772109/job/61217677844": {
+        "job_name": "vllm-tests / [WH-T3K][v1] Llama-3.1-8B-Instruct",
+        "workflow_name": "vllm-nightly-tests",
+        "is_nd": false,
+        "commit_hash": "",
+        "error_message": "TypeError: Transformer.prepare_inputs_prefill() got an unexpected keyword argument 'global_user_id'\n\nRuntimeError: Engine core initialization failed. See root cause above."
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269772109/job/61217677858": {
+        "job_name": "vllm-tests / [BH-LB] Llama-3.1-8B-Instruct v0 fallback structured-output",
+        "workflow_name": "vllm-nightly-tests",
+        "is_nd": false,
+        "commit_hash": "b6595177cdbb0bd247c7e1c42a9de6ccac7398fc",
+        "error_message": "TypeError: Transformer.prepare_inputs_prefill() got an unexpected keyword argument 'global_user_id'"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269441763/job/61216896869": {
+        "job_name": "t3000-integration-tests / t3k_mistral_tests",
+        "workflow_name": "t3000-integration-tests",
+        "is_nd": false,
+        "commit_hash": "b6595177cdbb0bd247c7e1c42a9de6ccac7398fc",
+        "error_message": "TypeError: Transformer.prepare_inputs_prefill() got an unexpected keyword argument 'global_user_id'",
+        "timestamp": "January 23rd, 2:11am, 32.48 seconds"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269805999/job/61217759921": {
+        "job_name": "galaxy-demo-tests / Galaxy Llama3 8B data-parallel demo tests",
+        "workflow_name": "galaxy-demo-tests",
+        "is_nd": false,
+        "commit_hash": "b6595177cdbb0bd247c7e1c42a9de6ccac7398fc",
+        "error_message": "TypeError: Transformer.prepare_inputs_prefill() got an unexpected keyword argument 'global_user_id'"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269441763/job/61216896876": {
+        "job_name": "t3000-integration-tests / t3k_llama3_90b_tests",
+        "workflow_name": "t3000-integration-tests",
+        "is_nd": false,
+        "commit_hash": "b6595177cdbb0bd247c7e1c42a9de6ccac7398fc",
+        "error_message": "TypeError: Transformer.prepare_inputs_prefill() got an unexpected keyword argument 'global_user_id'"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21269441763/job/61216896869",
+      "commit_hash": "b6595177cdbb0bd247c7e1c42a9de6ccac7398fc",
+      "timestamp": "January 23rd, 2:11am, 32.48 seconds"
+    }
+  },
+  {
+    "centroid_error": "OSError: [Errno 30] Read-only file system: '/mnt/MLPerf/huggingface/tt_cache'\npathlib.Path(cache_file_name).parent.mkdir(parents=True, exist_ok=True)\nFile \"/usr/lib/python3.10/pathlib.py\", line 1175, in mkdir\nself._accessor.mkdir(self, mode)",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269772109/job/61217677865"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269772109/job/61217677865": {
+        "job_name": "vllm-tests / [BH-QB-GE][v1] Llama-3.1-8B-Instruct",
+        "workflow_name": "vllm-nightly-tests",
+        "is_nd": true,
+        "commit_hash": "b6595177cdbb0bd247c7e1c42a9de6ccac7398fc",
+        "error_message": "OSError: [Errno 30] Read-only file system: '/mnt/MLPerf/huggingface/tt_cache'\npathlib.Path(cache_file_name).parent.mkdir(parents=True, exist_ok=True)\nFile \"/usr/lib/python3.10/pathlib.py\", line 1175, in mkdir\nself._accessor.mkdir(self, mode)",
+        "timestamp": "January 23rd, 2:55am, 29.79 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21269772109/job/61217677865",
+      "commit_hash": "b6595177cdbb0bd247c7e1c42a9de6ccac7398fc",
+      "timestamp": "January 23rd, 2:55am, 29.79 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "RuntimeError: TT_FATAL @ /project/tt_metal/impl/allocator/bank_manager.cpp:403: num_shards.value() <= num_compute_banks\\ninfo:\\nExpected number of shards 120 to be less than or equal to total number of L1 banks 110 in compute cores",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21277806020/job/61241277577",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21277806020/job/61241289589",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21277806020/job/61241289592"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21277806020/job/61241289589": {
+        "job_name": "ttnn-unit-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "RuntimeError: TT_FATAL @ /project/tt_metal/impl/allocator/bank_manager.cpp:403: num_shards.value() <= num_compute_banks\ninfo:\nExpected number of shards to be less than or equal to total number of L1 banks 110 in compute cores"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21277806020/job/61241277577": {
+        "job_name": "blackhole-demo-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": false,
+        "commit_hash": "",
+        "error_message": "RuntimeError: TT_FATAL @ /project/tt_metal/impl/allocator/bank_manager.cpp:403: num_shards.value() <= num_compute_banks\ninfo:\nExpected number of shards 120 to be less than or equal to total number of L1 banks 110 in compute cores",
+        "timestamp": "January 23rd, 8:56am, 49.45 seconds"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21277806020/job/61241289592": {
+        "job_name": "ttnn-unit-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": false,
+        "commit_hash": "",
+        "error_message": "RuntimeError: TT_FATAL @ /project/tt_metal/impl/allocator/bank_manager.cpp:403: num_shards.value() <= num_compute_banks\\ninfo:\\nExpected number of shards 120 to be less than or equal to total number of L1 banks 110 in compute cores"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21277806020/job/61241277577",
+      "commit_hash": null,
+      "timestamp": "January 23rd, 8:56am, 49.45 seconds"
+    }
+  },
+  {
+    "centroid_error": "ValueError: Tensor volume (6291456) must be divisible by num_receiver_cores * num_reader_cores (22) for prefetcher.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21277806020/job/61241289573"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21277806020/job/61241289573": {
+        "job_name": "ttnn-unit-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": false,
+        "commit_hash": "",
+        "error_message": "ValueError: Tensor volume (6291456) must be divisible by num_receiver_cores * num_reader_cores (22) for prefetcher.",
+        "timestamp": "January 23rd, 8:52am, 33.68 seconds"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21277806020/job/61241289573",
+      "commit_hash": null,
+      "timestamp": "January 23rd, 8:52am, 33.68 seconds"
+    }
+  },
+  {
+    "centroid_error": "Expected: (std::abs(speedup - 1.0)) < (0.0005), actual: 0.0019985774235726783 vs 0.0005",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21277806020/job/61241277280"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21277806020/job/61241277280": {
+        "job_name": "metalium-smoke-tests",
+        "workflow_name": "blackhole-post-commit",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "Expected: (std::abs(speedup - 1.0)) < (0.0005), actual: 0.0019985774235726783 vs 0.0005",
+        "timestamp": "January 23rd, 8:52am, 15.46 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21277806020/job/61241277280",
+      "commit_hash": null,
+      "timestamp": "January 23rd, 8:52am, 15.46 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "Physical Discovery found 7 missing channel connections and 4 missing port/cable connections between trays. terminate called after throwing an instance of 'std::runtime_error' - Connection mismatch detected. Check console output for details.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21216668355/job/61040392060"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21216668355/job/61040392060": {
+        "job_name": "galaxy-quick-test / quick-bh-glx-health",
+        "workflow_name": "galaxy-quick",
+        "is_nd": true,
+        "commit_hash": "0d56150bba35b2c4809ae9ab689beb7c4793f44c",
+        "error_message": "Physical Discovery found 7 missing channel connections and 4 missing port/cable connections between trays. terminate called after throwing an instance of 'std::runtime_error' - Connection mismatch detected. Check console output for details.",
+        "timestamp": "January 23rd, 8:46am, 39.40 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21216668355/job/61040392060",
+      "commit_hash": "0d56150bba35b2c4809ae9ab689beb7c4793f44c",
+      "timestamp": "January 23rd, 8:46am, 39.40 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "Test hung during kernel building phase and never progressed beyond 0% during warmup. The test timeout occurred after ~47 minutes of continuous kernel compilation without progress. Comparison: successful run completed warmup in 143.89s with normal progress (0%→100%). This is a deterministic kernel building hang/infinite loop in tt-metal's compilation system.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21282299744/job/61256139633"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21282299744/job/61256139633": {
+        "job_name": "galaxy-model-perf-tests / Galaxy DiT SD3.5 model perf tests",
+        "workflow_name": "galaxy-model-perf-tests",
+        "is_nd": false,
+        "commit_hash": "1fc6da0da7155900daf88f5edb0224d56af97bab",
+        "error_message": "Test hung during kernel building phase and never progressed beyond 0% during warmup. The test timeout occurred after ~47 minutes of continuous kernel compilation without progress. Comparison: successful run completed warmup in 143.89s with normal progress (0%→100%). This is a deterministic kernel building hang/infinite loop in tt-metal's compilation system.",
+        "timestamp": "January 23rd, 12:05pm, 36.94 seconds"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21282299744/job/61256139633",
+      "commit_hash": "1fc6da0da7155900daf88f5edb0224d56af97bab",
+      "timestamp": "January 23rd, 12:05pm, 36.94 seconds"
+    }
+  },
+  {
+    "centroid_error": "terminate called after throwing an instance of 'std::runtime_error'\n  what():  Connection mismatch detected. Check console output for details.\n./build/tools/scaleout/run_cluster_validation --cabling-descriptor-path tools/tests/scaleout/cabling_descriptors/bh_galaxy_xy_torus.textproto --hard-fail --send-traffic --num-iterations 1\nProcess completed with exit code 134.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21216668355/job/61040392060"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21216668355/job/61040392060": {
+        "job_name": "galaxy-quick-test / quick-bh-glx-health",
+        "workflow_name": "galaxy-quick",
+        "is_nd": true,
+        "commit_hash": "0d56150bba35b2c4809ae9ab689beb7c4793f44c",
+        "error_message": "terminate called after throwing an instance of 'std::runtime_error'\nwhat():  Connection mismatch detected. Check console output for details.\n./build/tools/scaleout/run_cluster_validation --cabling-descriptor-path tools/tests/scaleout/cabling_descriptors/bh_galaxy_xy_torus.textproto --hard-fail --send-traffic --num-iterations 1\nProcess completed with exit code 134.",
+        "timestamp": "January 23rd, 12:29pm, 48.36 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21216668355/job/61040392060",
+      "commit_hash": "0d56150bba35b2c4809ae9ab689beb7c4793f44c",
+      "timestamp": "January 23rd, 12:29pm, 48.36 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "RuntimeError: TT_THROW @ /project/tt_metal/impl/dispatch/system_memory_manager.cpp:627: tt::exception\ninfo:\nTIMEOUT: device timeout, potential hang detected, the device is unrecoverable\nThe job has exceeded the maximum execution time of 6h0m0s\nThe self-hosted runner lost communication with the server.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21276410829/job/61237250755",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21276410829/job/61237250837",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21276410829/job/61237250841"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21276410829/job/61237250755": {
+        "job_name": "didt-tests",
+        "workflow_name": "tt-metal-l2-nightly",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "RuntimeError: TT_THROW @ /project/tt_metal/impl/dispatch/system_memory_manager.cpp:627: tt::exception\ninfo:\nTIMEOUT: device timeout, potential hang detected, the device is unrecoverable",
+        "timestamp": "January 23rd, 1:10pm, 40.58 seconds (marked as ND)"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21276410829/job/61237250837": {
+        "job_name": "tt-metal-l2-tests",
+        "workflow_name": "tt-metal-l2-nightly",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "RuntimeError: TT_THROW @ /project/tt_metal/impl/dispatch/system_memory_manager.cpp:627: tt::exception\ninfo:\nTIMEOUT: device timeout, potential hang detected, the device is unrecoverable\ntest_gather_long_tensor[input_shape=[1, 151936]-index_shape=[1, 151936]-dim=-1]\n\nInfrastructure context: The job exceeded the maximum execution time of 6h0m0s and the self-hosted runner lost communication with the server."
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21276410829/job/61237250841": {
+        "job_name": "tt-metal-l2-tests",
+        "workflow_name": "tt-metal-l2-nightly",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "RuntimeError: TT_THROW @ /project/tt_metal/impl/dispatch/system_memory_manager.cpp:627: tt::exception\ninfo:\nTIMEOUT: device timeout, potential hang detected, the device is unrecoverable\nThe job has exceeded the maximum execution time of 6h0m0s\nThe self-hosted runner lost communication with the server."
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21276410829/job/61237250755",
+      "commit_hash": null,
+      "timestamp": "January 23rd, 1:10pm, 40.58 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "RuntimeError: TT_THROW @ /project/tt_metal/impl/dispatch/system_memory_manager.cpp:627: tt::exception\ninfo:\nTIMEOUT: device timeout, potential hang detected, the device is unrecoverable\ntest: test_gather_long_tensor[input_shape=[1, 151936]-index_shape=[1, 151936]-dim=-1]",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21276410829/job/61237250801"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21276410829/job/61237250801": {
+        "job_name": "tt-metal-l2-tests",
+        "workflow_name": "tt-metal-l2-nightly",
+        "is_nd": true,
+        "commit_hash": "",
+        "error_message": "RuntimeError: TT_THROW @ /project/tt_metal/impl/dispatch/system_memory_manager.cpp:627: tt::exception\ninfo:\nTIMEOUT: device timeout, potential hang detected, the device is unrecoverable\ntest: test_gather_long_tensor[input_shape=[1, 151936]-index_shape=[1, 151936]-dim=-1]",
+        "timestamp": "January 23rd, 12:44pm, 33.01 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21276410829/job/61237250801",
+      "commit_hash": null,
+      "timestamp": "January 23rd, 12:44pm, 33.01 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "RuntimeError: Invalid input shape at /opt/venv/lib/python3.10/site-packages/ttnn/core.py:261 in create_sharded_memory_config_",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21287581701/job/61273335626"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21287581701/job/61273335626": {
+        "job_name": "single-card-demo-tests / swin_s-N150-func",
+        "workflow_name": "single-card-demo-tests",
+        "is_nd": true,
+        "commit_hash": "63cd6ea58c50315c102771e951566e52079d0556",
+        "error_message": "RuntimeError: Invalid input shape at /opt/venv/lib/python3.10/site-packages/ttnn/core.py:261 in create_sharded_memory_config_",
+        "timestamp": "January 23rd, 2:28pm, 47.38 seconds (marked as ND)"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21287581701/job/61273335626",
+      "commit_hash": "63cd6ea58c50315c102771e951566e52079d0556",
+      "timestamp": "January 23rd, 2:28pm, 47.38 seconds (marked as ND)"
+    }
+  },
+  {
+    "centroid_error": "RuntimeError: Invalid input shape - ttnn.pad_to_tile_shape() returns VectorUInt32 instead of Python list, breaking create_sharded_memory_config_ validation",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21220795059/job/61055420301",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21277862753/job/61241439895"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21220795059/job/61055420301": {
+        "job_name": "single-card-demo-tests / swin_s-N300-func",
+        "workflow_name": "single-card-demo-tests",
+        "is_nd": false,
+        "commit_hash": "36252a3cb15ed33e4e9ba145a603896d6b664830",
+        "error_message": "RuntimeError: Invalid input shape - ttnn.pad_to_tile_shape() returns VectorUInt32 instead of Python list, breaking create_sharded_memory_config_ validation",
+        "timestamp": "January 23rd, 2:26pm, 46.37 seconds"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21277862753/job/61241439895": {
+        "job_name": "device-perf / N300 WH B0 not yet ported device perf",
+        "workflow_name": "perf-device-models",
+        "is_nd": false,
+        "commit_hash": "1fc6da0da7155900daf88f5edb0224d56af97bab",
+        "error_message": "RuntimeError: Invalid input shape at ttnn/core.py:261 - Pre-existing bug in swin_s model where ttnn.pad_to_tile_shape() returns VectorUInt32 instead of list/tuple/ttnn.Shape, which is rejected by create_sharded_memory_config_()"
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21220795059/job/61055420301",
+      "commit_hash": "36252a3cb15ed33e4e9ba145a603896d6b664830",
+      "timestamp": "January 23rd, 2:26pm, 46.37 seconds"
+    }
+  },
+  {
+    "centroid_error": "The self-hosted runner lost communication with the server. Verify the machine is running and has a healthy network connection. Anything in your workflow that terminates the runner process, starves it for CPU/Memory, or blocks its network access can cause this error.",
+    "failing_runs": [
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21268113591/job/61212694784",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269931550/job/61218217332",
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21287581701/job/61273335667"
+    ],
+    "run_metadata": {
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21287581701/job/61273335667": {
+        "job_name": "single-card-demo-tests / stable_diffusion-N150-func",
+        "workflow_name": "single-card-demo-tests",
+        "is_nd": true,
+        "commit_hash": "63cd6ea58c50315c102771e951566e52079d0556",
+        "error_message": "The self-hosted runner lost communication with the server. Verify the machine is running and has a healthy network connection. Anything in your workflow that terminates the runner process, starves it for CPU/Memory, or blocks its network access can cause this error."
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21268113591/job/61212694784": {
+        "job_name": "fd-nightly / Nightly N150 efficientnetb0",
+        "workflow_name": "fast-dispatch-full-regressions-and-models",
+        "is_nd": true,
+        "commit_hash": "f1f5abc8598426186251ccb7b59fd8ca0a55b1c7",
+        "error_message": "The self-hosted runner lost communication with the server. Verify the machine is running \nand has a healthy network connection. Anything in your workflow that terminates the runner \nprocess, starves it for CPU/Memory, or blocks its network access can cause this error.",
+        "timestamp": "January 23rd, 2:00am, 44.08 seconds (marked as ND)"
+      },
+      "https://github.com/tenstorrent/tt-metal/actions/runs/21269931550/job/61218217332": {
+        "job_name": "t3000-unit-tests / t3k_dits_tests",
+        "workflow_name": "t3000-unit-tests",
+        "is_nd": true,
+        "commit_hash": "b6595177cdbb0bd247c7e1c42a9de6ccac7398fc",
+        "error_message": "The self-hosted runner lost communication with the server. Verify the machine is running and has a healthy network connection.\nAnything in your workflow that terminates the runner process, starves it for CPU/Memory, or blocks its network access can cause this error."
+      }
+    },
+    "centroid_metadata": {
+      "url": "https://github.com/tenstorrent/tt-metal/actions/runs/21268113591/job/61212694784",
+      "commit_hash": "f1f5abc8598426186251ccb7b59fd8ca0a55b1c7",
+      "timestamp": "January 23rd, 2:00am, 44.08 seconds (marked as ND)"
+    }
+  }
+]

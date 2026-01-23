@@ -10,7 +10,7 @@ import os
 import re
 import sys
 import time
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 
 import requests
 
@@ -426,7 +426,8 @@ def extract_run_metadata(issue_body: str) -> Dict[str, Dict[str, Any]]:
     
     # Pattern to match lines like: "1. [label](url) - workflow / job (commit: abc1234...)"
     # Also handles [CENTROID] prefix: "1. [[CENTROID] label](url) - workflow / job (commit: abc1234...)"
-    line_pattern = r"^\d+\.\s+\[([^\]]+)\]\(([^)]+)\)(?:\s*-\s*([^(]+))?(?:\s*\(commit:\s*([a-fA-F0-9]+)\))?"
+    # Note: Use .+? (non-greedy) instead of [^\]]+ because label may contain ] (e.g., [CENTROID] timestamp)
+    line_pattern = r"^\d+\.\s+\[(.+?)\]\(([^)]+)\)(?:\s*-\s*([^(]+))?(?:\s*\(commit:\s*([a-fA-F0-9]+)\))?"
     
     # Split body into lines for processing
     lines = issue_body.split('\n')
@@ -530,9 +531,8 @@ def parse_issue(issue: Dict[str, Any]) -> Dict[str, Any]:
         if centroid_metadata.get("commit_hash"):
             run_metadata[centroid_url]["commit_hash"] = centroid_metadata["commit_hash"]
         if centroid_metadata.get("timestamp"):
-            # Store timestamp in a way that can be used later
-            # Note: We don't have a "timestamp" field in run_metadata, but we can store it
-            # For now, we'll rely on the timestamp being in the centroid line format
+            # Store timestamp in run_metadata for the centroid URL
+            run_metadata[centroid_url]["timestamp"] = centroid_metadata["timestamp"]
     
     return {
         "issue_number": issue_number,
@@ -654,7 +654,8 @@ def main():
         output.append({
             "centroid_error": parsed["centroid_error"],
             "failing_runs": parsed["failing_runs"],
-            "run_metadata": parsed.get("run_metadata", {})
+            "run_metadata": parsed.get("run_metadata", {}),
+            "centroid_metadata": parsed.get("centroid_metadata", {})
         })
     
     if closed_count > 0:

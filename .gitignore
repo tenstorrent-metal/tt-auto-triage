@@ -5,3 +5,4 @@ python_env/
 secrets.json
 *.pyc
 *.log
+*/all_errors.json

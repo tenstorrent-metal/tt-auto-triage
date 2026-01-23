@@ -8,6 +8,25 @@ from typing import Dict, Optional
 
 import requests
 
+# Module-level cache for commit hashes to avoid redundant API calls
+# Maps URL -> commit_hash (or None if not found)
+_commit_hash_cache: Dict[str, Optional[str]] = {}
+
+
+def get_commit_hash_cache_stats() -> Dict[str, int]:
+    """Get statistics about the commit hash cache."""
+    return {
+        "total_entries": len(_commit_hash_cache),
+        "found": sum(1 for v in _commit_hash_cache.values() if v is not None),
+        "not_found": sum(1 for v in _commit_hash_cache.values() if v is None)
+    }
+
+
+def clear_commit_hash_cache() -> None:
+    """Clear the commit hash cache."""
+    global _commit_hash_cache
+    _commit_hash_cache = {}
+
 
 def check_github_rate_limit(github_token: str) -> Optional[Dict[str, int]]:
     """Check GitHub API rate limit status.
@@ -71,23 +90,38 @@ def log_rate_limit_status(github_token: str, stage: str = "") -> None:
         print(f"\n⚠ Warning: Could not check GitHub API rate limit{stage}\n")
 
 
-def get_commit_hash_from_github(job_url: str, github_token: str) -> Optional[str]:
+def get_commit_hash_from_github(job_url: str, github_token: str, use_cache: bool = True) -> Optional[str]:
     """Fetch full commit hash from GitHub API using job URL.
+    
+    Uses a module-level cache to avoid redundant API calls for the same URL.
     
     Args:
         job_url: GitHub Actions job URL (e.g., https://github.com/owner/repo/actions/runs/RUN_ID/job/JOB_ID)
         github_token: GitHub token for API access
+        use_cache: Whether to use the cache (default True)
     
     Returns:
         Full commit SHA (40 characters) or None if not found
     """
+    global _commit_hash_cache
+    
     if not job_url or not github_token:
         return None
+    
+    # Normalize URL for cache key (remove trailing slashes)
+    cache_key = job_url.rstrip('/')
+    
+    # Check cache first
+    if use_cache and cache_key in _commit_hash_cache:
+        cached = _commit_hash_cache[cache_key]
+        # Return cached value (could be None if previous fetch failed)
+        return cached
     
     try:
         # Extract run ID from URL: https://github.com/owner/repo/actions/runs/RUN_ID/job/JOB_ID
         match = re.search(r'/actions/runs/(\d+)', job_url)
         if not match:
+            _commit_hash_cache[cache_key] = None
             return None
         
         run_id = match.group(1)
@@ -95,6 +129,7 @@ def get_commit_hash_from_github(job_url: str, github_token: str) -> Optional[str
         # Extract repo owner and name from URL
         repo_match = re.search(r'github\.com/([^/]+)/([^/]+)/actions', job_url)
         if not repo_match:
+            _commit_hash_cache[cache_key] = None
             return None
         
         repo_owner = repo_match.group(1)
@@ -114,9 +149,13 @@ def get_commit_hash_from_github(job_url: str, github_token: str) -> Optional[str
         # Get the commit SHA (head_sha is the full commit hash)
         commit_sha = run_data.get("head_sha")
         if commit_sha and len(commit_sha) == 40:
+            _commit_hash_cache[cache_key] = commit_sha
             return commit_sha
+        
+        _commit_hash_cache[cache_key] = None
+        return None
         
     except Exception as e:
         print(f"  ⚠ Warning: Could not fetch commit hash for {job_url}: {e}")
-    
-    return None
+        _commit_hash_cache[cache_key] = None
+        return None

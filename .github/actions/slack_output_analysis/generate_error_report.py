@@ -471,6 +471,13 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
     
     # Build reverse lookup: URL -> issue entry (much faster than similarity matching)
     # issue_dump is now built from repository issues, so it contains all open issues
+    # Normalize URLs (remove trailing slashes) for consistent matching
+    def normalize_url(url: str) -> str:
+        """Normalize URL for consistent matching (remove trailing slash)."""
+        if not url:
+            return ""
+        return url.rstrip('/')
+    
     print(f"\nBuilding URL to issue mapping...")
     url_to_entry = {}
     existing_urls = set()
@@ -478,10 +485,15 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
         failing_runs = entry.get("failing_runs", [])
         for url in failing_runs:
             if url:
-                url_to_entry[url] = entry
+                normalized_url = normalize_url(url)
+                # Store both normalized and original for lookup flexibility
+                url_to_entry[normalized_url] = entry
+                url_to_entry[url] = entry  # Also store original in case it's used
+                existing_urls.add(normalized_url)
                 existing_urls.add(url)
-    print(f"  ✓ Mapped {len(url_to_entry)} URL(s) to issue entries")
-    print(f"  ✓ Found {len(existing_urls)} existing URL(s) in issue_dump")
+    # Count unique issues by using id() to identify unique dict objects
+    unique_issues = len({id(v) for v in url_to_entry.values()})
+    print(f"  ✓ Mapped {unique_issues} unique issue(s) with {len(existing_urls)} URL(s) to issue entries")
     
     # Build URL to timestamp and error message mappings from all_errors (for finding oldest runs)
     print(f"\nBuilding URL to timestamp and error message mappings from all errors...")
@@ -614,10 +626,19 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
         # Get commit hash from issue_dump (already extracted from issue body by download_issue_dump.py)
         # Fallback to GitHub API if not found in issue_dump
         commit_hash = None
-        if job_url in url_to_entry:
-            entry = url_to_entry[job_url]
-            run_metadata = entry.get("run_metadata", {})
-            if job_url in run_metadata:
+        normalized_job_url_for_commit = normalize_url(job_url) if job_url else None
+        entry_for_commit = None
+        if normalized_job_url_for_commit and normalized_job_url_for_commit in url_to_entry:
+            entry_for_commit = url_to_entry[normalized_job_url_for_commit]
+        elif job_url and job_url in url_to_entry:
+            entry_for_commit = url_to_entry[job_url]
+        
+        if entry_for_commit:
+            run_metadata = entry_for_commit.get("run_metadata", {})
+            # Try both normalized and original URL in run_metadata
+            if normalized_job_url_for_commit in run_metadata:
+                commit_hash = run_metadata[normalized_job_url_for_commit].get("commit_hash", "") or None
+            elif job_url in run_metadata:
                 commit_hash = run_metadata[job_url].get("commit_hash", "") or None
         
         # Fetch from GitHub API if still missing
@@ -652,15 +673,24 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
         
         # Look up URL in issue_dump to get centroid info (if available)
         # Note: Errors may or may not be in issue_dump - include them either way
+        # Normalize URL for lookup (handle trailing slash differences)
+        normalized_job_url = normalize_url(job_url) if job_url else None
+        
         centroid_run_url = None
         centroid_error_message = None
         centroid_timestamp_utc = None
         centroid_commit_hash = None
         oldest_run = None
         
-        if job_url in url_to_entry:
-            matched_count += 1
+        # Try normalized URL first, then original
+        entry = None
+        if normalized_job_url and normalized_job_url in url_to_entry:
+            entry = url_to_entry[normalized_job_url]
+        elif job_url and job_url in url_to_entry:
             entry = url_to_entry[job_url]
+        
+        if entry:
+            matched_count += 1
             centroid_error_message = entry.get("centroid_error", "")
             
             # Get centroid run URL from centroid_metadata (extracted from [CENTROID] flag in issue)
@@ -707,10 +737,19 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
             if oldest_run and oldest_run.get("run_url"):
                 oldest_url = oldest_run["run_url"]
                 oldest_commit_hash = None
-                if oldest_url in url_to_entry:
-                    entry = url_to_entry[oldest_url]
-                    run_metadata = entry.get("run_metadata", {})
-                    if oldest_url in run_metadata:
+                normalized_oldest_url = normalize_url(oldest_url) if oldest_url else None
+                oldest_entry = None
+                if normalized_oldest_url and normalized_oldest_url in url_to_entry:
+                    oldest_entry = url_to_entry[normalized_oldest_url]
+                elif oldest_url and oldest_url in url_to_entry:
+                    oldest_entry = url_to_entry[oldest_url]
+                
+                if oldest_entry:
+                    run_metadata = oldest_entry.get("run_metadata", {})
+                    # Try both normalized and original URL in run_metadata
+                    if normalized_oldest_url in run_metadata:
+                        oldest_commit_hash = run_metadata[normalized_oldest_url].get("commit_hash", "") or None
+                    elif oldest_url in run_metadata:
                         oldest_commit_hash = run_metadata[oldest_url].get("commit_hash", "") or None
                 
                 # Fetch from GitHub API if still missing
@@ -724,6 +763,17 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
                     oldest_run["commit_hash"] = oldest_commit_hash
         else:
             unmatched_count += 1
+            # Debug: log first few unmatched URLs to help diagnose
+            if unmatched_count <= 5:
+                print(f"    [DEBUG] Unmatched URL: {job_url[:80]}...")
+                # Check if normalized version exists
+                normalized = normalize_url(job_url) if job_url else ""
+                if normalized and normalized in url_to_entry:
+                    print(f"      → Found with normalized URL!")
+                elif normalized:
+                    # Show sample of what URLs we do have
+                    sample_urls = list(existing_urls)[:3]
+                    print(f"      → Sample URLs in issue_dump: {sample_urls}")
         
         # Flatten oldest_run fields to top level (instead of nested dict)
         oldest_run_url = oldest_run.get("run_url") if oldest_run else None
