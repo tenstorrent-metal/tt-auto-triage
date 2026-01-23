@@ -388,14 +388,21 @@ if [ "$OLD_ATTEMPT" -gt 1 ]; then
         echo -e "${GREEN}Found job in current attempt: ${CURRENT_JOB_ID}${NC}"
         JOB_ID="$CURRENT_JOB_ID"
     else
-        echo -e "${YELLOW}Could not find job in current attempt by name, using original job ID${NC}"
-        echo -e "${YELLOW}(This may fail with 403 if attempt > 2)${NC}"
+        echo -e "${YELLOW}Could not find job in current attempt by name${NC}"
         
-        # Debug: Check what attempt the original job is from
+        # Check what attempt the original job is from
         ORIG_JOB_INFO=$(gh api "repos/${OWNER}/${REPO}/actions/jobs/${ORIGINAL_JOB_ID}" 2>/dev/null || echo "{}")
         ORIG_JOB_ATTEMPT=$(echo "$ORIG_JOB_INFO" | jq -r '.run_attempt // "unknown"')
         ORIG_JOB_NAME=$(echo "$ORIG_JOB_INFO" | jq -r '.name // "unknown"')
         echo -e "${YELLOW}Original job ${ORIGINAL_JOB_ID} is from attempt ${ORIG_JOB_ATTEMPT}, name: ${ORIG_JOB_NAME}${NC}"
+        
+        # If original job is from an older attempt, we cannot re-run it
+        if [ "$ORIG_JOB_ATTEMPT" != "$OLD_ATTEMPT" ]; then
+            echo -e "${YELLOW}Original job is from attempt ${ORIG_JOB_ATTEMPT} but current attempt is ${OLD_ATTEMPT}${NC}"
+            echo -e "${YELLOW}Cannot re-run jobs from older attempts. Skipping retry.${NC}"
+            send_retry_notification "$(printf ':warning: *Auto-retry skipped.*\n\nJob: %s\nWorkflow: %s\nOriginal failure: <%s|link>\n\n_The run has been re-run since the original failure (attempt %s → %s). Cannot re-run jobs from older attempts._\n\n_Proceeding with original analysis._' "$JOB_NAME" "$WORKFLOW_NAME" "$FAILING_RUN_URL" "$ORIG_JOB_ATTEMPT" "$OLD_ATTEMPT")"
+            exit 0
+        fi
     fi
 fi
 
