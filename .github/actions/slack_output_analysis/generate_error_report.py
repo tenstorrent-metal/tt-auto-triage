@@ -819,23 +819,61 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
                 oldest_job_name = None  # Can be None if no oldest run
         
         # ================================================================
-        # DEFENSIVE VALIDATION: Skip entries with missing required fields
-        # Better to have incomplete data than errors from null values in Pydantic
-        # Required fields for job: job_name, job_slack_ts, job_commit_hash
+        # DEFENSIVE VALIDATION: Validate required job fields first
+        # Job fields are the source of truth - if these are missing, skip the entry
         # ================================================================
-        missing_fields = []
+        missing_job_fields = []
         if not job_name:
-            missing_fields.append("job_name")
+            missing_job_fields.append("job_name")
         if not timestamp_utc:
-            missing_fields.append("job_slack_ts")
+            missing_job_fields.append("job_slack_ts")
         if not commit_hash:
-            missing_fields.append("job_commit_hash")
+            missing_job_fields.append("job_commit_hash")
+        if github_job_id is None:
+            missing_job_fields.append("github_job_id")
+        if not job_url:
+            missing_job_fields.append("github_job_link")
         
-        if missing_fields:
+        if missing_job_fields:
             skipped_invalid += 1
-            if skipped_invalid <= 5:  # Only log first few skipped entries
-                print(f"  ⚠ Skipping entry {idx} - missing required fields: {', '.join(missing_fields)}")
+            if skipped_invalid <= 5:
+                print(f"  ⚠ Skipping entry {idx} - missing required job fields: {', '.join(missing_job_fields)}")
+            elif skipped_invalid == 6:
+                print(f"  ... (suppressing further skip messages)")
             continue
+        
+        # ================================================================
+        # FALLBACK: For unmatched entries, use the job's own data for centroid/oldest
+        # An unmatched error IS its own centroid and oldest occurrence
+        # ================================================================
+        
+        # Centroid fallbacks - use job data if centroid data is missing
+        if centroid_job_id is None:
+            centroid_job_id = github_job_id
+        if not centroid_run_url:
+            centroid_run_url = job_url
+        if not centroid_job_name:
+            centroid_job_name = job_name
+        if not centroid_error_message:
+            centroid_error_message = error_message
+        if not centroid_timestamp_utc:
+            centroid_timestamp_utc = timestamp_utc
+        if not centroid_commit_hash:
+            centroid_commit_hash = commit_hash
+        
+        # Oldest fallbacks - use job data if oldest data is missing
+        if oldest_job_id is None:
+            oldest_job_id = github_job_id
+        if not oldest_run_url:
+            oldest_run_url = job_url
+        if not oldest_job_name:
+            oldest_job_name = job_name
+        if not oldest_run_error_message:
+            oldest_run_error_message = error_message
+        if not oldest_run_timestamp_utc:
+            oldest_run_timestamp_utc = timestamp_utc
+        if not oldest_run_commit_hash:
+            oldest_run_commit_hash = commit_hash
         
         # Transform to JobFailureCluster format
         report_entry = {
@@ -848,14 +886,14 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
             "job_commit_hash": commit_hash,
             "is_nd": is_nd,
             "slack_message_link": slack_message_link,
-            # Centroid fields (can be None - only job fields are required)
+            # Centroid fields (with fallbacks to job data)
             "centroid_job_id": centroid_job_id,
             "centroid_job_link": centroid_run_url,
             "centroid_job_name": centroid_job_name,
             "centroid_job_error_message": centroid_error_message,
             "centroid_job_slack_ts": centroid_timestamp_utc,
             "centroid_job_commit_hash": centroid_commit_hash,
-            # Oldest job fields (can be None - only job fields are required)
+            # Oldest job fields (with fallbacks to job data)
             "oldest_job_id": oldest_job_id,
             "oldest_job_link": oldest_run_url,
             "oldest_job_name": oldest_job_name,
@@ -867,9 +905,9 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
     
     print(f"\n  ✓ Generated {len(report_entries)} report entries")
     print(f"    - Matched to centroids: {matched_count}")
-    print(f"    - Unmatched: {unmatched_count}")
-    print(f"    - Skipped (missing required fields): {skipped_invalid}")
-    print(f"    - With centroid run URLs: {sum(1 for e in report_entries if e['centroid_job_link'])}")
+    print(f"    - Unmatched (used self as centroid): {unmatched_count}")
+    print(f"    - Skipped (missing required job fields): {skipped_invalid}")
+    print(f"    - With distinct centroid URLs: {sum(1 for e in report_entries if e['centroid_job_link'] != e['github_job_link'])}")
     
     # Check GitHub API rate limit at end
     end_rate_limit = None
