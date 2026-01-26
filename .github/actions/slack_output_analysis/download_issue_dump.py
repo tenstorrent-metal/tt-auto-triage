@@ -407,8 +407,38 @@ def extract_failing_runs(issue_body: str) -> List[str]:
     
     return sorted(list(urls))
 
+def extract_timestamp_from_label(label: str) -> str:
+    """Extract timestamp from a label string.
+    
+    Labels can be in formats like:
+    - "January 25th, 9:53pm, 36.96 seconds (marked as ND)"
+    - "[CENTROID] January 25th, 9:53pm, 36.96 seconds (marked as ND)"
+    - "Link (marked as ND)"
+    - "Link"
+    
+    Returns the timestamp portion or empty string if not found.
+    """
+    if not label:
+        return ""
+    
+    # Remove [CENTROID] prefix if present
+    if label.startswith("[CENTROID]"):
+        label = label[len("[CENTROID]"):].strip()
+    
+    # Remove "(marked as ND)" suffix if present
+    if "(marked as ND)" in label:
+        label = label.replace("(marked as ND)", "").strip()
+    
+    # If the remaining label is "Link" or empty, there's no timestamp
+    if not label or label.lower() == "link":
+        return ""
+    
+    # The remaining text should be the timestamp like "January 25th, 9:53pm, 36.96 seconds"
+    return label.strip()
+
+
 def extract_run_metadata(issue_body: str) -> Dict[str, Dict[str, Any]]:
-    """Extract run metadata (job_name, workflow_name, is_nd, commit_hash, error_message) from issue body.
+    """Extract run metadata (job_name, workflow_name, is_nd, commit_hash, error_message, timestamp) from issue body.
     
     Parses the format: [label](url) - workflow / job (commit: abc1234...)
     or: [label (marked as ND)](url) - workflow / job (commit: abc1234...)
@@ -420,7 +450,7 @@ def extract_run_metadata(issue_body: str) -> Dict[str, Dict[str, Any]]:
            ```
     
     Returns:
-        Dictionary mapping URL to dict with 'job_name', 'workflow_name', 'is_nd', 'commit_hash', and 'error_message'
+        Dictionary mapping URL to dict with 'job_name', 'workflow_name', 'is_nd', 'commit_hash', 'error_message', and 'timestamp'
     """
     run_metadata = {}
     
@@ -457,6 +487,9 @@ def extract_run_metadata(issue_body: str) -> Dict[str, Dict[str, Any]]:
             # Check if marked as ND
             is_nd = "(marked as ND)" in label
             
+            # Extract timestamp from label (CRITICAL: preserve timestamps for existing URLs)
+            timestamp = extract_timestamp_from_label(label)
+            
             # Parse workflow/job from suffix
             workflow_name = ""
             job_name = ""
@@ -477,7 +510,8 @@ def extract_run_metadata(issue_body: str) -> Dict[str, Dict[str, Any]]:
                 "workflow_name": workflow_name,
                 "is_nd": is_nd,
                 "commit_hash": commit_hash_str,
-                "error_message": ""
+                "error_message": "",
+                "timestamp": timestamp  # Store the timestamp from the label
             }
             run_metadata[url] = current_metadata
             in_code_block = False

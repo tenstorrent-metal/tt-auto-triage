@@ -23,6 +23,112 @@ GROUPED_ERRORS_FILE = os.path.join(SCRIPT_DIR, "grouped_errors.json")
 from github_api_utils import log_rate_limit_status, get_commit_hash_from_github
 
 # ============================================================================
+# Defensive Validation
+# ============================================================================
+
+def is_error_entry_valid(error: Dict[str, Any], github_token: str = "") -> tuple:
+    """Check if an error entry has all required metadata fields.
+    
+    Required fields (for Pydantic model compatibility):
+    - timestamp: Must be non-empty
+    - commit_hash: Must be non-empty (will attempt to fetch from GitHub if missing)
+    - job_name: Must be non-empty
+    
+    Args:
+        error: Error entry dict with 'url', 'timestamp', 'job_name', 'commit_hash', etc.
+        github_token: GitHub token for fetching missing commit hashes
+    
+    Returns:
+        Tuple of (is_valid, list_of_missing_fields)
+    """
+    missing_fields = []
+    
+    # Check URL (obviously required)
+    url = error.get("url", "")
+    if not url:
+        missing_fields.append("url")
+        return False, missing_fields  # Can't do much without URL
+    
+    # Check timestamp
+    timestamp = error.get("timestamp", "")
+    if not timestamp or timestamp.lower() == "link":
+        missing_fields.append("timestamp")
+    
+    # Check commit_hash - try to fetch if missing
+    commit_hash = error.get("commit_hash", "")
+    if not commit_hash and github_token and url:
+        # Attempt to fetch from GitHub API
+        fetched_hash = get_commit_hash_from_github(url, github_token)
+        if fetched_hash:
+            error["commit_hash"] = fetched_hash
+            commit_hash = fetched_hash
+    if not commit_hash:
+        missing_fields.append("commit_hash")
+    
+    # Check job_name
+    job_name = error.get("job_name", "")
+    if not job_name:
+        missing_fields.append("job_name")
+    
+    return len(missing_fields) == 0, missing_fields
+
+
+def validate_group_errors(group_data: Dict[str, Any], github_token: str = "") -> Dict[str, Any]:
+    """Validate all errors in a group and remove invalid ones.
+    
+    Args:
+        group_data: Group data with 'centroid', 'errors', 'count'
+        github_token: GitHub token for API calls
+    
+    Returns:
+        Updated group_data with invalid entries removed, or None if no valid entries remain
+    """
+    centroid = group_data.get("centroid", {})
+    errors = group_data.get("errors", [])
+    
+    # Validate centroid
+    centroid_valid, centroid_missing = is_error_entry_valid(centroid, github_token)
+    
+    # Validate all errors
+    valid_errors = []
+    removed_count = 0
+    
+    for error in errors:
+        is_valid, missing_fields = is_error_entry_valid(error, github_token)
+        if is_valid:
+            valid_errors.append(error)
+        else:
+            removed_count += 1
+            url = error.get("url", "unknown")
+            print(f"    ⚠ Removing invalid entry: {url[:60]}... (missing: {', '.join(missing_fields)})")
+    
+    # If centroid is invalid, try to select a new one from valid errors
+    if not centroid_valid:
+        if valid_errors:
+            # Select first valid error as new centroid
+            new_centroid = valid_errors[0]
+            valid_errors = valid_errors[1:]  # Remove from errors list
+            print(f"    → Centroid invalid, selected new centroid from valid errors")
+            centroid = new_centroid
+        else:
+            # No valid entries at all
+            print(f"    ⚠ No valid entries in group (centroid and all errors invalid)")
+            return None
+    
+    # Check if we have any valid entries
+    if not centroid_valid and not valid_errors:
+        return None
+    
+    # Update group data
+    all_valid = [centroid] + valid_errors
+    return {
+        "count": len(all_valid),
+        "centroid": centroid,
+        "errors": valid_errors
+    }
+
+
+# ============================================================================
 # CONFIGURATION - Load from secrets.json
 # ============================================================================
 
@@ -743,7 +849,24 @@ def process_group(group_name: str, group_data: Dict[str, Any], group_num: int, t
     print(f"\n{'='*80}")
     print(f"Group {group_num}/{total_groups}: {group_name}")
     print(f"{'='*80}")
-    print(f"Count: {group_data['count']} occurrence(s)")
+    
+    # ================================================================
+    # DEFENSIVE VALIDATION: Remove entries with missing required metadata
+    # Better to have incomplete data than errors from null values in Pydantic
+    # ================================================================
+    github_token = load_secrets().get("GITHUB_TOKEN", "")
+    print(f"[VALIDATION] Checking group entries for required metadata...")
+    
+    validated_group = validate_group_errors(group_data, github_token)
+    
+    if validated_group is None:
+        print(f"⚠ Skipping group {group_name} - no valid entries after validation")
+        return bulk_mode
+    
+    # Update group_data with validated data
+    group_data = validated_group
+    
+    print(f"Count: {group_data['count']} occurrence(s) (after validation)")
     print(f"\nCentroid Error:")
     print("-" * 80)
     print(group_data["centroid"]["error"][:500] + ("..." if len(group_data["centroid"]["error"]) > 500 else ""))

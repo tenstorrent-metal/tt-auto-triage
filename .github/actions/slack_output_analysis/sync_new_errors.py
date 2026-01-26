@@ -277,6 +277,59 @@ def update_issue(issue_number: int, title: str, body: str) -> Dict[str, Any]:
         raise last_error
     raise Exception("Failed to update issue")
 
+def close_issue(issue_number: int, reason: str = "") -> Dict[str, Any]:
+    """Close a GitHub issue.
+    
+    Args:
+        issue_number: The issue number to close
+        reason: Optional reason to add as a comment before closing
+    
+    Returns:
+        The updated issue data from GitHub API
+    """
+    url = f"https://api.github.com/repos/{GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}/issues/{issue_number}"
+    
+    auth_methods = [
+        ("Bearer", f"Bearer {GITHUB_TOKEN}"),
+        ("token", f"token {GITHUB_TOKEN}")
+    ]
+    
+    # Close the issue
+    data = {"state": "closed"}
+    
+    last_error = None
+    for method_name, auth_header in auth_methods:
+        headers = {
+            "Authorization": auth_header,
+            "Accept": "application/vnd.github.v3+json"
+        }
+        
+        try:
+            # Optionally add a comment explaining why the issue was closed
+            if reason:
+                comment_url = f"https://api.github.com/repos/{GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}/issues/{issue_number}/comments"
+                comment_data = {"body": f"🤖 **Auto-closed**: {reason}"}
+                requests.post(comment_url, json=comment_data, headers=headers)
+            
+            response = requests.patch(url, json=data, headers=headers)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.HTTPError as e:
+            last_error = e
+            if e.response.status_code == 403:
+                continue
+            else:
+                print(f"\nERROR closing issue: HTTP {e.response.status_code}")
+                print(f"Response: {e.response.text}")
+                raise
+        except Exception as e:
+            last_error = e
+            continue
+    
+    if last_error:
+        raise last_error
+    raise Exception("Failed to close issue")
+
 def verify_repository_access() -> bool:
     """Verify that the repository exists and is accessible."""
     url = f"https://api.github.com/repos/{GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}"
@@ -855,6 +908,106 @@ def parse_timestamp(timestamp_str: str) -> Optional[datetime]:
     
     return None
 
+# ============================================================================
+# Defensive Validation - Remove entries with missing required metadata
+# ============================================================================
+
+def is_entry_valid(url: str, run_metadata: Dict[str, Dict[str, Any]], all_timestamps: Dict[str, str], github_token: str = "") -> Tuple[bool, List[str]]:
+    """Check if an entry has all required metadata fields.
+    
+    Required fields (for Pydantic model compatibility):
+    - timestamp: Must be non-empty
+    - commit_hash: Must be non-empty (will attempt to fetch from GitHub if missing)
+    - job_name: Must be non-empty
+    
+    Args:
+        url: The job URL to validate
+        run_metadata: Dictionary of URL -> metadata
+        all_timestamps: Dictionary of URL -> timestamp
+        github_token: GitHub token for fetching missing commit hashes
+    
+    Returns:
+        Tuple of (is_valid, list_of_missing_fields)
+    """
+    missing_fields = []
+    meta = run_metadata.get(url, {})
+    
+    # Check timestamp (from all_timestamps or from metadata)
+    timestamp = all_timestamps.get(url, "") or meta.get("timestamp", "")
+    if not timestamp or timestamp.lower() == "link":
+        missing_fields.append("timestamp")
+    
+    # Check commit_hash - try to fetch if missing
+    commit_hash = meta.get("commit_hash", "")
+    if not commit_hash and github_token:
+        # Attempt to fetch from GitHub API
+        fetched_hash = get_commit_hash_from_github(url, github_token)
+        if fetched_hash:
+            meta["commit_hash"] = fetched_hash
+            commit_hash = fetched_hash
+    if not commit_hash:
+        missing_fields.append("commit_hash")
+    
+    # Check job_name
+    job_name = meta.get("job_name", "")
+    if not job_name:
+        missing_fields.append("job_name")
+    
+    return len(missing_fields) == 0, missing_fields
+
+
+def validate_and_cleanup_entries(
+    failing_runs: List[str],
+    run_metadata: Dict[str, Dict[str, Any]],
+    all_timestamps: Dict[str, str],
+    centroid_error: str,
+    github_token: str = ""
+) -> Tuple[List[str], Dict[str, Dict[str, Any]], str, List[str]]:
+    """Validate all entries and remove those with missing required metadata.
+    
+    Defensive programming: Better to have incomplete data than errors from null values.
+    
+    Args:
+        failing_runs: List of job URLs
+        run_metadata: Dictionary of URL -> metadata
+        all_timestamps: Dictionary of URL -> timestamp
+        centroid_error: The current centroid error message
+        github_token: GitHub token for API calls
+    
+    Returns:
+        Tuple of (valid_failing_runs, updated_run_metadata, new_centroid_error, removed_urls)
+    """
+    valid_urls = []
+    removed_urls = []
+    
+    # Identify the current centroid URL (first URL in the list, or the one marked as centroid)
+    current_centroid_url = failing_runs[0] if failing_runs else None
+    
+    for url in failing_runs:
+        is_valid, missing_fields = is_entry_valid(url, run_metadata, all_timestamps, github_token)
+        
+        if is_valid:
+            valid_urls.append(url)
+        else:
+            removed_urls.append(url)
+            print(f"    ⚠ Removing entry with missing metadata: {url[:60]}...")
+            print(f"      Missing fields: {', '.join(missing_fields)}")
+    
+    # If centroid was removed, select a new one
+    new_centroid_error = centroid_error
+    if current_centroid_url and current_centroid_url in removed_urls and valid_urls:
+        # Select the first valid URL's error message as the new centroid
+        new_centroid_url = valid_urls[0]
+        new_centroid_meta = run_metadata.get(new_centroid_url, {})
+        new_centroid_error = new_centroid_meta.get("error_message", centroid_error)
+        print(f"    → Centroid was invalid, selecting new centroid from: {new_centroid_url[:60]}...")
+    
+    # Clean up run_metadata for removed URLs
+    updated_run_metadata = {url: meta for url, meta in run_metadata.items() if url not in removed_urls}
+    
+    return valid_urls, updated_run_metadata, new_centroid_error, removed_urls
+
+
 def get_issue_number_for_centroid(centroid: str, centroid_to_issue: Dict[str, int]) -> Optional[int]:
     """Get issue number for a centroid using normalized comparison."""
     # Try exact match first
@@ -948,13 +1101,15 @@ def process_new_error(error_entry: List, issue_dump: List[Dict[str, Any]], centr
         if github_token:
             commit_hash = get_commit_hash_from_github(url, github_token)
         
-        # Store job/workflow metadata, ND flag, commit hash, and error message
+        # Store job/workflow metadata, ND flag, commit hash, error message, AND timestamp
+        # Storing timestamp in run_metadata ensures it's preserved when the issue is re-parsed
         run_metadata[url] = {
             "job_name": job_name,
             "workflow_name": workflow_name,
             "is_nd": is_nd,
             "commit_hash": commit_hash if commit_hash else "",
-            "error_message": error_message
+            "error_message": error_message,
+            "timestamp": timestamp  # Store timestamp so it survives issue re-parsing
         }
         
         # Debug: verify error message was stored
@@ -973,6 +1128,42 @@ def process_new_error(error_entry: List, issue_dump: List[Dict[str, Any]], centr
         
         if issue_number:
             try:
+                # ================================================================
+                # DEFENSIVE VALIDATION: Remove entries with missing required metadata
+                # Better to have incomplete data than errors from null values in Pydantic
+                # ================================================================
+                github_token = load_secrets().get("GITHUB_TOKEN", "")
+                print(f"  [VALIDATION] Checking {len(entry['failing_runs'])} entries for required metadata...")
+                
+                valid_urls, validated_metadata, new_centroid_error, removed_urls = validate_and_cleanup_entries(
+                    entry["failing_runs"],
+                    entry["run_metadata"],
+                    all_timestamps,
+                    entry["centroid_error"],
+                    github_token
+                )
+                
+                if removed_urls:
+                    print(f"    Removed {len(removed_urls)} invalid entry/entries")
+                
+                # Check if all entries were removed - close the issue
+                if not valid_urls:
+                    print(f"  ⚠ All entries have invalid metadata - closing issue #{issue_number}")
+                    try:
+                        close_issue(issue_number, "All entries had missing required metadata (timestamp, commit_hash, or job_name)")
+                        print(f"  ✓ Closed issue #{issue_number}")
+                        # Remove from issue_dump
+                        issue_dump.remove(entry)
+                        return True, issue_dump, False
+                    except Exception as e:
+                        print(f"  ✗ Error closing issue: {e}")
+                        return False, issue_dump, False
+                
+                # Update entry with validated data
+                entry["failing_runs"] = valid_urls
+                entry["run_metadata"] = validated_metadata
+                entry["centroid_error"] = new_centroid_error
+                
                 count = len(entry["failing_runs"])
                 # Fetch existing title to preserve group number
                 existing_title = get_issue_title(issue_number)
@@ -988,13 +1179,6 @@ def process_new_error(error_entry: List, issue_dump: List[Dict[str, Any]], centr
                 print(f"    run_metadata: {len(run_metadata)} entries")
                 urls_with_error = sum(1 for m in run_metadata.values() if m.get("error_message"))
                 print(f"    URLs with error_message: {urls_with_error}")
-                
-                # Check which URLs are missing metadata
-                missing_metadata = [u for u in entry["failing_runs"] if u not in run_metadata]
-                if missing_metadata:
-                    print(f"    ⚠ Missing metadata for {len(missing_metadata)} URL(s):")
-                    for u in missing_metadata[:3]:  # Show first 3
-                        print(f"      - {u}")
                 
                 body = format_issue_body(entry["centroid_error"], entry["failing_runs"], all_timestamps, run_metadata)
                 
@@ -1021,33 +1205,45 @@ def process_new_error(error_entry: List, issue_dump: List[Dict[str, Any]], centr
     # In either case, create a new issue
     print(f"\n  No match found (or matched issue was closed) - creating new issue")
     
-    # Create new entry
-    new_entry = {
-        "centroid_error": error_message,
-        "failing_runs": [url],
-        "run_metadata": {}
-    }
-    
-    issue_dump.append(new_entry)
-    if timestamp:
-        all_timestamps[url] = timestamp
-    
-    # Fetch commit hash from GitHub API
+    # Fetch commit hash from GitHub API first (needed for validation)
     commit_hash = None
     github_token = load_secrets().get("GITHUB_TOKEN", "")
     if github_token:
         commit_hash = get_commit_hash_from_github(url, github_token)
     
-    # Store job/workflow metadata, ND flag, commit hash, and error message
+    # Store job/workflow metadata, ND flag, commit hash, error message, AND timestamp
     run_metadata = {}
     run_metadata[url] = {
         "job_name": job_name,
         "workflow_name": workflow_name,
         "is_nd": is_nd,
         "commit_hash": commit_hash if commit_hash else "",
-        "error_message": error_message
+        "error_message": error_message,
+        "timestamp": timestamp  # Store timestamp so it survives issue re-parsing
     }
-    new_entry["run_metadata"] = run_metadata
+    
+    if timestamp:
+        all_timestamps[url] = timestamp
+    
+    # ================================================================
+    # DEFENSIVE VALIDATION: Check if new entry has required metadata
+    # Better to skip creating an issue than have errors from null values
+    # ================================================================
+    is_valid, missing_fields = is_entry_valid(url, run_metadata, all_timestamps, github_token)
+    if not is_valid:
+        print(f"  ⚠ New entry has missing required metadata, skipping issue creation")
+        print(f"    Missing fields: {', '.join(missing_fields)}")
+        print(f"    URL: {url[:80]}...")
+        return False, issue_dump, False
+    
+    # Create new entry (only after validation passes)
+    new_entry = {
+        "centroid_error": error_message,
+        "failing_runs": [url],
+        "run_metadata": run_metadata
+    }
+    
+    issue_dump.append(new_entry)
     
     # Create GitHub issue
     try:
@@ -1210,6 +1406,100 @@ def main():
             url = error_entry[1]
             if len(error_entry) > 2:
                 all_timestamps[url] = error_entry[2]
+    
+    # CRITICAL: Also populate all_timestamps from existing issue_dump run_metadata
+    # This ensures timestamps are preserved for URLs that aren't in the current all_errors.json
+    # (e.g., older errors that were already added to issues in previous runs)
+    timestamps_from_issues = 0
+    for entry in issue_dump:
+        run_metadata = entry.get("run_metadata", {})
+        for url, meta in run_metadata.items():
+            # Only add if not already in all_timestamps (prefer fresh data from all_errors)
+            if url not in all_timestamps:
+                timestamp_from_meta = meta.get("timestamp", "")
+                if timestamp_from_meta:
+                    all_timestamps[url] = timestamp_from_meta
+                    timestamps_from_issues += 1
+    
+    if timestamps_from_issues > 0:
+        print(f"  ✓ Recovered {timestamps_from_issues} timestamp(s) from existing issue metadata")
+    
+    # ============================================================================
+    # DEFENSIVE VALIDATION PASS: Clean up existing issues with invalid metadata
+    # This ensures data integrity before processing new errors
+    # ============================================================================
+    print(f"\n{'='*80}")
+    print("Running defensive validation on existing issues...")
+    print(f"{'='*80}")
+    
+    issues_validated = 0
+    entries_removed_total = 0
+    issues_closed = 0
+    
+    # Create a copy to iterate over (we may modify issue_dump during iteration)
+    entries_to_process = list(issue_dump)
+    
+    for entry in entries_to_process:
+        centroid_error = entry.get("centroid_error", "")
+        failing_runs = entry.get("failing_runs", [])
+        run_metadata = entry.get("run_metadata", {})
+        
+        if not failing_runs:
+            continue
+        
+        issue_number = get_issue_number_for_centroid(centroid_error, centroid_to_issue)
+        if not issue_number:
+            continue
+        
+        issues_validated += 1
+        
+        # Validate entries
+        valid_urls, validated_metadata, new_centroid_error, removed_urls = validate_and_cleanup_entries(
+            failing_runs,
+            run_metadata,
+            all_timestamps,
+            centroid_error,
+            github_token
+        )
+        
+        if removed_urls:
+            entries_removed_total += len(removed_urls)
+            print(f"  Issue #{issue_number}: Removed {len(removed_urls)} invalid entry/entries")
+            
+            if not valid_urls:
+                # All entries invalid - close the issue
+                print(f"    → All entries invalid, closing issue #{issue_number}")
+                try:
+                    close_issue(issue_number, "All entries had missing required metadata (timestamp, commit_hash, or job_name)")
+                    issues_closed += 1
+                    issue_dump.remove(entry)
+                    # Remove from centroid_to_issue mapping
+                    if centroid_error in centroid_to_issue:
+                        del centroid_to_issue[centroid_error]
+                except Exception as e:
+                    print(f"    ✗ Error closing issue: {e}")
+            else:
+                # Some entries valid - update the issue
+                entry["failing_runs"] = valid_urls
+                entry["run_metadata"] = validated_metadata
+                entry["centroid_error"] = new_centroid_error
+                
+                # Update the issue on GitHub
+                try:
+                    existing_title = get_issue_title(issue_number)
+                    group_num = extract_group_num_from_title(existing_title) if existing_title else None
+                    title = create_title_from_count(len(valid_urls), new_centroid_error, group_num)
+                    body = format_issue_body(new_centroid_error, valid_urls, all_timestamps, validated_metadata)
+                    
+                    update_issue(issue_number, title, body)
+                    print(f"    → Updated issue #{issue_number} with {len(valid_urls)} valid entries")
+                except Exception as e:
+                    print(f"    ✗ Error updating issue: {e}")
+    
+    print(f"\nValidation summary:")
+    print(f"  Issues validated: {issues_validated}")
+    print(f"  Invalid entries removed: {entries_removed_total}")
+    print(f"  Issues closed (all entries invalid): {issues_closed}")
     
     # Build set of existing URLs from ALL OPEN REPOSITORY ISSUES
     # This ensures we catch duplicates even if issues aren't in the project board

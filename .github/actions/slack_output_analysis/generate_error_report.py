@@ -605,6 +605,7 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
     report_entries = []
     matched_count = 0
     unmatched_count = 0
+    skipped_invalid = 0  # Counter for entries skipped due to missing required fields
     job_name_cache: Dict[str, str] = {}  # Cache for job names to avoid duplicate API calls
     
     for idx, error_entry in enumerate(recent_errors, 1):
@@ -817,6 +818,25 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
             else:
                 oldest_job_name = None  # Can be None if no oldest run
         
+        # ================================================================
+        # DEFENSIVE VALIDATION: Skip entries with missing required fields
+        # Better to have incomplete data than errors from null values in Pydantic
+        # Required fields for job: job_name, job_slack_ts, job_commit_hash
+        # ================================================================
+        missing_fields = []
+        if not job_name:
+            missing_fields.append("job_name")
+        if not timestamp_utc:
+            missing_fields.append("job_slack_ts")
+        if not commit_hash:
+            missing_fields.append("job_commit_hash")
+        
+        if missing_fields:
+            skipped_invalid += 1
+            if skipped_invalid <= 5:  # Only log first few skipped entries
+                print(f"  ⚠ Skipping entry {idx} - missing required fields: {', '.join(missing_fields)}")
+            continue
+        
         # Transform to JobFailureCluster format
         report_entry = {
             # Job-specific fields
@@ -828,14 +848,14 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
             "job_commit_hash": commit_hash,
             "is_nd": is_nd,
             "slack_message_link": slack_message_link,
-            # Centroid fields
+            # Centroid fields (can be None - only job fields are required)
             "centroid_job_id": centroid_job_id,
             "centroid_job_link": centroid_run_url,
             "centroid_job_name": centroid_job_name,
             "centroid_job_error_message": centroid_error_message,
             "centroid_job_slack_ts": centroid_timestamp_utc,
             "centroid_job_commit_hash": centroid_commit_hash,
-            # Oldest job fields
+            # Oldest job fields (can be None - only job fields are required)
             "oldest_job_id": oldest_job_id,
             "oldest_job_link": oldest_run_url,
             "oldest_job_name": oldest_job_name,
@@ -848,6 +868,7 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
     print(f"\n  ✓ Generated {len(report_entries)} report entries")
     print(f"    - Matched to centroids: {matched_count}")
     print(f"    - Unmatched: {unmatched_count}")
+    print(f"    - Skipped (missing required fields): {skipped_invalid}")
     print(f"    - With centroid run URLs: {sum(1 for e in report_entries if e['centroid_job_link'])}")
     
     # Check GitHub API rate limit at end

@@ -5,4 +5,11 @@ python_env/
 secrets.json
 *.pyc
 *.log
+
+# Generated output files from slack_output_analysis
 */all_errors.json
+*/issue_dump.json
+*/error_report.json
+*/grouped_errors.json
+*/build_slack_export_with_threads.json
+*/debug.log
