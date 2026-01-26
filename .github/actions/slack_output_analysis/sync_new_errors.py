@@ -1426,6 +1426,7 @@ def main():
     
     # ============================================================================
     # DEFENSIVE VALIDATION PASS: Clean up existing issues with invalid metadata
+    # AND remove duplicate URLs (same URL in multiple issues)
     # This ensures data integrity before processing new errors
     # ============================================================================
     print(f"\n{'='*80}")
@@ -1433,8 +1434,13 @@ def main():
     print(f"{'='*80}")
     
     issues_validated = 0
-    entries_removed_total = 0
+    entries_removed_invalid = 0
+    entries_removed_duplicate = 0
     issues_closed = 0
+    issues_updated = 0
+    
+    # Track all URLs seen across issues to detect and remove duplicates
+    global_seen_urls: set = set()
     
     # Create a copy to iterate over (we may modify issue_dump during iteration)
     entries_to_process = list(issue_dump)
@@ -1453,8 +1459,8 @@ def main():
         
         issues_validated += 1
         
-        # Validate entries
-        valid_urls, validated_metadata, new_centroid_error, removed_urls = validate_and_cleanup_entries(
+        # Step 1: Validate entries (check for missing metadata)
+        valid_urls, validated_metadata, new_centroid_error, removed_invalid = validate_and_cleanup_entries(
             failing_runs,
             run_metadata,
             all_timestamps,
@@ -1462,15 +1468,40 @@ def main():
             github_token
         )
         
-        if removed_urls:
-            entries_removed_total += len(removed_urls)
-            print(f"  Issue #{issue_number}: Removed {len(removed_urls)} invalid entry/entries")
+        if removed_invalid:
+            entries_removed_invalid += len(removed_invalid)
+        
+        # Step 2: Remove duplicate URLs (already seen in previous issues)
+        deduplicated_urls = []
+        removed_duplicate = []
+        for url in valid_urls:
+            if url in global_seen_urls:
+                removed_duplicate.append(url)
+            else:
+                deduplicated_urls.append(url)
+                global_seen_urls.add(url)
+        
+        if removed_duplicate:
+            entries_removed_duplicate += len(removed_duplicate)
+            # Also remove from metadata
+            for url in removed_duplicate:
+                if url in validated_metadata:
+                    del validated_metadata[url]
+        
+        # Calculate total removals for this issue
+        total_removed = len(removed_invalid) + len(removed_duplicate)
+        
+        if total_removed > 0:
+            if removed_invalid:
+                print(f"  Issue #{issue_number}: Removed {len(removed_invalid)} invalid entry/entries")
+            if removed_duplicate:
+                print(f"  Issue #{issue_number}: Removed {len(removed_duplicate)} duplicate URL(s) (already in other issues)")
             
-            if not valid_urls:
-                # All entries invalid - close the issue
-                print(f"    → All entries invalid, closing issue #{issue_number}")
+            if not deduplicated_urls:
+                # All entries removed - close the issue
+                print(f"    → All entries removed, closing issue #{issue_number}")
                 try:
-                    close_issue(issue_number, "All entries had missing required metadata (timestamp, commit_hash, or job_name)")
+                    close_issue(issue_number, "All entries were either invalid or duplicates of entries in other issues")
                     issues_closed += 1
                     issue_dump.remove(entry)
                     # Remove from centroid_to_issue mapping
@@ -1479,8 +1510,16 @@ def main():
                 except Exception as e:
                     print(f"    ✗ Error closing issue: {e}")
             else:
-                # Some entries valid - update the issue
-                entry["failing_runs"] = valid_urls
+                # Some entries remain - update the issue
+                # Check if centroid was removed
+                if new_centroid_error != centroid_error or deduplicated_urls != valid_urls:
+                    # Centroid may have changed or URLs were deduplicated
+                    if deduplicated_urls[0] not in [url for url in valid_urls if url == deduplicated_urls[0]]:
+                        # First URL changed, update centroid
+                        first_url_meta = validated_metadata.get(deduplicated_urls[0], {})
+                        new_centroid_error = first_url_meta.get("error_message", new_centroid_error)
+                
+                entry["failing_runs"] = deduplicated_urls
                 entry["run_metadata"] = validated_metadata
                 entry["centroid_error"] = new_centroid_error
                 
@@ -1488,18 +1527,25 @@ def main():
                 try:
                     existing_title = get_issue_title(issue_number)
                     group_num = extract_group_num_from_title(existing_title) if existing_title else None
-                    title = create_title_from_count(len(valid_urls), new_centroid_error, group_num)
-                    body = format_issue_body(new_centroid_error, valid_urls, all_timestamps, validated_metadata)
+                    title = create_title_from_count(len(deduplicated_urls), new_centroid_error, group_num)
+                    body = format_issue_body(new_centroid_error, deduplicated_urls, all_timestamps, validated_metadata)
                     
                     update_issue(issue_number, title, body)
-                    print(f"    → Updated issue #{issue_number} with {len(valid_urls)} valid entries")
+                    issues_updated += 1
+                    print(f"    → Updated issue #{issue_number} with {len(deduplicated_urls)} entries")
                 except Exception as e:
                     print(f"    ✗ Error updating issue: {e}")
+        else:
+            # No removals, but still track URLs for deduplication
+            for url in valid_urls:
+                global_seen_urls.add(url)
     
     print(f"\nValidation summary:")
     print(f"  Issues validated: {issues_validated}")
-    print(f"  Invalid entries removed: {entries_removed_total}")
-    print(f"  Issues closed (all entries invalid): {issues_closed}")
+    print(f"  Issues updated: {issues_updated}")
+    print(f"  Invalid entries removed: {entries_removed_invalid}")
+    print(f"  Duplicate entries removed: {entries_removed_duplicate}")
+    print(f"  Issues closed (no entries remaining): {issues_closed}")
     
     # Build set of existing URLs from ALL OPEN REPOSITORY ISSUES
     # This ensures we catch duplicates even if issues aren't in the project board

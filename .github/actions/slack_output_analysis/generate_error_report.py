@@ -606,6 +606,8 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
     matched_count = 0
     unmatched_count = 0
     skipped_invalid = 0  # Counter for entries skipped due to missing required fields
+    skipped_duplicate = 0  # Counter for duplicate URLs (same URL in multiple issues)
+    processed_urls: set = set()  # Track processed URLs to prevent duplicates
     job_name_cache: Dict[str, str] = {}  # Cache for job names to avoid duplicate API calls
     
     for idx, error_entry in enumerate(recent_errors, 1):
@@ -620,6 +622,17 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
             if not job_url:
                 unmatched_count += 1
             continue
+        
+        # ================================================================
+        # DEDUPLICATION: Skip URLs that have already been processed
+        # Same URL can appear in multiple issues - only include it once
+        # ================================================================
+        normalized_url_for_dedup = normalize_url(job_url) if job_url else job_url
+        if normalized_url_for_dedup in processed_urls or job_url in processed_urls:
+            skipped_duplicate += 1
+            continue
+        processed_urls.add(normalized_url_for_dedup)
+        processed_urls.add(job_url)  # Add both normalized and original
         
         # Extract timestamp for this error
         timestamp_utc = parse_timestamp_to_utc(timestamp_str) if timestamp_str else None
@@ -907,6 +920,7 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
     print(f"    - Matched to centroids: {matched_count}")
     print(f"    - Unmatched (used self as centroid): {unmatched_count}")
     print(f"    - Skipped (missing required job fields): {skipped_invalid}")
+    print(f"    - Skipped (duplicate URLs across issues): {skipped_duplicate}")
     print(f"    - With distinct centroid URLs: {sum(1 for e in report_entries if e['centroid_job_link'] != e['github_job_link'])}")
     
     # Check GitHub API rate limit at end
