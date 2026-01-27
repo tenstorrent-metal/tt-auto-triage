@@ -39,13 +39,18 @@ def main():
         sys.exit(1)
     
     # Load previous report (if exists)
-    previous_job_ids = set()
+    previous_job_ids: set = set()
     if PREVIOUS_REPORT and os.path.exists(PREVIOUS_REPORT):
         print(f"\nLoading previous report: {PREVIOUS_REPORT}")
         try:
             with open(PREVIOUS_REPORT, 'r', encoding='utf-8') as f:
                 previous_data = json.load(f)
-            previous_job_ids = {entry.get("github_job_id") for entry in previous_data if entry.get("github_job_id")}
+            # Filter out None values to avoid incorrect matching
+            previous_job_ids = {
+                entry.get("github_job_id") 
+                for entry in previous_data 
+                if entry.get("github_job_id") is not None
+            }
             print(f"  Previous report has {len(previous_data)} entries")
             print(f"  Found {len(previous_job_ids)} unique job IDs to exclude")
         except json.JSONDecodeError as e:
@@ -61,9 +66,14 @@ def main():
     print(f"\nFiltering to new entries only...")
     new_entries = []
     skipped_count = 0
+    skipped_no_id = 0
     
     for entry in current_data:
         job_id = entry.get("github_job_id")
+        # Skip entries without github_job_id - can't reliably track for duplicates
+        if job_id is None:
+            skipped_no_id += 1
+            continue
         if job_id in previous_job_ids:
             skipped_count += 1
         else:
@@ -71,6 +81,7 @@ def main():
     
     print(f"  Entries in current report: {len(current_data)}")
     print(f"  Entries already in previous report: {skipped_count}")
+    print(f"  Entries without job ID (excluded): {skipped_no_id}")
     print(f"  New entries: {len(new_entries)}")
     
     # Save incremental report

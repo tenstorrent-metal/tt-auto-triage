@@ -186,8 +186,9 @@ runs:
             });
             
             // Filter to successful runs that aren't the current run
+            // Use String() to ensure consistent type comparison
             const runs = (resp.data.workflow_runs || []).filter(r => 
-              r.conclusion === 'success' && r.id !== currentRunId
+              r.conclusion === 'success' && String(r.id) !== String(currentRunId)
             );
             
             const run = runs[0];
@@ -262,4 +263,5 @@ runs:
       with:
         name: incremental-error-report
         path: incremental_error_report.json
+        if-no-files-found: ignore
         retention-days: 30
