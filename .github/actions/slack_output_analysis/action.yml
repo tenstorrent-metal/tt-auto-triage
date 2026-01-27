@@ -22,6 +22,14 @@ inputs:
     description: "End date (cutoff) for fetching Slack messages (format: 'January 31, 2026'). Messages after this date are ignored. Leave empty for no cutoff."
     required: false
     default: ""
+  workflow_file:
+    description: "Workflow file path (e.g., '.github/workflows/analyze-ND-failures.yml') for finding previous runs to create incremental report. Leave empty to skip incremental report."
+    required: false
+    default: ""
+outputs:
+  incremental_report_path:
+    description: "Path to the incremental error report (new entries only)"
+    value: ${{ steps.incremental.outputs.path }}
 runs:
   using: composite
   steps:
@@ -145,4 +153,100 @@ runs:
       with:
         name: error-report
         path: error_report.json
+        retention-days: 30
+
+    # =========================================================================
+    # INCREMENTAL REPORT: Create JSON B with only NEW entries
+    # This compares against the previous run's error_report.json
+    # =========================================================================
+
+    - name: Find previous successful run
+      id: prev_run
+      if: inputs.workflow_file != ''
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{ inputs.github_token }}
+        script: |
+          const owner = context.repo.owner;
+          const repo = context.repo.repo;
+          const workflow_id = '${{ inputs.workflow_file }}';
+          const currentRunId = context.runId;
+          
+          console.log(`Looking for previous successful runs of ${workflow_id} on main...`);
+          console.log(`Current run ID: ${currentRunId}`);
+          
+          try {
+            const resp = await github.request('GET /repos/{owner}/{repo}/actions/workflows/{workflow_id}/runs', {
+              owner,
+              repo,
+              workflow_id,
+              branch: 'main',
+              status: 'completed',
+              per_page: 20
+            });
+            
+            // Filter to successful runs that aren't the current run
+            const runs = (resp.data.workflow_runs || []).filter(r => 
+              r.conclusion === 'success' && r.id !== currentRunId
+            );
+            
+            const run = runs[0];
+            const selectedId = run ? String(run.id) : '';
+            
+            if (selectedId) {
+              console.log(`Found previous successful run: ${selectedId}`);
+            } else {
+              console.log('No previous successful run found');
+            }
+            
+            core.setOutput('run_id', selectedId);
+          } catch (error) {
+            console.log(`Warning: Could not fetch previous runs: ${error.message}`);
+            core.setOutput('run_id', '');
+          }
+
+    - name: Download previous error report
+      id: download_prev
+      if: inputs.workflow_file != '' && steps.prev_run.outputs.run_id != ''
+      continue-on-error: true
+      uses: actions/download-artifact@v4
+      with:
+        name: error-report
+        path: ${{ github.workspace }}/prev_report
+        run-id: ${{ steps.prev_run.outputs.run_id }}
+        github-token: ${{ inputs.github_token }}
+
+    - name: Create incremental error report
+      id: incremental
+      shell: bash
+      run: |
+        set -euo pipefail
+        cd "${{ github.action_path }}"
+        
+        # Set path to previous report if it was downloaded
+        PREV_REPORT=""
+        if [ -f "${{ github.workspace }}/prev_report/error_report.json" ]; then
+          PREV_REPORT="${{ github.workspace }}/prev_report/error_report.json"
+          echo "Found previous report at: $PREV_REPORT"
+        else
+          echo "No previous report found - all entries will be considered new"
+        fi
+        
+        # Run the incremental report script
+        PREVIOUS_REPORT_PATH="$PREV_REPORT" python3 create_incremental_report.py
+        
+        # Copy to workspace root for artifact upload
+        if [ -f incremental_error_report.json ]; then
+          cp incremental_error_report.json "${{ github.workspace }}/incremental_error_report.json"
+          echo "path=${{ github.workspace }}/incremental_error_report.json" >> $GITHUB_OUTPUT
+        fi
+      env:
+        PYTHONUNBUFFERED: 1
+
+    - name: Upload incremental error report as artifact
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: incremental-error-report
+        path: incremental_error_report.json
         retention-days: 30
