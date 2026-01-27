@@ -156,7 +156,7 @@ runs:
         retention-days: 30
 
     # =========================================================================
-    # INCREMENTAL REPORT: Create JSON B with only NEW entries
+    # INCREMENTAL REPORT: Create an incrememntal error report with only NEW entries
     # This compares against the previous run's error_report.json
     # =========================================================================
 
