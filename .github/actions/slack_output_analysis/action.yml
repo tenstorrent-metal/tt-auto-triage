@@ -223,13 +223,26 @@ runs:
         set -euo pipefail
         cd "${{ github.action_path }}"
         
+        echo "=== Incremental Report Debug Info ==="
+        echo "workflow_file input: '${{ inputs.workflow_file }}'"
+        echo "Previous run ID found: '${{ steps.prev_run.outputs.run_id }}'"
+        echo "Download step outcome: '${{ steps.download_prev.outcome }}'"
+        
         # Set path to previous report if it was downloaded
         PREV_REPORT=""
         if [ -f "${{ github.workspace }}/prev_report/error_report.json" ]; then
           PREV_REPORT="${{ github.workspace }}/prev_report/error_report.json"
-          echo "Found previous report at: $PREV_REPORT"
+          echo "✓ Found previous report at: $PREV_REPORT"
         else
-          echo "No previous report found - all entries will be considered new"
+          echo "✗ No previous report found at: ${{ github.workspace }}/prev_report/error_report.json"
+          if [ -z "${{ inputs.workflow_file }}" ]; then
+            echo "  Reason: workflow_file input was not provided"
+          elif [ -z "${{ steps.prev_run.outputs.run_id }}" ]; then
+            echo "  Reason: No previous successful run was found"
+          else
+            echo "  Reason: Download may have failed (check logs above)"
+          fi
+          echo "  All entries will be considered new"
         fi
         
         # Run the incremental report script
