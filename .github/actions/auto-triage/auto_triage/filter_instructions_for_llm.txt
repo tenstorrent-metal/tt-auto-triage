@@ -22,6 +22,7 @@ Cancellation Lever
 - Set `should_cancel` to `true` and populate `message` with whatever your justification for canceling is. Here are some possible examples:
   1. `"the failure is clearly non-deterministic/infra noise. The issue <insert issue here> is known to be non-deterministic. This analysis would inevitably become Case 3"`
   2. `"this run was invoked in error. the job/workflow inputs are wrong (subjob never existed, boundaries could not even start) and no triage is possible."`
+  3. `"auto-triage failed to retrieve logs. Both get_annotations.sh and get_logs.sh failed or returned no actionable error data. Cannot proceed without failure evidence."`
 - **CRITICAL: Before cancelling, you MUST extract and save the error message:**
   - Even when cancelling, you should still download logs/annotations from failing runs to extract the actual error message.
   - Save the error message (2–6 lines) into `./auto_triage/data/error_message.txt` BEFORE writing to `cancel.json`.
@@ -84,8 +85,15 @@ Workflow Overview
    - Download the **two most recent failing runs** (highest `run_number` values among failures).
    - If fewer than three failures exist total, download every failing run.
    - For each run, call `./get_annotations.sh <job_url>` first. If annotations lack actionable detail (common), immediately fall back to `./get_logs.sh <job_url>`.
-3. Ignore infrastructure/setup failures (e.g., runner disconnects, missing dependencies, GitHub outages). Such runs must not influence determinism decisions.
-4. Determine whether there is a repeatable deterministic failure signature:
+   - **CRITICAL: If both `get_annotations.sh` AND `get_logs.sh` fail or return no useful error information for ALL runs you attempt:**
+     - Do **not** attempt to guess or fabricate an error message.
+     - Do **not** proceed with commit downloads or further analysis.
+     - Write an empty string or brief note (e.g., "Log retrieval failed") to `./auto_triage/data/error_message.txt`.
+     - Write `[]` to `./auto_triage/data/commit_info.json`.
+     - **Immediately cancel** by writing to `cancel.json`: `jq -n '{should_cancel: true, message: "auto-triage failed to retrieve logs. Both get_annotations.sh and get_logs.sh failed or returned no actionable error data. Cannot proceed without failure evidence."}' > ./cancel.json`
+     - Exit without further work. The downstream Slack message will surface this cancellation reason.
+4. Ignore infrastructure/setup failures (e.g., runner disconnects, missing dependencies, GitHub outages). Such runs must not influence determinism decisions.
+5. Determine whether there is a repeatable deterministic failure signature:
    - Prefer an error that appears in multiple runs with the same stack trace or message.
    - If only one test-executing run exists, treat that signature as deterministic if it clearly points to tt-metal code.
    - **Important:** It is perfectly acceptable and expected for failures to be non-deterministic. If failures appear to be random, infrastructure-related, or unrelated to tt-metal code changes, this is a valid finding. Do not force determinism where none exists.
@@ -106,12 +114,12 @@ Workflow Overview
      - Remember, the job and test that a past non deterministic issue appeared on is less important then the error itself. Often very different jobs and tests will fail as a result of the same non-deterministic issue
      - Remember, you may have to fuzzy match or imply that two errors are simimlar as every test will produce slightly different output
      - If you find a matching error pattern in that file, treat the failure as non-deterministic/infra noise and either cancel the triage run (see Cancellation Lever), or look at other job failures if they exist.
-5. Save the deterministic error snippet (2–6 lines) into `./auto_triage/data/error_message.txt`. If no deterministic failure can be found, write an empty file.
+6. Save the deterministic error snippet (2–6 lines) into `./auto_triage/data/error_message.txt`. If no deterministic failure can be found, write an empty file.
 
 Commit Metadata Collection
 --------------------------
-6. **Only proceed with commit collection if you identified a deterministic failure that appears related to tt-metal code changes.** If the failures are non-deterministic, infrastructure-related, or clearly unrelated to tt-metal (e.g., flaky tests, runner issues, external dependencies), skip this step entirely and leave `commit_info.json` as an empty array (`[]`). Even when you do download commits, you are gathering metadata only—do **not** inspect diffs, reason about relevance, or guess which commits might be responsible.
-7. Locate the commit hashes from the runs you identified:
+7. **Only proceed with commit collection if you identified a deterministic failure that appears related to tt-metal code changes.** If the failures are non-deterministic, infrastructure-related, or clearly unrelated to tt-metal (e.g., flaky tests, runner issues, external dependencies), skip this step entirely and leave `commit_info.json` as an empty array (`[]`). Even when you do download commits, you are gathering metadata only—do **not** inspect diffs, reason about relevance, or guess which commits might be responsible.
+8. Locate the commit hashes from the runs you identified:
    - Use the `commit` field from the **last successful run** (the one with `"status": "success"`).
    - Use the `commit` field from the **oldest failing run** (the failure with the lowest `run_number`).
    - Invoke:
@@ -132,7 +140,7 @@ Commit Metadata Collection
        - `./download_data_between_commits_batch.sh <good_commit> <bad_commit> 4 ./auto_triage/data/commit_info.json`
      - **Important:** Use the same output file (`./auto_triage/data/commit_info.json`) for all batch calls; results will be appended.
      - Each batch processes up to 10 commits (batches are zero-indexed).
-8. **Verify and backfill commit coverage:**
+9. **Verify and backfill commit coverage:**
    - Capture the expected commit count via `git rev-list --count <good_commit>..<bad_commit>` (this equals the batch controller’s `Commits in range`). You may also use the helper script:
      - `./list_commits_between.sh <good_commit> <bad_commit> ./auto_triage/data/commit_list.json` to dump the exact set of SHAs in JSON form.
    - After running all batches, check `jq 'length' ./auto_triage/data/commit_info.json`.
@@ -150,6 +158,11 @@ Commit Metadata Collection
 
 Special Cases
 -------------
+- **Log retrieval failure:** If `get_annotations.sh` and `get_logs.sh` both fail or return empty/unusable output for every failing run, **you must cancel immediately**. Do not guess, infer, or fabricate error messages based on job names, test names, or any other metadata—this leads to incorrect triage reports. Instead:
+  1. Write an empty file or `"Log retrieval failed"` to `./auto_triage/data/error_message.txt`.
+  2. Write `[]` to `./auto_triage/data/commit_info.json`.
+  3. Cancel with message: `"auto-triage failed to retrieve logs. Both get_annotations.sh and get_logs.sh failed or returned no actionable error data. Cannot proceed without failure evidence."`
+  This is preferable to producing an incorrect analysis based on guessed information.
 - **Purely non-deterministic / infra failures:** If every failing run is due to setup/infrastructure noise, random test flakiness, or issues clearly unrelated to tt-metal code changes, **this is a valid and acceptable outcome.** Skip downloading commits entirely. Write an empty JSON array (`[]`) to `./auto_triage/data/commit_info.json`. **However, you MUST still extract and save the error message to `error_message.txt`** before cancelling—this allows the error to be tracked and compared even when the full analysis is skipped. This signals Case 3 to the main model, which is the correct classification for non-deterministic failures.
 - When you are confident the situation above applies and no further analysis is needed, **first extract the error message to `error_message.txt`**, then set `cancel.json` with `message: "this is non-deterministic on the output report"` so the pipeline stops after the filter stage.
 - **No clear deterministic failure:** If you cannot identify a repeatable failure signature across multiple runs, or if failures appear random/unrelated to code changes, treat this as non-deterministic. Leave `commit_info.json` as `[]` and `error_message.txt` blank.
@@ -183,6 +196,7 @@ What **Not** to Do
 - Do **not** interpret commit relevance or hypothesize about root causes—download the metadata and stop.
 - Do **not** delete or rename any existing automation scripts.
 - Avoid running the LLM twice; this stage is the only LLM invocation before the main analysis.
+- **NEVER guess or fabricate error messages.** If log downloads fail, cancel immediately. Do not infer errors from job names, test names, or other metadata—this produces incorrect triage reports that waste engineer time.
 
 The main model will perform the final reasoning using the commit list and the captured error message.
 
