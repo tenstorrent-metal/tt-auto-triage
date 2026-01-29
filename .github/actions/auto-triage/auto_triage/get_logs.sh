@@ -72,10 +72,7 @@ while IFS= read -r file; do
 done < <(find "$TMP_UNZIP" -type f -print)
 
 if [ ${#MATCHED[@]} -eq 0 ]; then
-    echo "WARNING: Could not isolate job-specific logs for '${JOB_NAME}'."
-    echo "WARNING: The 'full' directory contains logs for ALL jobs in the workflow run."
-    echo "WARNING: You MUST manually identify logs belonging to job '${JOB_NAME}' - do NOT use errors from other jobs."
-    USE_JOB_SPECIFIC="false"
+    echo "Warning: could not isolate job-specific logs; rely on 'full' directory."
 else
     JOB_DIR="${DEST_DIR}/job_specific"
     for rel in "${MATCHED[@]}"; do
@@ -85,8 +82,6 @@ else
         cp "$src" "$dest"
     done
     echo "Extracted ${#MATCHED[@]} file(s) matching job name into ${JOB_DIR}"
-    echo "IMPORTANT: Only use logs from job_specific/ directory. The full/ directory contains other jobs' logs."
-    USE_JOB_SPECIFIC="true"
 fi
 
 rm -f "$TMP_ZIP"
@@ -100,23 +95,6 @@ Run Attempt: ${JOB_ATTEMPT}
 Job ID: ${JOB_ID}
 Job Name: ${JOB_NAME}
 Downloaded: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
-
-CRITICAL WARNING:
-=================
-This workflow run contains logs from MULTIPLE jobs, not just the one you requested.
-- The 'full/' directory contains logs from ALL jobs in the workflow run.
-- The 'job_specific/' directory (if present) contains only logs matching this job name.
-
-ONLY extract error messages from logs that match this exact job:
-  Job Name: ${JOB_NAME}
-  Job ID: ${JOB_ID}
-
-DO NOT use error messages from other jobs in the same workflow run.
-If job_specific/ directory exists, use ONLY that directory.
-If job_specific/ does not exist, you must carefully filter 'full/' for files matching "${JOB_NAME}".
 EOF
-
-# Create a simple flag file to indicate whether job-specific logs were isolated
-echo "${USE_JOB_SPECIFIC}" > "${DEST_DIR}/job_specific_available.txt"
 
 echo "Logs available at: ${DEST_DIR}"

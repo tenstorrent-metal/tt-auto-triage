@@ -35,14 +35,11 @@ ANN_DIR="auto_triage/logs/job_${JOB_ID}"
 mkdir -p "$ANN_DIR"
 ANN_PATH="$OUTPUT_FILE"
 
-echo -e "${GREEN}Fetching check-run annotations for job ${JOB_ID} only${NC}"
+echo -e "${GREEN}Fetching annotations for job ${JOB_ID}${NC}"
 
 # Get the specific job's check-run URL - only fetch annotations for THIS job, not all jobs
 JOB_INFO=$(gh api "repos/${OWNER}/${REPO}/actions/jobs/${JOB_ID}" 2>/dev/null || echo '{}')
 CHECK_RUN_URL=$(echo "$JOB_INFO" | jq -r '.check_run_url // empty' 2>/dev/null || echo "")
-JOB_NAME=$(echo "$JOB_INFO" | jq -r '.name // "unknown"' 2>/dev/null || echo "unknown")
-
-echo -e "${GREEN}Job name: ${JOB_NAME}${NC}"
 
 if [ -z "$CHECK_RUN_URL" ]; then
     echo -e "${YELLOW}No check-run URL found for job ${JOB_ID}.${NC}"
@@ -53,12 +50,10 @@ fi
 # Extract check-run ID from URL
 CHECK_ID=$(echo "$CHECK_RUN_URL" | sed -n 's#.*/check-runs/\([0-9]\+\).*#\1#p')
 if [ -z "$CHECK_ID" ]; then
-    echo -e "${YELLOW}Could not parse check-run ID from URL: ${CHECK_RUN_URL}${NC}"
+    echo -e "${YELLOW}Could not parse check-run ID from URL.${NC}"
     echo '[]' > "$ANN_PATH"
     exit 0
 fi
-
-echo -e "${GREEN}Fetching annotations for check-run ${CHECK_ID}${NC}"
 
 ALL_ANNOTS='[]'
 PAGE=1
