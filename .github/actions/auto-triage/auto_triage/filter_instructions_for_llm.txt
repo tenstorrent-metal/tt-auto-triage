@@ -85,6 +85,12 @@ Workflow Overview
    - Download the **two most recent failing runs** (highest `run_number` values among failures).
    - If fewer than three failures exist total, download every failing run.
    - For each run, call `./get_annotations.sh <job_url>` first. If annotations lack actionable detail (common), immediately fall back to `./get_logs.sh <job_url>`.
+   - **CRITICAL: Log isolation rules:**
+     - Each workflow run contains logs from MANY different jobs. You MUST only extract errors from the SPECIFIC job being analyzed.
+     - After calling `./get_logs.sh`, read `./logs/job_<id>/metadata.txt` to see the exact job name you're analyzing.
+     - If `./logs/job_<id>/job_specific/` exists, ONLY search for errors in that directory.
+     - If `job_specific/` does not exist, you must carefully filter files in `full/` to find ones matching the exact job name from metadata.txt.
+     - **NEVER extract error messages from logs belonging to other jobs in the same workflow run.** This is a common mistake that leads to completely wrong triage reports.
    - **CRITICAL: If both `get_annotations.sh` AND `get_logs.sh` fail or return no useful error information for ALL runs you attempt:**
      - Do **not** attempt to guess or fabricate an error message.
      - Do **not** proceed with commit downloads or further analysis.
@@ -197,6 +203,7 @@ What **Not** to Do
 - Do **not** delete or rename any existing automation scripts.
 - Avoid running the LLM twice; this stage is the only LLM invocation before the main analysis.
 - **NEVER guess or fabricate error messages.** If log downloads fail, cancel immediately. Do not infer errors from job names, test names, or other metadata—this produces incorrect triage reports that waste engineer time.
+- **NEVER extract errors from logs of OTHER jobs in the same workflow run.** The `full/` directory contains logs from ALL jobs. Always check `metadata.txt` for the job name and only use logs from `job_specific/` or files that exactly match the job name. Extracting errors from unrelated jobs produces completely wrong triage reports.
 
 The main model will perform the final reasoning using the commit list and the captured error message.
 
