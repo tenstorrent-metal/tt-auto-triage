@@ -35,36 +35,40 @@ ANN_DIR="auto_triage/logs/job_${JOB_ID}"
 mkdir -p "$ANN_DIR"
 ANN_PATH="$OUTPUT_FILE"
 
-echo -e "${GREEN}Fetching check-run annotations for run ${RUN_ID} (job ${JOB_ID})${NC}"
+echo -e "${GREEN}Fetching annotations for job ${JOB_ID}${NC}"
 
-# List jobs for the workflow run and collect check-run IDs
-JOBS_JSON=$(gh api "repos/${OWNER}/${REPO}/actions/runs/${RUN_ID}/jobs?per_page=100" 2>/dev/null || echo '{}')
-CHECK_RUN_IDS=($(echo "$JOBS_JSON" | jq -r '.jobs[]?.check_run_url | select(.!=null) | capture("/check-runs/(?<id>[0-9]+)").id' 2>/dev/null || true))
+# Get the specific job's check-run URL - only fetch annotations for THIS job, not all jobs
+JOB_INFO=$(gh api "repos/${OWNER}/${REPO}/actions/jobs/${JOB_ID}" 2>/dev/null || echo '{}')
+CHECK_RUN_URL=$(echo "$JOB_INFO" | jq -r '.check_run_url // empty' 2>/dev/null || echo "")
 
-if [ ${#CHECK_RUN_IDS[@]} -eq 0 ]; then
-    echo -e "${YELLOW}No check-run IDs found for run ${RUN_ID}.${NC}"
+if [ -z "$CHECK_RUN_URL" ]; then
+    echo -e "${YELLOW}No check-run URL found for job ${JOB_ID}.${NC}"
+    echo '[]' > "$ANN_PATH"
+    exit 0
+fi
+
+# Extract check-run ID from URL
+CHECK_ID=$(echo "$CHECK_RUN_URL" | sed -n 's#.*/check-runs/\([0-9]\+\).*#\1#p')
+if [ -z "$CHECK_ID" ]; then
+    echo -e "${YELLOW}Could not parse check-run ID from URL.${NC}"
     echo '[]' > "$ANN_PATH"
     exit 0
 fi
 
 ALL_ANNOTS='[]'
-for CHECK_ID in "${CHECK_RUN_IDS[@]}"; do
-    PAGE=1
-    while true; do
-        RAW=$(gh api "repos/${OWNER}/${REPO}/check-runs/${CHECK_ID}/annotations?per_page=100&page=${PAGE}" 2>/dev/null || echo '[]')
-        DATA=$(echo "$RAW" | jq '[.[] | select(((.annotation_level // "") | ascii_downcase) == "failure" or ((.annotation_level // "") | ascii_downcase) == "error")]' 2>/dev/null || echo '[]')
-        COUNT=$(echo "$DATA" | jq 'length' 2>/dev/null || echo 0)
-        if [ "$COUNT" -eq 0 ]; then
-            break
-        fi
-        ALL_ANNOTS=$(jq -s 'add' <(echo "$ALL_ANNOTS") <(echo "$DATA"))
-        if [ "$COUNT" -lt 100 ]; then
-            break
-        fi
-        PAGE=$((PAGE + 1))
-    done
-
-
+PAGE=1
+while true; do
+    RAW=$(gh api "repos/${OWNER}/${REPO}/check-runs/${CHECK_ID}/annotations?per_page=100&page=${PAGE}" 2>/dev/null || echo '[]')
+    DATA=$(echo "$RAW" | jq '[.[] | select(((.annotation_level // "") | ascii_downcase) == "failure" or ((.annotation_level // "") | ascii_downcase) == "error")]' 2>/dev/null || echo '[]')
+    COUNT=$(echo "$DATA" | jq 'length' 2>/dev/null || echo 0)
+    if [ "$COUNT" -eq 0 ]; then
+        break
+    fi
+    ALL_ANNOTS=$(jq -s 'add' <(echo "$ALL_ANNOTS") <(echo "$DATA"))
+    if [ "$COUNT" -lt 100 ]; then
+        break
+    fi
+    PAGE=$((PAGE + 1))
 done
 
 echo "$ALL_ANNOTS" | jq '.' > "$ANN_PATH"
