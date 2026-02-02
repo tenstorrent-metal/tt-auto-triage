@@ -365,12 +365,14 @@ def extract_centroid_metadata(issue_body: str) -> Dict[str, Optional[str]]:
         Dictionary with 'url', 'commit_hash', and 'timestamp' keys
     """
     # Pattern to match numbered list entry with [CENTROID] flag
-    # Format: "1. [[CENTROID] timestamp](url) - workflow / job (commit: abc1234...)"
-    line_pattern = r"^\d+\.\s+\[\[CENTROID\]\s+([^\]]+)\]\(([^)]+)\)(?:\s*-\s*[^(]+)?(?:\s*\(commit:\s*([a-fA-F0-9]+)\))?"
-    
+    # Format: "1. [[CENTROID] timestamp](url) - workflow / job (P150) / more (commit: abc1234...)"
+    # Fixed: Use .+? (non-greedy) to handle parentheses like (P150) in job names
+    # Match commit hash at the end of the line with \(commit:
+    line_pattern = r"^\d+\.\s+\[\[CENTROID\]\s+([^\]]+)\]\(([^)]+)\).*?\(commit:\s*([a-fA-F0-9]+)\)\s*$"
+
     # Split body into lines for processing
     lines = issue_body.split('\n')
-    
+
     for line in lines:
         match = re.match(line_pattern, line)
         if match:
@@ -454,19 +456,20 @@ def extract_run_metadata(issue_body: str) -> Dict[str, Dict[str, Any]]:
     """
     run_metadata = {}
     
-    # Pattern to match lines like: "1. [label](url) - workflow / job (commit: abc1234...)"
+    # Pattern to match lines like: "1. [label](url) - workflow / job (P150) / more (commit: abc1234...)"
     # Also handles [CENTROID] prefix: "1. [[CENTROID] label](url) - workflow / job (commit: abc1234...)"
-    # Note: Use .+? (non-greedy) instead of [^\]]+ because label may contain ] (e.g., [CENTROID] timestamp)
-    line_pattern = r"^\d+\.\s+\[(.+?)\]\(([^)]+)\)(?:\s*-\s*([^(]+))?(?:\s*\(commit:\s*([a-fA-F0-9]+)\))?"
-    
+    # Fixed: Use .*? (non-greedy) to handle parentheses like (P150) in job names
+    # Captures suffix (everything between '-' and '(commit:') and commit hash separately
+    line_pattern = r"^\d+\.\s+\[(.+?)\]\(([^)]+)\)(?:\s*-\s*(.*?))?\s*(?:\(commit:\s*([a-fA-F0-9]+)\))?\s*$"
+
     # Split body into lines for processing
     lines = issue_body.split('\n')
-    
+
     current_url = None
     current_metadata = None
     in_code_block = False
     code_block_lines = []
-    
+
     for i, line in enumerate(lines):
         # Check if this line matches a numbered URL entry
         match = re.match(line_pattern, line)
@@ -475,8 +478,12 @@ def extract_run_metadata(issue_body: str) -> Dict[str, Dict[str, Any]]:
             if current_url and code_block_lines:
                 current_metadata["error_message"] = '\n'.join(code_block_lines).strip()
                 code_block_lines = []
-            
+
             label, url, suffix, commit_hash = match.groups()
+
+            # Clean up suffix - remove trailing whitespace and the commit hash part if it was included
+            if suffix:
+                suffix = suffix.strip()
             
             # Only process GitHub Actions run URLs
             if not ("github.com" in url and ("actions/runs" in url or "/job/" in url)):
