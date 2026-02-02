@@ -143,62 +143,8 @@ def extract_job_id_from_url(job_url: str) -> Optional[int]:
     
     return None
 
-def get_job_name_from_github_api(job_url: str, github_token: str, job_name_cache: Dict[str, str]) -> Optional[str]:
-    """Fetch job name from GitHub API using job URL.
-    
-    Args:
-        job_url: GitHub Actions job URL
-        github_token: GitHub token for API access
-        job_name_cache: Dictionary to cache job names (key: job_url, value: job_name)
-    
-    Returns:
-        Job name string, or None if not found
-    """
-    if not job_url or not github_token:
-        return None
-    
-    # Check cache first
-    if job_url in job_name_cache:
-        return job_name_cache[job_url]
-    
-    try:
-        # Extract job ID from URL
-        job_id = extract_job_id_from_url(job_url)
-        if not job_id:
-            return None
-        
-        # Extract repo owner and name from URL
-        repo_match = re.search(r'github\.com/([^/]+)/([^/]+)/actions', job_url)
-        if not repo_match:
-            return None
-        
-        repo_owner = repo_match.group(1)
-        repo_name = repo_match.group(2)
-        
-        # Fetch job details from GitHub API
-        url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/actions/jobs/{job_id}"
-        headers = {
-            "Authorization": f"token {github_token}",
-            "Accept": "application/vnd.github.v3+json"
-        }
-        
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        job_data = response.json()
-        
-        # Get the job name
-        job_name = job_data.get("name")
-        if job_name:
-            # Cache the result
-            job_name_cache[job_url] = job_name
-            return job_name
-        
-    except Exception as e:
-        print(f"  ⚠ Warning: Could not fetch job name for {job_url}: {e}")
-        # Cache None to avoid repeated failed API calls
-        job_name_cache[job_url] = None
-    
-    return None
+# Job name fetching is now handled by github_api_utils.get_job_name_from_github
+# with persistent caching - this local function is no longer needed
 
 
 def get_slack_message_link(timestamp_str: str, channel_id: str, slack_token: Optional[str] = None) -> Optional[str]:
@@ -436,7 +382,9 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
     github_token = secrets.get("GITHUB_TOKEN", "")
     start_rate_limit = None
     if github_token:
-        from github_api_utils import log_rate_limit_status, check_github_rate_limit
+        from github_api_utils import log_rate_limit_status, check_github_rate_limit, load_commit_hash_cache, load_job_name_cache
+        load_commit_hash_cache()
+        load_job_name_cache()
         log_rate_limit_status(github_token, "start")
         start_rate_limit = check_github_rate_limit(github_token)
     
@@ -608,7 +556,6 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
     skipped_invalid = 0  # Counter for entries skipped due to missing required fields
     skipped_duplicate = 0  # Counter for duplicate URLs (same URL in multiple issues)
     processed_urls: set = set()  # Track processed URLs to prevent duplicates
-    job_name_cache: Dict[str, str] = {}  # Cache for job names to avoid duplicate API calls
     
     for idx, error_entry in enumerate(recent_errors, 1):
         if idx % 50 == 0 or idx == len(recent_errors):
@@ -800,18 +747,19 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
         centroid_job_id = extract_job_id_from_url(centroid_run_url) if centroid_run_url else None
         oldest_job_id = extract_job_id_from_url(oldest_run_url) if oldest_run_url else None
         
-        # Fetch job names from GitHub API (with caching)
+        # Fetch job names from GitHub API (with persistent caching)
         job_name = None
         centroid_job_name = None
         oldest_job_name = None
-        
+
         if github_token:
+            from github_api_utils import get_job_name_from_github
             if job_url:
-                job_name = get_job_name_from_github_api(job_url, github_token, job_name_cache)
+                job_name = get_job_name_from_github(job_url, github_token)
             if centroid_run_url:
-                centroid_job_name = get_job_name_from_github_api(centroid_run_url, github_token, job_name_cache)
+                centroid_job_name = get_job_name_from_github(centroid_run_url, github_token)
             if oldest_run_url:
-                oldest_job_name = get_job_name_from_github_api(oldest_run_url, github_token, job_name_cache)
+                oldest_job_name = get_job_name_from_github(oldest_run_url, github_token)
         
         # Use fallback if job name is not available
         if not job_name:
@@ -928,10 +876,32 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
     api_used = None
     api_remaining = None
     if github_token:
-        from github_api_utils import log_rate_limit_status, check_github_rate_limit
+        from github_api_utils import (
+            log_rate_limit_status, check_github_rate_limit,
+            get_commit_hash_cache_stats, save_commit_hash_cache,
+            get_job_name_cache_stats, save_job_name_cache
+        )
+
+        # Log cache effectiveness
+        commit_stats = get_commit_hash_cache_stats()
+        job_stats = get_job_name_cache_stats()
+        print(f"\n{'='*60}")
+        print("Cache Statistics:")
+        print(f"  Commit hashes cached: {commit_stats['total_entries']} runs")
+        print(f"    - Successful: {commit_stats['found']}")
+        print(f"    - Failed: {commit_stats['not_found']}")
+        print(f"  Job names cached: {job_stats['total_entries']} jobs")
+        print(f"    - Successful: {job_stats['found']}")
+        print(f"    - Failed: {job_stats['not_found']}")
+        print(f"{'='*60}\n")
+
+        # Save caches to disk for next run
+        save_commit_hash_cache()
+        save_job_name_cache()
+
         log_rate_limit_status(github_token, "end")
         end_rate_limit = check_github_rate_limit(github_token)
-        
+
         # Calculate API usage
         if start_rate_limit and end_rate_limit:
             start_remaining = start_rate_limit.get("remaining", 0)

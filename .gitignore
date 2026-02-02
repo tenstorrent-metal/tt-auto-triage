@@ -13,5 +13,7 @@ secrets.json
 */incremental_error_report.json
 */grouped_errors.json
 */build_slack_export_with_threads.json
+*/commit_hash_cache.json
+*/job_name_cache.json
 */debug.log
 temp.json
