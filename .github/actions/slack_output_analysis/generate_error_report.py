@@ -399,14 +399,27 @@ def generate_error_report() -> tuple[List[Dict[str, Any]], str]:
         sys.exit(1)
     
     # Refresh issue dump from GitHub before loading (ensures we have latest data after rebuild)
-    print(f"\nRefreshing issue dump from GitHub...")
-    try:
-        import download_issue_dump
-        download_issue_dump.main()
-        print(f"  ✓ Refreshed issue dump from GitHub")
-    except Exception as e:
-        print(f"  ⚠ Warning: Could not refresh issue dump: {e}")
-        print(f"  Will use existing {ISSUE_DUMP_FILE} if available")
+    # BUT skip if issue_dump.json was recently modified (e.g., by sync_new_errors.py)
+    # to avoid redundant API calls and processing
+    REFRESH_THRESHOLD_MINUTES = 5  # Skip refresh if file is newer than this
+
+    should_refresh = True
+    if os.path.exists(ISSUE_DUMP_FILE):
+        file_mtime = os.path.getmtime(ISSUE_DUMP_FILE)
+        file_age_minutes = (datetime.now().timestamp() - file_mtime) / 60
+        if file_age_minutes < REFRESH_THRESHOLD_MINUTES:
+            print(f"\n  ✓ Using existing issue_dump.json (modified {file_age_minutes:.1f} minutes ago, threshold: {REFRESH_THRESHOLD_MINUTES} min)")
+            should_refresh = False
+
+    if should_refresh:
+        print(f"\nRefreshing issue dump from GitHub...")
+        try:
+            import download_issue_dump
+            download_issue_dump.main()
+            print(f"  ✓ Refreshed issue dump from GitHub")
+        except Exception as e:
+            print(f"  ⚠ Warning: Could not refresh issue dump: {e}")
+            print(f"  Will use existing {ISSUE_DUMP_FILE} if available")
     
     # Load issue dump (already filtered to only open issues by download_issue_dump.py)
     try:
