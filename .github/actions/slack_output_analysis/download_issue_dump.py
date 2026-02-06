@@ -366,9 +366,13 @@ def extract_centroid_metadata(issue_body: str) -> Dict[str, Optional[str]]:
     """
     # Pattern to match numbered list entry with [CENTROID] flag
     # Format: "1. [[CENTROID] timestamp](url) - workflow / job (P150) / more (commit: abc1234...)"
-    # Fixed: Use .+? (non-greedy) to handle parentheses like (P150) in job names
-    # Match commit hash at the end of the line with \(commit:
-    line_pattern = r"^\d+\.\s+\[\[CENTROID\]\s+([^\]]+)\]\(([^)]+)\).*?\(commit:\s*([a-fA-F0-9]+)\)\s*$"
+    # Fixed: Use non-greedy matching to handle parentheses like (P150) in job names.
+    # The "(commit: ...)" suffix is optional (older issues may not have it) but, when present,
+    # it is still anchored near the end of the line so earlier parentheses don't break matching.
+    line_pattern = (
+        r"^\d+\.\s+\[\[CENTROID\]\s+([^\]]+)\]\(([^)]+)\)"
+        r"(?:.*?\(commit:\s*([a-fA-F0-9]+)\))?\s*$"
+    )
 
     # Split body into lines for processing
     lines = issue_body.split('\n')
@@ -463,9 +467,9 @@ def extract_run_metadata(issue_body: str) -> Dict[str, Dict[str, Any]]:
     
     # Pattern to match lines like: "1. [label](url) - workflow / job (P150) / more (commit: abc1234...)"
     # Also handles [CENTROID] prefix: "1. [[CENTROID] label](url) - workflow / job (commit: abc1234...)"
-    # Fixed: Use .*? (non-greedy) to handle parentheses like (P150) in job names
+    # Uses greedy .+ for label so embedded ] (e.g. [CENTROID]) don't stop the match early
     # Captures suffix (everything between '-' and '(commit:') and commit hash separately
-    line_pattern = r"^\d+\.\s+\[(.+?)\]\(([^)]+)\)(?:\s*-\s*(.*?))?\s*(?:\(commit:\s*([a-fA-F0-9]+)\))?\s*$"
+    line_pattern = r"^\d+\.\s+\[(.+)\]\(([^)]+)\)(?:\s*-\s*(.*?))?\s*(?:\(commit:\s*([a-fA-F0-9]+)\))?\s*$"
 
     # Split body into lines for processing
     lines = issue_body.split('\n')

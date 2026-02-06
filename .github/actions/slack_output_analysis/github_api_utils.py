@@ -40,8 +40,13 @@ def load_commit_hash_cache() -> None:
     if os.path.exists(COMMIT_HASH_CACHE_FILE):
         try:
             with open(COMMIT_HASH_CACHE_FILE, 'r', encoding='utf-8') as f:
-                _commit_hash_cache = json.load(f)
-            print(f"  ✓ Loaded commit hash cache with {len(_commit_hash_cache)} entries")
+                loaded = json.load(f)
+            if not isinstance(loaded, dict):
+                print(f"  ⚠ Warning: Commit hash cache is not a dict (got {type(loaded).__name__}), resetting")
+                _commit_hash_cache = {}
+            else:
+                _commit_hash_cache = loaded
+                print(f"  ✓ Loaded commit hash cache with {len(_commit_hash_cache)} entries")
         except (json.JSONDecodeError, Exception) as e:
             print(f"  ⚠ Warning: Could not load commit hash cache: {e}")
             _commit_hash_cache = {}
@@ -73,8 +78,13 @@ def load_job_name_cache() -> None:
     if os.path.exists(JOB_NAME_CACHE_FILE):
         try:
             with open(JOB_NAME_CACHE_FILE, 'r', encoding='utf-8') as f:
-                _job_name_cache = json.load(f)
-            print(f"  ✓ Loaded job name cache with {len(_job_name_cache)} entries")
+                loaded = json.load(f)
+            if not isinstance(loaded, dict):
+                print(f"  ⚠ Warning: Job name cache is not a dict (got {type(loaded).__name__}), resetting")
+                _job_name_cache = {}
+            else:
+                _job_name_cache = loaded
+                print(f"  ✓ Loaded job name cache with {len(_job_name_cache)} entries")
         except (json.JSONDecodeError, Exception) as e:
             print(f"  ⚠ Warning: Could not load job name cache: {e}")
             _job_name_cache = {}
