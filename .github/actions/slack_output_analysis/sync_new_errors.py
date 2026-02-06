@@ -1278,6 +1278,78 @@ def process_new_error(error_entry: List, issue_dump: List[Dict[str, Any]], centr
 # Main Function
 # ============================================================================
 
+def cleanup_duplicate_nd_tags():
+    """[TO REVERT] One-time cleanup: collapse duplicate '(marked as ND)' tags in all open issues.
+    
+    This fixes a bug where each sync cycle appended an extra '(marked as ND)' to centroid labels.
+    After running once, this function (and its call in main()) should be removed.
+    """
+    print("="*80)
+    print("[TO REVERT] Cleaning up duplicate '(marked as ND)' tags in all open issues...")
+    print("="*80)
+    
+    url = f"https://api.github.com/repos/{GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}/issues"
+    headers = {
+        "Authorization": f"token {GITHUB_TOKEN}",
+        "Accept": "application/vnd.github.v3+json"
+    }
+    
+    # Fetch all open issues
+    all_issues = []
+    page = 1
+    while True:
+        params = {"state": "open", "per_page": 100, "page": page}
+        try:
+            response = requests.get(url, headers=headers, params=params)
+            response.raise_for_status()
+            issues = response.json()
+            actual_issues = [i for i in issues if "pull_request" not in i]
+            all_issues.extend(actual_issues)
+            if len(issues) < 100:
+                break
+            page += 1
+            time.sleep(0.5)
+        except Exception as e:
+            print(f"  ERROR fetching issues: {e}")
+            break
+    
+    print(f"  Found {len(all_issues)} open issue(s)")
+    
+    fixed_count = 0
+    for issue in all_issues:
+        body = issue.get("body", "")
+        if not body:
+            continue
+        
+        # Check if there are duplicate (marked as ND) tags
+        if "(marked as ND) (marked as ND)" not in body:
+            continue
+        
+        # Collapse all runs of "(marked as ND)" (with spaces between) into a single one
+        # This regex matches one or more consecutive "(marked as ND)" with optional whitespace
+        cleaned_body = re.sub(r'(\(marked as ND\)\s*){2,}', '(marked as ND) ', body)
+        # Clean up any trailing space before ] or )
+        cleaned_body = re.sub(r'\(marked as ND\)\s+\]', '(marked as ND)]', cleaned_body)
+        
+        if cleaned_body == body:
+            continue
+        
+        issue_number = issue["number"]
+        print(f"  Fixing issue #{issue_number}: removing duplicate ND tags")
+        
+        try:
+            patch_url = f"https://api.github.com/repos/{GITHUB_REPO_OWNER}/{GITHUB_REPO_NAME}/issues/{issue_number}"
+            response = requests.patch(patch_url, json={"body": cleaned_body}, headers=headers)
+            response.raise_for_status()
+            fixed_count += 1
+            time.sleep(0.5)
+        except Exception as e:
+            print(f"  ERROR updating issue #{issue_number}: {e}")
+    
+    print(f"  Fixed {fixed_count} issue(s)")
+    print("="*80)
+
+
 def main():
     """Main function."""
     print("="*80)
@@ -1291,6 +1363,9 @@ def main():
         from github_api_utils import load_commit_hash_cache
         load_commit_hash_cache()
         log_rate_limit_status(github_token, "start")
+    
+    # [TO REVERT] One-time cleanup of duplicate ND tags
+    cleanup_duplicate_nd_tags()
     
     # Refresh issue dump from GitHub project to ensure it's up to date
     print(f"\n{'='*80}")
