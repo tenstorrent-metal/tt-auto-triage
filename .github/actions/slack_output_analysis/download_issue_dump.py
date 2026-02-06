@@ -376,11 +376,16 @@ def extract_centroid_metadata(issue_body: str) -> Dict[str, Optional[str]]:
     for line in lines:
         match = re.match(line_pattern, line)
         if match:
-            timestamp, url, commit_hash = match.groups()
+            raw_timestamp, url, commit_hash = match.groups()
+            # Clean the timestamp: strip "(marked as ND)" to avoid accumulation
+            # on each sync cycle (the ND flag is tracked separately in is_nd)
+            clean_timestamp = raw_timestamp.strip() if raw_timestamp else None
+            if clean_timestamp:
+                clean_timestamp = clean_timestamp.replace("(marked as ND)", "").strip()
             return {
                 "url": url.strip() if url else None,
                 "commit_hash": commit_hash.strip() if commit_hash else None,
-                "timestamp": timestamp.strip() if timestamp else None
+                "timestamp": clean_timestamp
             }
     
     return {
