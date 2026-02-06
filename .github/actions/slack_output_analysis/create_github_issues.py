@@ -1192,11 +1192,13 @@ def main():
     print("="*80)
     print("GitHub Issue Creator from Grouped Errors")
     print("="*80)
-    
+
     # Check GitHub API rate limit at start
     secrets = load_secrets()
     github_token = secrets.get("GITHUB_TOKEN", "")
     if github_token:
+        from github_api_utils import load_commit_hash_cache
+        load_commit_hash_cache()
         log_rate_limit_status(github_token, "start")
     
     # Check credentials
@@ -1255,7 +1257,22 @@ def main():
     print("\n" + "="*80)
     print("All groups processed!")
     print("="*80)
-    
+
+    # Log cache effectiveness and save cache
+    if github_token:
+        from github_api_utils import get_commit_hash_cache_stats, save_commit_hash_cache
+
+        cache_stats = get_commit_hash_cache_stats()
+        print(f"\n{'='*60}")
+        print("Commit Hash Cache Statistics:")
+        print(f"  Total cached runs: {cache_stats['total_entries']}")
+        print(f"  Successful fetches: {cache_stats['found']}")
+        print(f"  Failed fetches: {cache_stats['not_found']}")
+        print(f"{'='*60}\n")
+
+        # Save cache to disk for next run
+        save_commit_hash_cache()
+
     # Check GitHub API rate limit at end
     if github_token:
         log_rate_limit_status(github_token, "end")
